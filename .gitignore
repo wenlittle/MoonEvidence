@@ -1,0 +1,18 @@
+# MoonBit / build artifacts
+target/
+.moon/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local generated evidence packs
+examples/generated/
+

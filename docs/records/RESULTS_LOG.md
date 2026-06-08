@@ -65,6 +65,16 @@ This file records measured results, source checks, and environment status. Keep 
 | Important observation | Current toolchain feature flags include `rr_moon_mod` and `rr_moon_pkg`; `moon new` generates `moon.mod` and `moon.pkg`, not JSON-named config files |
 | Impact | Project config should use `moon.mod` / `moon.pkg` and be validated with the real CLI |
 
+### MoonBit CLI Relocation to D Drive
+
+| Field | Result |
+| --- | --- |
+| Source | Local filesystem and user PATH |
+| Method | Copied `C:\Users\starlittle\.moon` to `D:\Programming_Language\MoonBit`; replaced user PATH entry `C:\Users\starlittle\.moon\bin` with `D:\Programming_Language\MoonBit\bin` |
+| Verification | `D:\Programming_Language\MoonBit\bin\moon.exe version` works; `moon test` passed with 9/9 tests after relocation |
+| Backup | Old `C:\Users\starlittle\.moon` directory is still present as backup |
+| Note | Existing Codex app child processes may not inherit the changed user PATH until terminal/app restart |
+
 ### First MoonBit Package Implementation
 
 | Field | Result |

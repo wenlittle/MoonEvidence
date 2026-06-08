@@ -13,10 +13,16 @@ function Get-ToolStatus {
 
   $cmd = Get-Command $Name -ErrorAction SilentlyContinue
   if (-not $cmd -and $Name -eq "moon") {
-    $moonHomePath = Join-Path $HOME ".moon\bin\moon.exe"
-    if (Test-Path $moonHomePath) {
-      $cmd = [PSCustomObject]@{
-        Source = $moonHomePath
+    $candidatePaths = @(
+      "D:\Programming_Language\MoonBit\bin\moon.exe",
+      (Join-Path $HOME ".moon\bin\moon.exe")
+    )
+    foreach ($candidatePath in $candidatePaths) {
+      if (Test-Path $candidatePath) {
+        $cmd = [PSCustomObject]@{
+          Source = $candidatePath
+        }
+        break
       }
     }
   }

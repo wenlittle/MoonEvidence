@@ -7,7 +7,7 @@ This file records prerequisites and current local state.
 | Tool | Purpose | Current local state |
 | --- | --- | --- |
 | Git | Repository, commits, GitHub/GitLink sync | Found: `D:\Git\cmd\git.exe` |
-| MoonBit CLI (`moon`) | Build, check, test, package docs | Not found in current PATH |
+| MoonBit CLI (`moon`) | Build, check, test, package docs | Installed at `C:\Users\starlittle\.moon\bin\moon.exe`; current Codex parent PATH may need restart |
 | PowerShell | Local scripts and checks | Available |
 | Node.js | Optional comparison scripts and demo helpers | Found: `D:\Programming_Language\Node\node.exe` |
 | GitHub account | Public repository and CI | To be prepared |
@@ -30,6 +30,11 @@ moon test
 ```
 
 If `moon` is installed but not found, restart the terminal and check PATH.
+In the current Codex session, direct invocation works:
+
+```powershell
+& "$HOME\.moon\bin\moon.exe" version
+```
 
 ## Local Environment Check
 
@@ -43,5 +48,7 @@ The script is read-only. It checks tool availability and Mooncakes API reachabil
 
 ## Current Blocker
 
-As of 2026-06-08 Asia/Shanghai, `moon version` fails locally because `moon` is not recognized. Do not claim the project builds until this is fixed and logged.
+As of 2026-06-08 Asia/Shanghai, MoonBit CLI is installed and direct invocation works. The first local version observed is `moon 0.1.20260529`.
+
+Current toolchain generates `moon.mod` and `moon.pkg`, not `moon.mod.json` and `moon.pkg.json`.
 

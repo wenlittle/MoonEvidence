@@ -8,6 +8,7 @@ moon-evidence/
     workflows/
       README.md
   .gitignore
+  moon.mod
   README.md
   docs/
     ARCHITECTURE.md
@@ -32,8 +33,14 @@ moon-evidence/
     README.md
     canonjson/
       README.md
+      canonjson.mbt
+      canonjson_wbtest.mbt
+      moon.pkg
     digest/
       README.md
+      digest.mbt
+      digest_wbtest.mbt
+      moon.pkg
     merkle/
       README.md
     model/
@@ -56,4 +63,3 @@ moon-evidence/
 ## Tracking Rule
 
 Update this file when a top-level directory, package boundary, or reusable tool changes.
-

@@ -12,6 +12,14 @@ function Get-ToolStatus {
   )
 
   $cmd = Get-Command $Name -ErrorAction SilentlyContinue
+  if (-not $cmd -and $Name -eq "moon") {
+    $moonHomePath = Join-Path $HOME ".moon\bin\moon.exe"
+    if (Test-Path $moonHomePath) {
+      $cmd = [PSCustomObject]@{
+        Source = $moonHomePath
+      }
+    }
+  }
   if (-not $cmd) {
     return [PSCustomObject]@{
       name = $Name
@@ -39,22 +47,30 @@ function Get-ToolStatus {
 function Test-Url {
   param([Parameter(Mandatory = $true)][string]$Url)
 
-  try {
-    $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 20
-    return [PSCustomObject]@{
-      url = $Url
-      ok = $true
-      status = [int]$response.StatusCode
-      length = $response.Content.Length
+  $lastError = $null
+  for ($attempt = 1; $attempt -le 3; $attempt++) {
+    try {
+      $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 20
+      return [PSCustomObject]@{
+        url = $Url
+        ok = $true
+        status = [int]$response.StatusCode
+        length = $response.Content.Length
+        attempts = $attempt
+      }
+    } catch {
+      $lastError = $_.Exception.Message
+      Start-Sleep -Seconds 1
     }
-  } catch {
-    return [PSCustomObject]@{
-      url = $Url
-      ok = $false
-      status = $null
-      length = $null
-      error = $_.Exception.Message
-    }
+  }
+
+  [PSCustomObject]@{
+    url = $Url
+    ok = $false
+    status = $null
+    length = $null
+    attempts = 3
+    error = $lastError
   }
 }
 
@@ -78,4 +94,3 @@ if ($Json) {
   $result.tools | Format-Table -AutoSize
   $result.network | Format-Table -AutoSize
 }
-

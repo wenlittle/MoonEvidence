@@ -1,5 +1,6 @@
 # MoonBit / build artifacts
 target/
+_build/
 .moon/
 
 # Logs and temporary files
@@ -15,4 +16,3 @@ Thumbs.db
 
 # Local generated evidence packs
 examples/generated/
-

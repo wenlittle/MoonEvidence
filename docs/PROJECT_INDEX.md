@@ -46,7 +46,7 @@ Use `docs/records/RESULTS_LOG.md` for measured facts and `docs/records/DECISION_
 
 ## Next Actions
 
-1. Install or expose MoonBit CLI so `moon version` works.
-2. Generate or verify MoonBit module/package files with the real toolchain.
-3. Implement `canonjson` and `digest` first.
-4. Add fixture evidence packs and tests before expanding features.
+1. Run `moon check` and `moon test` against the first `canonjson` and `digest` packages.
+2. Fix syntax/API issues found by the real compiler.
+3. Add fixture evidence packs and tests before expanding features.
+4. Keep `RESULTS_LOG.md` updated after each verified result.

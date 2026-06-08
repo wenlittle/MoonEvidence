@@ -41,7 +41,7 @@ This file records measured results, source checks, and environment status. Keep 
 | Git | Found: `D:\Git\cmd\git.exe`, version `git version 2.52.0.windows.1` |
 | Node.js | Found: `D:\Programming_Language\Node\node.exe`, version `v24.12.0` |
 | npm | Found: `D:\Programming_Language\Node\npm.ps1`, version `11.6.2` |
-| MoonBit CLI | Not found: `moon` command is not recognized |
+| MoonBit CLI | Initially not found in Codex parent PATH; installed to `C:\Users\starlittle\.moon\bin\moon.exe` and direct invocation works |
 | Git repository | Current course root is not a Git repository |
 
 ### Environment Script Check
@@ -53,6 +53,27 @@ This file records measured results, source checks, and environment status. Keep 
 | Network result | `https://mooncakes.io/api/v0/modules` returned HTTP 200; `https://www.moonbitlang.com/download/` returned HTTP 200 |
 | Tool result | Git, Node.js, and npm found; MoonBit CLI not found |
 | Impact | Environment can reach required project websites, but MoonBit toolchain installation remains the first blocker |
+
+### MoonBit CLI Installation
+
+| Field | Result |
+| --- | --- |
+| Source | Official MoonBit download page command: `https://www.moonbitlang.com/download/` |
+| Method | Ran `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force; irm https://cli.moonbitlang.com/install/powershell.ps1 \| iex` |
+| Installed path | `C:\Users\starlittle\.moon\bin` |
+| Version | `moon 0.1.20260529 (3e1c753 2026-05-29)` |
+| Important observation | Current toolchain feature flags include `rr_moon_mod` and `rr_moon_pkg`; `moon new` generates `moon.mod` and `moon.pkg`, not JSON-named config files |
+| Impact | Project config should use `moon.mod` / `moon.pkg` and be validated with the real CLI |
+
+### First MoonBit Package Implementation
+
+| Field | Result |
+| --- | --- |
+| Source | Local implementation under `src/canonjson` and `src/digest` |
+| Method | Added real MoonBit module config and first package files |
+| Scope | `canonjson` compact canonical payload helpers; `digest` algorithm/hex normalization and digest parsing |
+| Verification | `moon check` passed; `moon test` passed with 9/9 tests; `moon build --target native` passed |
+| Important fix | `core/json.stringify()` preserves object order, so `canonjson` now recursively sorts object keys before rendering |
 
 
 ## Logging Rule

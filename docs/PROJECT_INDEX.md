@@ -46,7 +46,8 @@ Use `docs/records/RESULTS_LOG.md` for measured facts and `docs/records/DECISION_
 
 ## Next Actions
 
-1. Run `moon check` and `moon test` against the first `canonjson` and `digest` packages.
-2. Fix syntax/API issues found by the real compiler.
-3. Add fixture evidence packs and tests before expanding features.
-4. Keep `RESULTS_LOG.md` updated after each verified result.
+1. Freeze the minimal `manifest.json` model in MoonBit and validate required fields.
+2. Add one valid evidence pack fixture and one tampered fixture before expanding feature scope.
+3. Implement Merkle root/proof verification with explicit leaf and sibling encoding rules.
+4. Add structured diagnostics so CLI output can explain why a pack passed or failed.
+5. Keep `RESULTS_LOG.md` updated after each verified result.

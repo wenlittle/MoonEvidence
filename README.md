@@ -30,5 +30,11 @@ MoonEvidence is not a blockchain application or smart contract framework. It is 
 
 ## Current Status
 
-Project preparation is in progress. The local machine does not currently expose the `moon` command, so MoonBit toolchain installation and generated MoonBit package files still need verification.
+Project preparation is complete enough for implementation. MoonBit CLI is installed on the D drive, `canonjson` and `digest` MVP packages are implemented, and the current local verification result is:
 
+```powershell
+moon test
+moon build --target native
+```
+
+Both commands pass locally as of 2026-06-08 Asia/Shanghai.

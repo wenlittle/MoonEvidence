@@ -152,6 +152,43 @@ This file records measured results, source checks, and environment status. Keep 
 | Resolution | Implement `Show` manually for `HashAlgorithm` (renders `sha256`) and `Digest` (renders `algorithm:hex`), matching evidence-pack text form |
 | Impact | Future packages (model, diag) should implement `Show` manually instead of deriving it |
 
+## 2026-06-11 Asia/Shanghai (master plan step 2)
+
+### Critical Finding: MoonBit String compare is shortlex, not RFC 8785 order
+
+| Field | Result |
+| --- | --- |
+| Source | `D:\Programming_Language\MoonBit\lib\core\builtin\string.mbt` (`impl Compare for String`, doc comment "shortlex order by their charcodes") |
+| Method | Read core source before implementing key ordering |
+| Key result | Builtin compare sorts by length first, then code units; it would order `"b" < "aa"`, violating RFC 8785 section 3.2.3 pure lexicographic code-unit order |
+| Impact | The master plan assumption "UTF-16 code unit order matches MoonBit default comparison" is WRONG; the previous canonjson sort (using `left_key.compare(right_key)`) produced non-JCS output for keys of different lengths. Step 2 replaced it with a custom `compare_code_units` and pinned regression tests (`"b"/"aa"`, surrogate-pair vs BMP key) |
+| Confidence | High (core source + failing-order test would have caught it) |
+
+### JCS Vector Verification (canonjson)
+
+| Field | Result |
+| --- | --- |
+| Source | RFC 8785 section 3.2.3 sorting example; cyberphone/json-canonicalization testdata (french, structures, arrays), mirrored in `tests/fixtures/jcs/` and inlined in `src/canonjson/canonjson_jcs_wbtest.mbt` |
+| Method | `moon test` asserts canonical output equals the official expected bytes, plus a fixed-point (idempotency) assertion per vector |
+| Vectors passed | rfc8785-sorting (surrogate pair before U+FB33), french (locale ignored), structures (empty key, string-not-number key order, 56.0 -> 56), arrays |
+| Skipped | Number-formatting vectors requiring L2 shortest-form rendering; documented with reasons in `tests/fixtures/jcs/SKIPPED.md`, each guarded by an `UnsupportedNumber` negative test |
+| Confidence | High for the implemented scope |
+
+### Step 2 Deliverable Status
+
+| Task | Status |
+| --- | --- |
+| 2.1 self-implemented JCS string escaping | Done (commit baacdab): exact escape set `\" \\ \b \f \n \r \t` + lowercase `\u00xx` below U+0020; `/`, U+007F, non-ASCII verbatim |
+| 2.2 UTF-16 code-unit key ordering | Done (commit baacdab) via custom comparator (see critical finding above), surrogate-pair test included |
+| 2.3 number policy L1 safe subset | Done (commit baacdab): exact integers within 2^53-1 render plain (`-0 -> 0`, `5.0 -> 5`, `1e2 -> 100`); fractions, lossy integers, overflow all raise `CanonError::UnsupportedNumber` |
+| 2.4 official JCS vectors | Done this session: 4 vectors green, skip list documented |
+| 2.5 idempotency tests | Done: fixed-point assertion on every vector plus a mixed-document case |
+| Acceptance | `moon check` exit 0 (0 warnings); `moon test` 52/52 passed; `moon build --target native` exit 0 |
+
+### API Change Note
+
+`@canonjson.canonicalize` now raises `CanonError` (ParseFailed / UnsupportedNumber) instead of leaking `@json.ParseError`, matching the frozen signature in `docs/ARCHITECTURE.md`. `canonicalize_or_none` and `same_canonical_payload` keep their shapes.
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

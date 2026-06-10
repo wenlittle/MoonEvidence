@@ -189,6 +189,36 @@ This file records measured results, source checks, and environment status. Keep 
 
 `@canonjson.canonicalize` now raises `CanonError` (ParseFailed / UnsupportedNumber) instead of leaking `@json.ParseError`, matching the frozen signature in `docs/ARCHITECTURE.md`. `canonicalize_or_none` and `same_canonical_payload` keep their shapes.
 
+## 2026-06-11 Asia/Shanghai (master plan step 3)
+
+### Merkle Cross-Validation Against Independent Reference
+
+| Field | Result |
+| --- | --- |
+| Source | `tools/gen-merkle-fixtures.mjs` (Node.js v24, `node:crypto`) implementing the same frozen boundary; output committed as `tests/fixtures/merkle/golden.json` |
+| Method | Reference generates roots and inclusion proofs for shapes 1/2/3/4/5/8 over payloads `leaf-0..n`; MoonBit tests assert byte-identical roots (all shapes) and proof structures (8-leaf index 3, 5-leaf promoted index 4) |
+| Key result | All golden roots and pinned proofs match; promotion semantics independently confirmed (5th leaf joins the 4-leaf subtree root LEFT-side in a single step) |
+| Confidence | High (two independent codebases agree) |
+
+### Step 3 Deliverable Status
+
+| Task | Status |
+| --- | --- |
+| 3.1 merkle.mbt API (leaf_hash / node_hash / compute_root / ProofStep / verify_inclusion) | Done (commit 27e06ca) per frozen ARCHITECTURE signatures; `compute_proof` added as a documented helper beyond the minimum set (needed by round-trip tests, step-8 property tests, and the step-9 demo) |
+| 3.2 odd-level promotion policy | Done: unpaired nodes promoted as-is, never self-paired; CVE-2012-2459 cited in code and pinned by a test asserting the self-paired root differs |
+| 3.3 defensive test matrix | Done: empty/1/2/3/4/5/8 shapes, forged sibling, flipped side, truncated/extended proof, wrong leaf, domain-separation collision checks |
+| 3.4 reference cross-check | Done this session (see above) |
+| Acceptance | `moon check` exit 0 (0 warnings); `moon test` 70/70 passed; `moon build --target native` exit 0 |
+
+### Toolchain Observation: assert_eq Show deprecation for user types
+
+| Field | Result |
+| --- | --- |
+| Source | `moon 0.1.20260529` warning [0020] on builtin `assert_eq` over `Array[ProofStep]` |
+| Method | Builtin `assert_eq` requires `Eq + Show` (deprecated for debugging); `@debug.assert_eq` requires `Eq + Debug` |
+| Resolution | Custom structs derive `@debug.Debug` (requires importing `moonbitlang/core/debug` in moon.pkg) and tests use `@debug.assert_eq` for struct comparisons; manual `Show` impls kept for wire-form rendering (`Side` prints `left`/`right`) |
+| Impact | Same pattern applies to model/diag packages in steps 4-5 |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

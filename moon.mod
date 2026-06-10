@@ -20,3 +20,7 @@ keywords = [
 ]
 
 description = "Trusted evidence pack verification library and CLI for MoonBit."
+
+import {
+  "moonbitlang/x@0.4.45",
+}

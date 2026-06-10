@@ -1,0 +1,12 @@
+import {
+  "moonbitlang/core/env" @env,
+  "moonbitlang/x/fs" @fs,
+  "moonbitlang/x/sys" @sys,
+  "wenlittle/MoonEvidence/src/model" @model,
+  "wenlittle/MoonEvidence/src/verify" @verify,
+  "wenlittle/MoonEvidence/src/diag" @diag,
+}
+
+options(
+  "is-main": true,
+)

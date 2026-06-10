@@ -2,6 +2,7 @@
 target/
 _build/
 .moon/
+.mooncakes/
 
 # Logs and temporary files
 *.log

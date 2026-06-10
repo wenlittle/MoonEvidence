@@ -1,12 +1,8 @@
-# CI Placeholder
+# CI Workflows
 
-Add the real GitHub Actions workflow after the local MoonBit CLI is installed and these commands pass locally:
+- `ci.yml`: runs `moon check`, `moon test`, and `moon build --target native` on
+  every push and pull request to `main`. The wasm-gc/js build matrix will be
+  added when the multi-backend delivery step lands (master plan step 9).
 
-```powershell
-moon check
-moon test
-moon build --target native
-```
-
-Do not add a workflow that is expected to fail on first push.
-
+All commands in the workflow must pass locally before being added here, so a
+red main branch always signals a real regression instead of CI drift.

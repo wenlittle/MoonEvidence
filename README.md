@@ -1,5 +1,7 @@
 # MoonEvidence
 
+[![CI](https://github.com/wenlittle/MoonEvidence/actions/workflows/ci.yml/badge.svg)](https://github.com/wenlittle/MoonEvidence/actions/workflows/ci.yml)
+
 MoonEvidence is a MoonBit ecosystem project for trusted evidence pack verification.
 
 The project goal is to provide a reusable MoonBit library and native CLI that can verify whether a group of files, metadata, Merkle proofs, and version records remain complete and untampered.

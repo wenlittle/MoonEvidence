@@ -240,6 +240,35 @@ This file records measured results, source checks, and environment status. Keep 
 | Impact | Merkle leaf hashing re-renders `files[]` entries byte-exactly from the model, so an uppercase digest in a manifest cannot silently produce a different leaf hash than the packer computed; it is rejected as E2002 instead |
 | Note | Digest algorithm must also match `hash_algorithm`; the mismatch branch is untestable while only sha256 is supported and will activate when a second algorithm lands |
 
+## 2026-06-11 Asia/Shanghai (master plan step 5)
+
+### End-to-End Golden Pack Cross-Check
+
+| Field | Result |
+| --- | --- |
+| Source | `tools/gen-pack-fixture.mjs` (independent Node implementation of digests, canonical entries, and the Merkle root) |
+| Method | Node computes the golden pack's file digests, canonical manifest digest, and Merkle root; MoonBit `verify_manifest` must return ok with zero findings against those values |
+| Key result | Valid pack verifies green end to end, including the optional `expected_manifest_digest` (E2004) path - the full pipeline (canonjson -> digest -> merkle -> model -> verify) agrees with the reference implementation |
+| Confidence | High |
+
+### Step 5 Deliverable Status
+
+| Task | Status |
+| --- | --- |
+| 5.1 diag package | Done: `Severity/Finding/CheckStats/VerifyReport` + `explain` + `to_json` (canonical JSON via canonjson, digest-stable report bytes); CheckStats pinned as files_total/files_passed/merkle_checked with error/warning counts derived |
+| 5.2 verify pipeline | Done: parse -> canonicalize (E1004) -> recorded manifest digest (E2004, optional arg) -> file digests (E2003, exhaustive) -> unlisted files (W1001, warning keeps ok) -> Merkle root (E3001/E3003); pure core, files injected as `Map[String, Bytes]` |
+| 5.3 version chain verification | Done: E4001 empty, E4002 broken parent, E4003 cycle (no-root and detached), E4004 duplicate id / multiple roots / fork; `ChainReport.ordered_ids` holds the walked prefix on failure |
+| 5.4 explain format frozen | Done: verdict line + one finding per line + summary tail; README "Diagnostics Preview" section added |
+| Acceptance | Every frozen code E1001-E4004 plus W1001 has a triggering test; valid pack = ok with zero findings; `moon check` 0 warnings; `moon test` 125/125; native build exit 0 |
+
+### Semantics Note: what the Merkle root attests
+
+Content tampering alone trips E2003 but NOT E3003: the tree is built over
+canonical manifest entries, which are unchanged. Editing a digest inside the
+manifest trips both (entry changed -> root drifts; file no longer matches the
+edited digest). A test pins each behavior so the demo narrative ("which line
+of defense caught what") stays accurate.
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

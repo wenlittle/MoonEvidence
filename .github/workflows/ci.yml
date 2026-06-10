@@ -31,3 +31,14 @@ jobs:
 
       - name: Build native
         run: moon build --target native
+
+      - name: CLI black-box tests (native)
+        shell: pwsh
+        run: ./tools/cli-test.ps1 -Target native
+
+      - name: Build js
+        run: moon build --target js
+
+      - name: CLI black-box tests (js)
+        shell: pwsh
+        run: ./tools/cli-test.ps1 -Target js

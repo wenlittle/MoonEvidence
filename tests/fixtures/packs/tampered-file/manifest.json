@@ -1,0 +1,25 @@
+{
+  "schema": "moon-evidence/v0",
+  "subject": {
+    "id": "fixture-tampered-file",
+    "type": "dataset"
+  },
+  "hash_algorithm": "sha256",
+  "files": [
+    {
+      "path": "files/a.txt",
+      "size": 15,
+      "digest": "sha256:92060adfb77c8f44ba9d4fea07815da7fc53185bf70814a545a49cde0cf0e5e4"
+    },
+    {
+      "path": "files/b.bin",
+      "size": 4,
+      "digest": "sha256:054edec1d0211f624fed0cbca9d4f9400b0e491c43742af2c5b0abebf0c990d8"
+    }
+  ],
+  "merkle_root": "sha256:e2a3c8ff56a950a46acf495b6b597b022b663dbf3fb6b317e10b0f78c4a50d6a",
+  "version": {
+    "id": "v1",
+    "parent": null
+  }
+}

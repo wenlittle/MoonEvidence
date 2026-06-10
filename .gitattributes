@@ -5,3 +5,7 @@
 # Evidence pack payloads are digest-sensitive: never rewrite their bytes.
 examples/*/files/** binary
 
+# Generated tamper-matrix packs: byte-exact subtree, no EOL handling at all
+# (manifests included - CI diffs them against the generator output).
+tests/fixtures/packs/** -text
+

@@ -1,0 +1,25 @@
+{
+  "schema": "moon-evidence/v0",
+  "subject": {
+    "id": "fixture-bad-merkle-root",
+    "type": "dataset"
+  },
+  "hash_algorithm": "sha256",
+  "files": [
+    {
+      "path": "files/a.txt",
+      "size": 15,
+      "digest": "sha256:92060adfb77c8f44ba9d4fea07815da7fc53185bf70814a545a49cde0cf0e5e4"
+    },
+    {
+      "path": "files/b.bin",
+      "size": 4,
+      "digest": "sha256:054edec1d0211f624fed0cbca9d4f9400b0e491c43742af2c5b0abebf0c990d8"
+    }
+  ],
+  "merkle_root": "sha256:b22e80dff427132c4e9436394654ff4f67368292ab03fdb037db9439424a8481",
+  "version": {
+    "id": "v1",
+    "parent": null
+  }
+}

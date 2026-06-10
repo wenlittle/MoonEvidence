@@ -1,0 +1,30 @@
+{
+  "schema": "moon-evidence/v0",
+  "subject": {
+    "id": "fixture-missing-file",
+    "type": "dataset"
+  },
+  "hash_algorithm": "sha256",
+  "files": [
+    {
+      "path": "files/a.txt",
+      "size": 15,
+      "digest": "sha256:92060adfb77c8f44ba9d4fea07815da7fc53185bf70814a545a49cde0cf0e5e4"
+    },
+    {
+      "path": "files/b.bin",
+      "size": 4,
+      "digest": "sha256:054edec1d0211f624fed0cbca9d4f9400b0e491c43742af2c5b0abebf0c990d8"
+    },
+    {
+      "path": "files/gone.txt",
+      "size": 5,
+      "digest": "sha256:4b9f2c32577beb1ebc8ab2a1e226faaa9176a81cd4eedbaa22f8a0db919972b5"
+    }
+  ],
+  "merkle_root": "sha256:d646ee706de6bea2af7d6c735be8c0755f2e963cc28b748526dffab8432abfaf",
+  "version": {
+    "id": "v1",
+    "parent": null
+  }
+}

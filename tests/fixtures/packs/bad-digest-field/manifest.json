@@ -1,0 +1,25 @@
+{
+  "schema": "moon-evidence/v0",
+  "subject": {
+    "id": "fixture-bad-digest-field",
+    "type": "dataset"
+  },
+  "hash_algorithm": "sha256",
+  "files": [
+    {
+      "path": "files/a.txt",
+      "size": 15,
+      "digest": "sha256:543df89fec85b1c280e5be7bc6a33e31203503cd6edb3084312de4db5a9b436c"
+    },
+    {
+      "path": "files/b.bin",
+      "size": 4,
+      "digest": "sha256:054edec1d0211f624fed0cbca9d4f9400b0e491c43742af2c5b0abebf0c990d8"
+    }
+  ],
+  "merkle_root": "sha256:e2a3c8ff56a950a46acf495b6b597b022b663dbf3fb6b317e10b0f78c4a50d6a",
+  "version": {
+    "id": "v1",
+    "parent": null
+  }
+}

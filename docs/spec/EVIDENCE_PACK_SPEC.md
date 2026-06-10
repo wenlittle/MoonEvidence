@@ -58,12 +58,76 @@ The verifier should check:
 
 The first implementation should follow RFC 8785-style deterministic serialization where practical:
 
-- Object keys are sorted.
+- Object keys are sorted by UTF-16 code units (RFC 8785 §3.2.3).
 - Whitespace is eliminated.
 - Strings use deterministic escaping.
 - Numbers need a carefully documented subset until full RFC-compatible number formatting is verified.
 
-If a JSON number cannot be canonicalized safely, return `InvalidCanonicalJson` rather than guessing.
+Number formatting is delivered in two levels:
+
+- **L1 (safe subset, frozen):** integers with |n| ≤ 2^53-1 pass through, `-0`
+  normalizes to `0`. Any number whose canonical form cannot be guaranteed
+  (decimals, exponents) is rejected.
+- **L2 (full RFC 8785):** ECMAScript shortest-representation formatting,
+  delivered as a later hardening step.
+
+If a JSON number cannot be canonicalized safely, fail with `E1004` rather than guessing.
+
+## Error Codes (frozen)
+
+Every verification failure maps to exactly one stable code. Codes are part of
+the public contract: tests assert exact code sets and the CLI prints them.
+
+### E1xxx — manifest / format
+
+| Code | Meaning |
+| --- | --- |
+| E1001 | manifest JSON cannot be parsed |
+| E1002 | required manifest field missing or empty |
+| E1003 | schema version not supported (must be `moon-evidence/v0`) |
+| E1004 | canonicalization failed (includes unsupported number forms) |
+
+### E2xxx — digest
+
+| Code | Meaning |
+| --- | --- |
+| E2001 | hash algorithm not supported |
+| E2002 | digest string format invalid (`<algo>:<lowercase-hex>` expected) |
+| E2003 | file content digest does not match manifest entry |
+| E2004 | manifest canonical digest does not match recorded value |
+
+### E3xxx — merkle
+
+| Code | Meaning |
+| --- | --- |
+| E3001 | merkle root missing, empty, or ill-formed while `files[]` is non-empty |
+| E3002 | proof format invalid (bad sibling hex, unknown side, wrong length) |
+| E3003 | proof verification failed (recomputed root differs) |
+
+### E4xxx — version chain
+
+| Code | Meaning |
+| --- | --- |
+| E4001 | version chain is empty |
+| E4002 | parent reference broken (parent id not found) |
+| E4003 | cycle detected in version chain |
+| E4004 | multiple heads / fork detected (chain must be linear) |
+
+### E5xxx — IO / CLI (adapter layer only)
+
+| Code | Meaning |
+| --- | --- |
+| E5001 | path does not exist |
+| E5002 | file read failed |
+
+### W1xxx — warnings (verification still passes)
+
+| Code | Meaning |
+| --- | --- |
+| W1001 | file present in pack but not listed in manifest |
+
+Pure library packages may only emit `E1xxx`–`E4xxx` and `W1xxx`; `E5xxx` is
+reserved for the CLI/IO adapter so the verification core stays IO-free.
 
 ## Merkle Boundary (frozen)
 

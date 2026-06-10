@@ -121,6 +121,37 @@ This file records measured results, source checks, and environment status. Keep 
 | 0.7 Mooncakes collision recheck | Done (commit c6a8d3f) |
 | Acceptance: commits >= 10 | Met (11 commits on main) |
 
+## 2026-06-11 Asia/Shanghai (master plan step 1)
+
+### NIST Vector Verification (SHA-256)
+
+| Field | Result |
+| --- | --- |
+| Source | FIPS 180-4 appendix examples + NIST CAVP SHA256ShortMsg, encoded in `src/digest/sha256_wbtest.mbt` |
+| Method | `moon test` runs every vector as an `inspect` assertion against the official lowercase hex digest |
+| Vectors passed | empty string, `"abc"`, 448-bit two-block message, 896-bit three-block message, one million `'a'` (streamed in 1000-byte chunks), chunk-size invariance across 64-byte block boundaries (sizes 1/7/63/64/65/129) |
+| Cross-check | UTF-8 transcoding digests cross-validated against .NET `System.Text.Encoding.UTF8` + SHA256 golden values (`src/digest/utf8_wbtest.mbt`) |
+| Confidence | High (official vectors plus independent reference implementation) |
+
+### Step 1 Deliverable Status
+
+| Task | Status |
+| --- | --- |
+| 1.1 FIPS 180-4 SHA-256 (one-shot + streaming `Sha256Ctx`) | Done (commits b3f3c4c, c3ddde9) |
+| 1.2 NIST vector test suite | Done (commit b3f3c4c, extended by c3ddde9) |
+| 1.3 `Digest::of_bytes(algorithm, data)` factory | Done this session: wraps `sha256_hex` under the tagged `Digest` type, with NIST-vector and text-form round-trip tests |
+| 1.4 UTF-8 helper `string_to_utf8_bytes` | Done (commit f8e5c52) with surrogate-pair and boundary tests |
+| Acceptance: `moon test` all green | Met: `moon check` 0 warnings 0 errors; `moon test` 29/29 passed; `moon build --target native` exit 0 |
+
+### Toolchain Observation: Show derivation deprecated
+
+| Field | Result |
+| --- | --- |
+| Source | `moon 0.1.20260529` warning on `derive(Show)` |
+| Method | `assert_eq` in tests requires `Show`; tried `derive(Show)` (deprecated warning) and `derive(Debug)` (does not satisfy `Show`) |
+| Resolution | Implement `Show` manually for `HashAlgorithm` (renders `sha256`) and `Digest` (renders `algorithm:hex`), matching evidence-pack text form |
+| Impact | Future packages (model, diag) should implement `Show` manually instead of deriving it |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

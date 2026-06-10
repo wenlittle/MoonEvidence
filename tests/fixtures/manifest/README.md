@@ -21,3 +21,7 @@ the expected error contract (asserted exactly in
 | uppercase-digest.json | E2002 | files[0].digest |
 | bad-merkle-root.json | E2002 | merkle_root |
 | empty-version-parent.json | E1002 (invalid field) | version.parent |
+| path-traversal.json | E1002 (invalid field) | files[0].path |
+| path-absolute.json | E1002 (invalid field) | files[0].path |
+| path-drive-letter.json | E1002 (invalid field) | files[0].path |
+| path-backslash.json | E1002 (invalid field) | files[0].path |

@@ -92,6 +92,7 @@ pub fn Manifest::parse(input : String) -> Manifest raise ModelError {
     let entry_path = "files[\{index}]"
     let entry_fields = expect_object(file_items[index], entry_path)
     let path = expect_string(entry_fields, "path", "\{entry_path}.path")
+    validate_entry_path(path, "\{entry_path}.path")
     if seen_paths.get(path) is Some(_) {
       raise ModelError::InvalidField(
         "\{entry_path}.path",
@@ -220,6 +221,60 @@ fn expect_size(
       value.to_int64()
     }
     Some(_) => raise ModelError::InvalidField(path, "expected a number")
+  }
+}
+
+/// Step-7 hardening: entry paths are pack-relative file locators. Anything
+/// that could escape the pack root (absolute paths, drive letters / ADS
+/// colons, ".." segments) or alias another entry past the duplicate check
+/// ("." and empty segments) is rejected at parse time, so neither the pure
+/// pipeline nor the IO adapter ever sees a hostile path.
+fn validate_entry_path(
+  path : String,
+  context : String,
+) -> Unit raise ModelError {
+  for index in 0..<path.length() {
+    let unit = path[index].to_int()
+    if unit == 0x5c {
+      raise ModelError::InvalidField(
+        context,
+        "backslash separators are not allowed (use \"/\")",
+      )
+    }
+    if unit == 0x3a {
+      raise ModelError::InvalidField(context, "\":\" is not allowed in paths")
+    }
+  }
+  if path[0].to_int() == 0x2f {
+    raise ModelError::InvalidField(context, "absolute paths are not allowed")
+  }
+  let mut segment_start = 0
+  for index in 0..<(path.length() + 1) {
+    let at_separator = index == path.length() || path[index].to_int() == 0x2f
+    if at_separator {
+      let segment_length = index - segment_start
+      if segment_length == 0 {
+        raise ModelError::InvalidField(
+          context,
+          "empty path segment is not allowed",
+        )
+      }
+      if segment_length == 1 && path[segment_start].to_int() == 0x2e {
+        raise ModelError::InvalidField(
+          context,
+          "path segment \".\" is not allowed",
+        )
+      }
+      if segment_length == 2 &&
+        path[segment_start].to_int() == 0x2e &&
+        path[segment_start + 1].to_int() == 0x2e {
+        raise ModelError::InvalidField(
+          context,
+          "path segment \"..\" is not allowed",
+        )
+      }
+      segment_start = index + 1
+    }
   }
 }
 

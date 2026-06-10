@@ -1,5 +1,25 @@
 # Decision Log
 
+## 2026-06-11: Manifest Path Hardening (spec hardening, step 7)
+
+Decision: `Manifest::parse` rejects entry paths that are absolute, contain
+backslashes or colons, or contain `..` / `.` / empty segments (E1002).
+
+Reason:
+
+- Step-6 security review: a hostile manifest could list
+  `files/../../outside.txt` and make the CLI adapter read files outside the
+  pack root (path concatenation in `main.mbt`).
+- `.`/empty segments alias another entry (`files/./a.txt` vs `files/a.txt`)
+  and would slip past the duplicate-path check, allowing two entries with
+  conflicting digests for one disk file.
+- Colons cover both Windows drive letters and NTFS alternate data streams.
+- Parse-time rejection keeps the rule in one place; the pure pipeline and
+  the IO adapter never see a hostile path.
+
+Hardening within frozen v1 (tightens accepted inputs, never loosens):
+documented in the spec under "File Path Constraints".
+
 ## 2026-06-11: Version Chain File Shape (spec clarification)
 
 Decision: `versions/version_chain.json` is a bare JSON array of

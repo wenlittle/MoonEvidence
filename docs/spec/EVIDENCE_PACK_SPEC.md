@@ -42,6 +42,22 @@ evidence-pack/
 }
 ```
 
+### File Path Constraints (added 2026-06-11, hardening)
+
+`files[].path` is a pack-relative file locator. Parse rejects (E1002) any
+path that could escape the pack root or alias another entry:
+
+- Absolute paths (leading `/`).
+- Backslash separators (`\`); only `/` separates segments.
+- Colons (`:`), which would enable drive letters (`C:...`) and NTFS
+  alternate data streams (`file.txt:stream`).
+- `..` segments (directory escape), `.` segments and empty segments
+  (`files//x`, trailing `/`): they alias another path and would slip past
+  the duplicate-path check.
+
+These are parse-time rules: neither the pure pipeline nor the IO adapter
+ever sees a hostile path.
+
 ## Verification Semantics
 
 The verifier should check:

@@ -1,0 +1,20 @@
+{
+  "schema": "moon-evidence/v0",
+  "subject": {
+    "id": "example-pack",
+    "type": "dataset"
+  },
+  "hash_algorithm": "sha256",
+  "files": [
+    {
+      "path": "/etc/passwd",
+      "size": 12,
+      "digest": "sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+    }
+  ],
+  "merkle_root": "sha256:60a53eed0de87a90c8e59427c59c46253c33a76a09502a51801300927b7e6bdc",
+  "version": {
+    "id": "v1",
+    "parent": null
+  }
+}

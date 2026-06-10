@@ -222,6 +222,81 @@ test "empty version parent reports e1002 invalid field" {
   )
 }
 
+// ---------------------------------------------------------------------------
+// Path traversal hardening (step 7): entry paths are pack-relative, "/" only
+// ---------------------------------------------------------------------------
+
+test "parent traversal path segment reports e1002" {
+  let error = parse_error(
+    valid_manifest.replace(old="files/a.txt", new="files/../../etc/passwd"),
+  )
+  assert_eq(error.error_code(), "E1002")
+  inspect(
+    error,
+    content="[E1002] files[0].path: path segment \"..\" is not allowed",
+  )
+}
+
+test "absolute path reports e1002" {
+  let error = parse_error(
+    valid_manifest.replace(old="files/a.txt", new="/etc/passwd"),
+  )
+  assert_eq(error.error_code(), "E1002")
+  inspect(
+    error,
+    content="[E1002] files[0].path: absolute paths are not allowed",
+  )
+}
+
+test "drive letter path reports e1002" {
+  let error = parse_error(
+    valid_manifest.replace(old="files/a.txt", new="C:/secret.txt"),
+  )
+  assert_eq(error.error_code(), "E1002")
+  inspect(
+    error,
+    content="[E1002] files[0].path: \":\" is not allowed in paths",
+  )
+}
+
+test "backslash separator reports e1002" {
+  let error = parse_error(
+    valid_manifest.replace(old="files/a.txt", new="files\\\\a.txt"),
+  )
+  assert_eq(error.error_code(), "E1002")
+  inspect(
+    error,
+    content="[E1002] files[0].path: backslash separators are not allowed (use \"/\")",
+  )
+}
+
+test "single dot path segment reports e1002" {
+  let error = parse_error(
+    valid_manifest.replace(old="files/a.txt", new="files/./a.txt"),
+  )
+  assert_eq(error.error_code(), "E1002")
+  inspect(
+    error,
+    content="[E1002] files[0].path: path segment \".\" is not allowed",
+  )
+}
+
+test "empty path segment reports e1002" {
+  let error = parse_error(
+    valid_manifest.replace(old="files/a.txt", new="files//a.txt"),
+  )
+  assert_eq(error.error_code(), "E1002")
+  inspect(
+    error,
+    content="[E1002] files[0].path: empty path segment is not allowed",
+  )
+  // Trailing separators produce an empty final segment: same rule.
+  let trailing = parse_error(
+    valid_manifest.replace(old="files/a.txt", new="files/a.txt/"),
+  )
+  assert_eq(trailing.error_code(), "E1002")
+}
+
 test "size at the double precision limit parses and beyond is rejected" {
   let ok = Manifest::parse(
     valid_manifest.replace(old="\"size\": 12", new="\"size\": 9007199254740991"),

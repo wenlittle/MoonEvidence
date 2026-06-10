@@ -40,14 +40,9 @@ fn sha256_initial_state() -> FixedArray[UInt] {
 
 /// Computes the SHA-256 digest of `data` and returns the raw 32-byte value.
 pub fn sha256(data : Bytes) -> Bytes {
-  let state = sha256_initial_state()
-  let padded = pad_message(data)
-  let mut offset = 0
-  while offset < padded.length() {
-    process_block(state, padded, offset)
-    offset = offset + 64
-  }
-  state_to_bytes(state)
+  let ctx = Sha256Ctx::new()
+  ctx.update(data)
+  ctx.finalize()
 }
 
 /// Computes the SHA-256 digest of `data` as a 64-character lowercase hex
@@ -57,27 +52,83 @@ pub fn sha256_hex(data : Bytes) -> String {
 }
 
 // ---------------------------------------------------------------------------
-// Padding (FIPS 180-4 section 5.1.1)
+// Streaming API
 // ---------------------------------------------------------------------------
 
-/// Appends the mandatory `0x80` marker, zero fill, and the 64-bit big-endian
-/// message bit length so the padded size is a multiple of 64 bytes.
-fn pad_message(data : Bytes) -> FixedArray[Byte] {
-  let message_length = data.length()
-  // Smallest multiple of 64 that fits message + 0x80 marker + 8 length bytes.
-  let padded_length = ((message_length + 8) / 64 + 1) * 64
-  let padded : FixedArray[Byte] = FixedArray::make(padded_length, b'\x00')
-  for index in 0..<message_length {
-    padded[index] = data[index]
+/// Incremental SHA-256 context for hashing data that arrives in chunks
+/// (large files, streamed IO). Equivalent chunkings always produce the same
+/// digest as the one-shot `sha256`.
+///
+/// Fields are package-private so the FIPS 180-4 invariants cannot be broken
+/// from outside; construct with `Sha256Ctx::new()`.
+pub struct Sha256Ctx {
+  /// Intermediate hash value H(i), eight 32-bit words.
+  state : FixedArray[UInt]
+  /// Staging area holding a partial block until 64 bytes accumulate.
+  buffer : FixedArray[Byte]
+  /// Number of valid bytes currently staged in `buffer` (0..63).
+  mut buffered : Int
+  /// Total message bytes absorbed so far; padding needs the exact length.
+  mut total_bytes : UInt64
+}
+
+/// Creates a fresh context seeded with the FIPS 180-4 initial state H(0).
+pub fn Sha256Ctx::new() -> Sha256Ctx {
+  {
+    state: sha256_initial_state(),
+    buffer: FixedArray::make(64, b'\x00'),
+    buffered: 0,
+    total_bytes: 0UL,
   }
-  padded[message_length] = b'\x80'
-  let bit_length = message_length.to_uint64() * 8UL
+}
+
+/// Absorbs `data` into the running hash. Bytes are staged into the internal
+/// block buffer and compressed every time 64 bytes accumulate.
+pub fn Sha256Ctx::update(self : Sha256Ctx, data : Bytes) -> Unit {
+  self.total_bytes = self.total_bytes + data.length().to_uint64()
+  let mut offset = 0
+  while offset < data.length() {
+    let available = 64 - self.buffered
+    let remaining = data.length() - offset
+    let take = if remaining < available { remaining } else { available }
+    for index in 0..<take {
+      self.buffer[self.buffered + index] = data[offset + index]
+    }
+    self.buffered = self.buffered + take
+    offset = offset + take
+    if self.buffered == 64 {
+      process_block(self.state, self.buffer, 0)
+      self.buffered = 0
+    }
+  }
+}
+
+/// Returns the digest of everything absorbed so far as raw 32 bytes.
+///
+/// Padding (FIPS 180-4 section 5.1.1) is applied to copies of the internal
+/// state, so calling `finalize` never mutates the context: it is idempotent
+/// and `update` may even continue afterwards.
+pub fn Sha256Ctx::finalize(self : Sha256Ctx) -> Bytes {
+  let state = self.state.copy()
+  // Tail = staged bytes + 0x80 marker + zero fill + 64-bit big-endian bit
+  // length. One extra block is needed when fewer than 8 length bytes fit.
+  let tail_blocks = if self.buffered <= 55 { 1 } else { 2 }
+  let tail : FixedArray[Byte] = FixedArray::make(tail_blocks * 64, b'\x00')
+  for index in 0..<self.buffered {
+    tail[index] = self.buffer[index]
+  }
+  tail[self.buffered] = b'\x80'
+  let bit_length = self.total_bytes * 8UL
   for index in 0..<8 {
     let shift = (7 - index) * 8
-    padded[padded_length - 8 + index] = ((bit_length >> shift) & 0xffUL)
-      .to_byte()
+    tail[tail.length() - 8 + index] = ((bit_length >> shift) & 0xffUL).to_byte()
   }
-  padded
+  let mut offset = 0
+  while offset < tail.length() {
+    process_block(state, tail, offset)
+    offset = offset + 64
+  }
+  state_to_bytes(state)
 }
 
 // ---------------------------------------------------------------------------

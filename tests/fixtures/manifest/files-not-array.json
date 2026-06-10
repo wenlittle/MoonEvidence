@@ -1,0 +1,14 @@
+{
+  "schema": "moon-evidence/v0",
+  "subject": {
+    "id": "example-pack",
+    "type": "dataset"
+  },
+  "hash_algorithm": "sha256",
+  "files": {},
+  "merkle_root": "sha256:60a53eed0de87a90c8e59427c59c46253c33a76a09502a51801300927b7e6bdc",
+  "version": {
+    "id": "v1",
+    "parent": null
+  }
+}

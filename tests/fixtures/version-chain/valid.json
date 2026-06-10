@@ -1,0 +1,5 @@
+[
+  { "id": "v1", "parent": null },
+  { "id": "v2", "parent": "v1" },
+  { "id": "v3", "parent": "v2" }
+]

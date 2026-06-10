@@ -38,17 +38,46 @@ evidence-pack path
   -> explain report for CLI users
 ```
 
-## Public API Shape
+## Public API Shape (frozen v1, 2026-06-10)
 
-The API should stay small at first:
+These signatures are the implementation contract for the first milestone.
+Changing them requires a `DECISION_LOG.md` entry.
 
 ```text
-verify_manifest(manifest_json) -> VerifyReport
-verify_pack(path) -> VerifyReport
-verify_membership(file_digest, proof, root) -> Bool
-verify_version_chain(nodes) -> ChainReport
-explain(report) -> String
+// canonjson
+@canonjson.canonicalize(input : String) -> String raise CanonError
+
+// digest
+@digest.sha256(data : Bytes) -> Bytes
+@digest.sha256_hex(data : Bytes) -> String
+@digest.Digest::of_bytes(algorithm : HashAlgorithm, data : Bytes) -> Digest
+
+// merkle (operates on raw 32-byte hashes; Digest wrapping happens above)
+@merkle.leaf_hash(data : Bytes) -> Bytes
+@merkle.node_hash(left : Bytes, right : Bytes) -> Bytes
+@merkle.compute_root(leaves : Array[Bytes]) -> Bytes?          // None for empty input
+@merkle.verify_inclusion(leaf : Bytes, proof : Array[ProofStep], root : Bytes) -> Bool
+
+// model
+@model.Manifest::parse(input : String) -> Manifest raise ModelError
+@model.parse_version_chain(input : String) -> Array[VersionNode] raise ModelError
+
+// verify (pure: file contents injected by the caller, no IO inside)
+@verify.verify_manifest(manifest_json : String, files : Map[String, Bytes]) -> VerifyReport
+@verify.verify_version_chain(nodes : Array[VersionNode]) -> ChainReport
+
+// diag
+@diag.explain(report : VerifyReport) -> String
+@diag.to_json(report : VerifyReport) -> String
 ```
+
+Notes on two deliberate deviations from earlier drafts:
+
+- `compute_root` returns `Bytes?` instead of `Digest` so the merkle package
+  stays free of algorithm-tagging concerns and the empty tree is expressed as
+  `None` instead of a sentinel value.
+- `verify_manifest` takes an explicit `files` map because pure packages must
+  not read the file system; the CLI adapter loads file bytes and injects them.
 
 `seal(directory, options)` is useful, but it is not part of the first implementation checkpoint.
 

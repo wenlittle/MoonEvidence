@@ -1,0 +1,6 @@
+import {
+  "moonbitlang/core/json" @json,
+  "moonbitlang/core/double" @double,
+  "moonbitlang/core/debug" @debug,
+  "wenlittle/MoonEvidence/src/digest" @digest,
+}

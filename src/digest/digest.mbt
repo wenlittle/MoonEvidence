@@ -1,11 +1,11 @@
 pub(all) enum HashAlgorithm {
   Sha256
-} derive(Eq)
+} derive(Eq, @debug.Debug)
 
 pub(all) struct Digest {
   algorithm : HashAlgorithm
   hex : String
-} derive(Eq)
+} derive(Eq, @debug.Debug)
 
 /// Renders the algorithm as its canonical lowercase label (e.g. `sha256`),
 /// matching the prefix used in digest text form.

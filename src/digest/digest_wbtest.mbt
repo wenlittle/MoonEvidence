@@ -23,3 +23,19 @@ test "same digest compares normalized values" {
   assert_true(same_digest("sha256:ABCD", "SHA-256:abcd"))
   assert_false(same_digest("sha256:abcd", "sha256:abce"))
 }
+
+test "digest of bytes wraps the sha256 nist vector" {
+  let digest = Digest::of_bytes(Sha256, b"abc")
+  assert_eq(digest.algorithm, Sha256)
+  inspect(
+    digest.hex,
+    content="ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+  )
+}
+
+test "digest of bytes round trips through text form" {
+  let digest = Digest::of_bytes(Sha256, b"abc")
+  let reparsed = parse_digest(digest.to_string()) |> Option::unwrap()
+  assert_eq(digest, reparsed)
+  assert_true(same_digest(digest.to_string(), reparsed.to_string()))
+}

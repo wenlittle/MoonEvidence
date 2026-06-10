@@ -7,6 +7,18 @@ pub(all) struct Digest {
   hex : String
 } derive(Eq)
 
+/// Renders the algorithm as its canonical lowercase label (e.g. `sha256`),
+/// matching the prefix used in digest text form.
+pub impl Show for HashAlgorithm with output(self, logger) {
+  logger.write_string(self.label())
+}
+
+/// Renders the digest in evidence-pack text form `algorithm:hex`, so test
+/// failures and diagnostics print the same string users see in manifests.
+pub impl Show for Digest with output(self, logger) {
+  logger.write_string(self.to_string())
+}
+
 pub fn HashAlgorithm::label(self : HashAlgorithm) -> String {
   match self {
     Sha256 => "sha256"
@@ -48,6 +60,15 @@ pub fn parse_digest(input : String) -> Digest? {
     return None
   }
   Some({ algorithm, hex })
+}
+
+/// Computes the digest of `data` under `algorithm` and returns it as a
+/// tagged `Digest` value - the factory bridging raw bytes to the
+/// `algorithm:hex` text form used across evidence packs.
+pub fn Digest::of_bytes(algorithm : HashAlgorithm, data : Bytes) -> Digest {
+  match algorithm {
+    Sha256 => { algorithm: Sha256, hex: sha256_hex(data) }
+  }
 }
 
 pub fn Digest::to_string(self : Digest) -> String {

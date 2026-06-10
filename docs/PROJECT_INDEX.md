@@ -30,6 +30,7 @@ Build a reusable MoonBit library and CLI for trusted evidence pack verification:
 | `docs/records/RESULTS_LOG.md` | Timestamped research, verification, and environment results |
 | `docs/records/DECISION_LOG.md` | Stable decisions and why they were made |
 | `docs/research/MOONCAKES_COLLISION_CHECK.md` | Mooncakes keyword search and collision-risk record |
+| `docs/plans/2026-06-10-competition-master-plan.md` | Competition master plan: innovation points, step-by-step roadmap, and delivery checklist |
 | `tools/env-check.ps1` | Read-only local environment check script |
 
 ## Source Traceability Rule

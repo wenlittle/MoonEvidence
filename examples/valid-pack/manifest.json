@@ -1,0 +1,19 @@
+{
+  "schema": "moon-evidence/v0",
+  "subject": { "id": "golden-pack", "type": "dataset" },
+  "hash_algorithm": "sha256",
+  "files": [
+    {
+      "path": "files/a.txt",
+      "size": 12,
+      "digest": "sha256:a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447"
+    },
+    {
+      "path": "files/b.bin",
+      "size": 0,
+      "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "merkle_root": "sha256:07a4f4bf0c83169b056f07acbf3483a5e418e58e09e942a3f06421f9cca316a5",
+  "version": { "id": "v1", "parent": null }
+}

@@ -86,6 +86,41 @@ This file records measured results, source checks, and environment status. Keep 
 | Important fix | `core/json.stringify()` preserves object order, so `canonjson` now recursively sorts object keys before rendering |
 
 
+## 2026-06-10 Asia/Shanghai (master plan step 0)
+
+### Local CI Gate Verification
+
+| Field | Result |
+| --- | --- |
+| Source | Local toolchain `moon 0.1.20260529` at `D:\Programming_Language\MoonBit\bin` |
+| Method | Ran the exact three commands used by `.github/workflows/ci.yml` |
+| Key result | `moon check` exit 0; `moon test` 9/9 passed; `moon build --target native` exit 0 |
+| Impact | CI workflow committed only after local green, per workflows/README rule |
+| Confidence | High |
+
+### Mooncakes Collision Recheck (application gate)
+
+| Field | Result |
+| --- | --- |
+| Source | `https://mooncakes.io/api/v0/modules` |
+| Method | Matched `name + description + keywords` over 1315 modules with positive control `loci` (hit confirmed, validating the matcher) |
+| Key result | All evidence/provenance/attestation/notary keywords: no hit; `merkle` / `content-addressed` still only `zploc/loci` (runtime substrate, no scope overlap); new keywords `jcs` / `canonical` / `8785` / `integrity` / `manifest`: no hit |
+| Impact | Differentiation claim holds; "first RFC 8785 implementation in ecosystem" claim now has recorded evidence; details in `docs/research/MOONCAKES_COLLISION_CHECK.md` |
+| Confidence | High (positive control validated; API stable this session) |
+
+### Step 0 Deliverable Status
+
+| Task | Status |
+| --- | --- |
+| 0.1 spec v1 freeze (merkle boundary) | Done earlier (commit 7f9674d) |
+| 0.2 error code table freeze | Done earlier (commit ac9455f) |
+| 0.3 public API freeze in ARCHITECTURE | Done earlier (commit c7252dd) |
+| 0.4 GitHub Actions CI + README badge | Done (commit 9f4227f); badge turns green after next push |
+| 0.5 Gitlink mirror | Blocked on user account action |
+| 0.6 application draft | Done (commit fceed07, `docs/application/OSC2026_APPLICATION.md`); personal info + PDF export pending user |
+| 0.7 Mooncakes collision recheck | Done (commit c6a8d3f) |
+| Acceptance: commits >= 10 | Met (11 commits on main) |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

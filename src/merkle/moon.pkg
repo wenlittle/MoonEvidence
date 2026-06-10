@@ -1,0 +1,3 @@
+import {
+  "wenlittle/MoonEvidence/src/digest" @digest,
+}

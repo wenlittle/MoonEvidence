@@ -33,42 +33,39 @@ pub fn ModelError::error_code(self : ModelError) -> String {
   }
 }
 
+/// Returns the field path the failure points at (`manifest` for whole-input
+/// parse failures). Used by verify when converting errors into findings.
+pub fn ModelError::field_path(self : ModelError) -> String {
+  match self {
+    ParseFailed(_) => "manifest"
+    MissingField(path) => path
+    InvalidField(path, _) => path
+    UnsupportedSchema(path, _) => path
+    UnsupportedAlgorithm(path, _) => path
+    InvalidDigest(path, _) => path
+  }
+}
+
+/// Returns the human-readable detail without code or path prefix.
+pub fn ModelError::detail(self : ModelError) -> String {
+  match self {
+    ParseFailed(diagnostic) => diagnostic
+    MissingField(_) => "required field missing or empty"
+    InvalidField(_, detail) => detail
+    UnsupportedSchema(_, got) =>
+      "unsupported schema \"\{got}\" (expected moon-evidence/v0)"
+    UnsupportedAlgorithm(_, got) => "unsupported hash algorithm \"\{got}\""
+    InvalidDigest(_, detail) => detail
+  }
+}
+
 /// Renders `[code] path: detail`, the same single-line shape diag findings
 /// use, so model errors read consistently in CLI output and test failures.
 pub impl Show for ModelError with output(self, logger) {
   logger.write_string("[")
   logger.write_string(self.error_code())
   logger.write_string("] ")
-  match self {
-    ParseFailed(detail) => {
-      logger.write_string("manifest: ")
-      logger.write_string(detail)
-    }
-    MissingField(path) => {
-      logger.write_string(path)
-      logger.write_string(": required field missing or empty")
-    }
-    InvalidField(path, detail) => {
-      logger.write_string(path)
-      logger.write_string(": ")
-      logger.write_string(detail)
-    }
-    UnsupportedSchema(path, got) => {
-      logger.write_string(path)
-      logger.write_string(": unsupported schema \"")
-      logger.write_string(got)
-      logger.write_string("\" (expected moon-evidence/v0)")
-    }
-    UnsupportedAlgorithm(path, got) => {
-      logger.write_string(path)
-      logger.write_string(": unsupported hash algorithm \"")
-      logger.write_string(got)
-      logger.write_string("\"")
-    }
-    InvalidDigest(path, detail) => {
-      logger.write_string(path)
-      logger.write_string(": ")
-      logger.write_string(detail)
-    }
-  }
+  logger.write_string(self.field_path())
+  logger.write_string(": ")
+  logger.write_string(self.detail())
 }

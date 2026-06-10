@@ -219,6 +219,27 @@ This file records measured results, source checks, and environment status. Keep 
 | Resolution | Custom structs derive `@debug.Debug` (requires importing `moonbitlang/core/debug` in moon.pkg) and tests use `@debug.assert_eq` for struct comparisons; manual `Show` impls kept for wire-form rendering (`Side` prints `left`/`right`) |
 | Impact | Same pattern applies to model/diag packages in steps 4-5 |
 
+## 2026-06-11 Asia/Shanghai (master plan step 4)
+
+### Step 4 Deliverable Status
+
+| Task | Status |
+| --- | --- |
+| 4.1 manifest model + validation | Done: `Manifest/Subject/FileEntry/VersionRef` with full rule set (schema id, supported algorithm, non-empty unique paths, canonical digest form, integer size bounds, version stamp); `subject.type` maps to field `kind` (MoonBit keyword) |
+| 4.2 version chain model | Done: `VersionNode` + `parse_version_chain` over a bare-array file shape (spec gap pinned; see DECISION_LOG 2026-06-11) |
+| 4.3 ModelError <-> error code map | Done: six variants -> E1001/E1002/E1003/E2001/E2002 via `error_code()`; every variant carries field-path context (e.g. `files[1].path`); Show renders `[code] path: detail` |
+| 4.4 table-driven tests + fixtures | Done: valid sample + 14 invalid manifest samples + 4 chain samples in `tests/fixtures/{manifest,version-chain}/` (expected-code table in fixtures README), mirrored inline in wbtests with exact code AND message assertions |
+| Acceptance | `moon check` exit 0 (0 warnings); `moon test` 95/95 passed; `moon build --target native` exit 0 |
+
+### Design Note: canonical digest strings enforced at parse time
+
+| Field | Result |
+| --- | --- |
+| Source | `src/model/manifest.mbt` `expect_digest` |
+| Method | Digest strings must round-trip (`parse_digest(text).to_string() == text`), forcing lowercase canonical form at the model boundary |
+| Impact | Merkle leaf hashing re-renders `files[]` entries byte-exactly from the model, so an uppercase digest in a manifest cannot silently produce a different leaf hash than the packer computed; it is rejected as E2002 instead |
+| Note | Digest algorithm must also match `hash_algorithm`; the mismatch branch is untestable while only sha256 is supported and will activate when a second algorithm lands |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

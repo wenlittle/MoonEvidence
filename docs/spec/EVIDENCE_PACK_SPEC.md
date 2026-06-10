@@ -169,3 +169,25 @@ proof = [ { "sibling": "<64-char lowercase hex>", "side": "left" | "right" } ]
 - Verification recomputes from the leaf hash and compares the final value with
   `merkle_root` byte-for-byte.
 
+## Version Chain File (added 2026-06-11, clarification)
+
+`versions/version_chain.json` was listed in the pack layout without a frozen
+shape; this section pins it (see DECISION_LOG entry of the same date). The
+file is a bare JSON array of nodes, oldest-first by convention:
+
+```json
+[
+  { "id": "v1", "parent": null },
+  { "id": "v2", "parent": "v1" }
+]
+```
+
+- `id` is required and non-empty; duplicate detection is a chain-semantics
+  rule (E4xxx), not a parse rule.
+- `parent` may be absent, `null`, or a non-empty string. An empty string is
+  rejected at parse time (E1002): it would silently break chain linking.
+- An empty array parses successfully; the empty-chain failure (`E4001`) is a
+  verification rule so the verifier can report it as a structured finding.
+- Digest and format failures inside the file map to the same `E1xxx` codes as
+  the manifest (`E1001` unparsable, `E1002` field rules).
+

@@ -23,6 +23,11 @@ jobs:
       - name: Show toolchain versions
         run: moon version --all
 
+      - name: Fixture rot guard (regenerate, must be byte-identical)
+        run: |
+          node tools/gen-fixtures.mjs
+          git diff --exit-code tests/fixtures/packs
+
       - name: Type check
         run: moon check
 

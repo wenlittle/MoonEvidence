@@ -1,8 +1,12 @@
-# Black-box CLI tests (master plan step 6 task 3).
+# Black-box CLI tests (master plan step 6 task 3, step 7 task 3).
 #
-# Runs the moon-evidence CLI against the bundled example packs and asserts
-# the frozen contract: exit codes (0 pass / 1 fail / 2 usage-or-IO) plus key
-# output lines for every command shape.
+# Part 1 runs the moon-evidence CLI against the bundled example packs and
+# asserts the frozen contract: exit codes (0 pass / 1 fail / 2 usage-or-IO)
+# plus key output lines for every command shape.
+#
+# Part 2 is the step-7 regression baseline: every tamper-matrix pack under
+# tests/fixtures/packs/ is verified with --json and the finding-code
+# multiset must match EXACTLY (no "at least contains" assertions).
 #
 # Usage:
 #   ./tools/cli-test.ps1                 # test the js artifact via node
@@ -103,7 +107,57 @@ foreach ($case in $cases) {
   }
 }
 
+# --- Part 2: tamper matrix (exact finding-code sets, step 7) ----------------
+
+$matrix = @(
+  @{ Pack = "valid";            Exit = 0; Ok = $true;  Codes = @() }
+  @{ Pack = "tampered-file";    Exit = 1; Ok = $false; Codes = @("E2003") }
+  @{ Pack = "missing-file";     Exit = 1; Ok = $false; Codes = @("E2003") }
+  @{ Pack = "unlisted-file";    Exit = 0; Ok = $true;  Codes = @("W1001") }
+  @{ Pack = "bad-digest-field"; Exit = 1; Ok = $false; Codes = @("E2003", "E3003") }
+  @{ Pack = "bad-merkle-root";  Exit = 1; Ok = $false; Codes = @("E3003") }
+  @{ Pack = "chain-broken";     Exit = 1; Ok = $false; Codes = @("E4002") }
+  @{ Pack = "chain-cycle";      Exit = 1; Ok = $false; Codes = @("E4003") }
+  @{ Pack = "chain-empty";      Exit = 1; Ok = $false; Codes = @("E4001") }
+  @{ Pack = "chain-fork";       Exit = 1; Ok = $false; Codes = @("E4004") }
+)
+
+foreach ($case in $matrix) {
+  $packPath = "tests/fixtures/packs/$($case.Pack)"
+  $result = Invoke-Cli -CliArgs @("verify", "--json", $packPath)
+  $problems = @()
+  if ($result.ExitCode -ne $case.Exit) {
+    $problems += "exit code: expected $($case.Exit), got $($result.ExitCode)"
+  }
+  $report = $null
+  try {
+    $report = $result.Output | ConvertFrom-Json
+  } catch {
+    $problems += "output is not valid JSON"
+  }
+  if ($report) {
+    if ($report.ok -ne $case.Ok) {
+      $problems += "ok: expected $($case.Ok), got $($report.ok)"
+    }
+    # Exact multiset comparison: sorted code lists must be identical.
+    $actual = @($report.findings | ForEach-Object { $_.code }) | Sort-Object
+    $expected = @($case.Codes) | Sort-Object
+    if (($actual -join ",") -ne ($expected -join ",")) {
+      $problems += "codes: expected [$($expected -join ',')], got [$($actual -join ',')]"
+    }
+  }
+  if ($problems.Count -eq 0) {
+    Write-Host "PASS  matrix: $($case.Pack)"
+  } else {
+    $failed += 1
+    Write-Host "FAIL  matrix: $($case.Pack)"
+    foreach ($problem in $problems) { Write-Host "      $problem" }
+    Write-Host "      output: $($result.Output.Trim())"
+  }
+}
+
+$total = @($cases).Count + @($matrix).Count
 Write-Host ""
-Write-Host "cli-test ($Target): $(@($cases).Count - $failed)/$(@($cases).Count) passed"
+Write-Host "cli-test ($Target): $($total - $failed)/$total passed"
 if ($failed -gt 0) { exit 1 }
 exit 0

@@ -1,6 +1,8 @@
 # Evidence Pack Spec
 
-This is the first local draft. It is intentionally small so implementation can start without scope creep.
+**Version: v1 (frozen 2026-06-10)**
+
+This spec is frozen for the first implementation milestone. Changes after this point require a new entry in `docs/records/DECISION_LOG.md` and a version bump note here. The scope is intentionally small so implementation can proceed without scope creep.
 
 ## Pack Layout
 
@@ -63,13 +65,43 @@ The first implementation should follow RFC 8785-style deterministic serializatio
 
 If a JSON number cannot be canonicalized safely, return `InvalidCanonicalJson` rather than guessing.
 
-## Merkle Boundary
+## Merkle Boundary (frozen)
 
-The first implementation must document:
+The Merkle construction follows RFC 6962 style domain separation so leaf hashes
+can never be confused with internal node hashes (second-preimage defense).
 
-- Leaf hash input format.
-- Sibling order.
-- Left/right position handling.
-- Empty tree behavior.
-- Single-leaf tree behavior.
+### Hash encoding
+
+```text
+leaf_hash = SHA256(0x00 || canonical_file_entry_bytes)
+node_hash = SHA256(0x01 || left || right)
+```
+
+- `canonical_file_entry_bytes` is the UTF-8 encoding of the canonicalized JSON
+  of one manifest `files[]` entry (path, size, digest fields included).
+- `left` and `right` are the raw 32-byte child hashes, concatenated in order.
+
+### Tree shape rules
+
+- **Leaf order:** leaves follow the exact order of `files[]` in the manifest.
+- **Odd level handling:** an unpaired node is promoted to the next level as-is.
+  It is never paired with itself; self-pairing enables the duplicate-leaf
+  attack documented in Bitcoin CVE-2012-2459.
+- **Single-leaf tree:** `root = leaf_hash(entry)`. No node hash is applied.
+- **Empty tree:** there is no valid empty-tree root. If `files[]` is non-empty,
+  `merkle_root` must be present and well-formed. A `merkle_root` field that is
+  omitted or is an empty/ill-formed string is reported as `E3001`.
+
+### Proof format
+
+```text
+proof = [ { "sibling": "<64-char lowercase hex>", "side": "left" | "right" } ]
+```
+
+- `side` describes the sibling position relative to the running hash:
+  `left` means `node_hash(sibling, current)`, `right` means
+  `node_hash(current, sibling)`.
+- Proof entries are ordered bottom-up (leaf level first).
+- Verification recomputes from the leaf hash and compares the final value with
+  `merkle_root` byte-for-byte.
 

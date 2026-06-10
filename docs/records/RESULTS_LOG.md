@@ -292,6 +292,57 @@ of defense caught what") stays accurate.
 | 6.4 example packs | Done: `examples/valid-pack` (2 files + linear version chain, verifies green) and `examples/tampered-pack` (a.txt byte changed so digest mismatches manifest, trips E2003); payload bytes pinned via `.gitattributes` binary rule |
 | Acceptance | `moon check` 0 warnings 0 errors; `moon test` 125/125; `moon build --target js` exit 0; `tools/cli-test.ps1 -Target js` 12/12 passed; native CLI suite wired into CI (documented exception in workflows README) |
 
+## 2026-06-11 Asia/Shanghai (master plan step 7)
+
+### Path Hardening: hostile manifest paths rejected at parse time
+
+| Field | Result |
+| --- | --- |
+| Source | `src/model/manifest.mbt` (`validate_entry_path`), `src/model/manifest_wbtest.mbt` |
+| Method | TDD red-green: 6 new tests written first, all failed with "manifest parsed successfully", then the validator was added |
+| Key result | `files[].path` now rejects (E1002) absolute paths, backslashes, colons (drive letters / NTFS ADS), `..` escape segments, and `.`/empty alias segments that would slip past the duplicate-path check |
+| Spec sync | "File Path Constraints" section added to the frozen spec (hardening, accepts strictly less); DECISION_LOG entry same date; 4 mirror fixtures under `tests/fixtures/manifest/path-*.json` |
+| Confidence | High - closes the step-6 review finding (CLI path concatenation could read outside the pack root) |
+
+### Tamper Matrix: 10 packs, exact code sets, dual-implementation cross-check
+
+| Field | Result |
+| --- | --- |
+| Source | `tools/gen-fixtures.mjs` (independent Node reference), `tests/fixtures/packs/` (10 packs), `tools/cli-test.ps1` part 2 |
+| Method | Node generates every payload, digest, and Merkle root with the frozen rules but zero MoonBit code; the MoonBit CLI verifies each pack and the black-box suite asserts the EXACT finding-code multiset plus exit code (`--json` parsed, no "at least contains") |
+| Key result | All 10 packs match the designed contract first try: valid=[] / tampered-file=[E2003] / missing-file=[E2003] / unlisted-file=[W1001, exit 0] / bad-digest-field=[E2003+E3003 double hit] / bad-merkle-root=[E3003] / chain-broken=[E4002] / chain-cycle=[E4003] / chain-empty=[E4001] / chain-fork=[E4004] |
+| Coverage | Black-box layer now covers E2003/E3003/E4001-E4004/W1001; E1xxx/E2001/E2002 stay at the model fixture layer, E3002 at merkle unit layer (CLI ships no proofs/ consumer in MVP), E5001/E5002 in part-1 cases |
+| Mutation check | Flipping one payload byte in the valid pack makes `matrix: valid` fail on exit+ok+codes, and `node tools/gen-fixtures.mjs` restores the tree byte-identically (git clean) |
+| Confidence | High |
+
+### CLI: unlisted payloads now reach W1001 in pack-dir mode
+
+| Field | Result |
+| --- | --- |
+| Source | `src/cmd/main/main.mbt` (`collect_pack_files` walk over `files/`) |
+| Method | Red first: a pack with a rogue `files/extra.bin` verified "0 warnings" before the change; green after: `[W1001] files/extra.bin`, exit stays 0 |
+| Key result | Pack-dir mode walks the `files/` tree via `@fs.read_dir` (capability confirmed, revising the step-6 "no traversal available" assumption - it was never probed) and injects unlisted payloads so the pure pipeline reports W1001; manifest-file mode is unchanged |
+| Confidence | High |
+
+### Fixture Rot Guard in CI
+
+| Field | Result |
+| --- | --- |
+| Source | `.github/workflows/ci.yml` ("Fixture rot guard"), `.gitattributes` (`tests/fixtures/packs/** -text`) |
+| Method | CI reruns the generator and `git diff --exit-code tests/fixtures/packs`; the subtree is exempt from all EOL handling so bytes survive Windows checkouts (lesson from the same-day examples/valid-pack CRLF incident) |
+| Key result | Generator is deterministic (two consecutive runs byte-identical locally); any hand edit or silent corruption of the matrix fails CI |
+| Confidence | High locally; first CI run will confirm on ubuntu |
+
+### Step 7 Deliverable Status
+
+| Task | Status |
+| --- | --- |
+| 7.0 path traversal hardening (carried in from step-6 review) | Done: parse-time rejection + spec/DECISION_LOG + fixtures |
+| 7.1 tamper matrix packs | Done: 10 packs under `tests/fixtures/packs/`, every E2xxx-verify/E3xxx-root/E4xxx code plus W1001 has a dedicated pack |
+| 7.2 independent reference generator | Done: `tools/gen-fixtures.mjs`, deterministic regeneration, committed alongside its output |
+| 7.3 regression baseline locked | Done: black-box part 2 asserts exact code sets per pack; CI fixture rot guard wired |
+| Acceptance | `moon check` 0 warnings; `moon test` 131/131; `tools/cli-test.ps1 -Target js` 22/22; regenerate-then-diff clean |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

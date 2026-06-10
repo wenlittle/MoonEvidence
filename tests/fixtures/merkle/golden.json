@@ -1,0 +1,397 @@
+{
+  "shapes": [
+    {
+      "count": 1,
+      "leaves": [
+        "leaf-0"
+      ],
+      "root": "305df59f9590c3c9ac63d2b2743c388e3792449078cebf7fb3dbe6471643b2b7",
+      "proofs": [
+        {
+          "index": 0,
+          "steps": []
+        }
+      ]
+    },
+    {
+      "count": 2,
+      "leaves": [
+        "leaf-0",
+        "leaf-1"
+      ],
+      "root": "60a53eed0de87a90c8e59427c59c46253c33a76a09502a51801300927b7e6bdc",
+      "proofs": [
+        {
+          "index": 0,
+          "steps": [
+            {
+              "sibling": "3145c409f259b7c53e32036090ff76751025a2498ba9823ef718cac50b4e616f",
+              "side": "right"
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "steps": [
+            {
+              "sibling": "305df59f9590c3c9ac63d2b2743c388e3792449078cebf7fb3dbe6471643b2b7",
+              "side": "left"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "count": 3,
+      "leaves": [
+        "leaf-0",
+        "leaf-1",
+        "leaf-2"
+      ],
+      "root": "cf763a041c81ceef1578a6083f75c61bef2e0014f2a3e683a97fcfca5be7f19a",
+      "proofs": [
+        {
+          "index": 0,
+          "steps": [
+            {
+              "sibling": "3145c409f259b7c53e32036090ff76751025a2498ba9823ef718cac50b4e616f",
+              "side": "right"
+            },
+            {
+              "sibling": "fca89f57c9f8c8eb4047a7ff9d333acf9e0f3384b20b255bceab0f216dcca267",
+              "side": "right"
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "steps": [
+            {
+              "sibling": "305df59f9590c3c9ac63d2b2743c388e3792449078cebf7fb3dbe6471643b2b7",
+              "side": "left"
+            },
+            {
+              "sibling": "fca89f57c9f8c8eb4047a7ff9d333acf9e0f3384b20b255bceab0f216dcca267",
+              "side": "right"
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "steps": [
+            {
+              "sibling": "60a53eed0de87a90c8e59427c59c46253c33a76a09502a51801300927b7e6bdc",
+              "side": "left"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "count": 4,
+      "leaves": [
+        "leaf-0",
+        "leaf-1",
+        "leaf-2",
+        "leaf-3"
+      ],
+      "root": "bdd1c5ff55b19cb6b0e7c761bf9a6ccaa27fbbfc07b74f1fabb6e911a0bd2ab3",
+      "proofs": [
+        {
+          "index": 0,
+          "steps": [
+            {
+              "sibling": "3145c409f259b7c53e32036090ff76751025a2498ba9823ef718cac50b4e616f",
+              "side": "right"
+            },
+            {
+              "sibling": "bd45ff28796704d88bdac51b1df553fda59837b616d6d1cb2114dbc3b087ff69",
+              "side": "right"
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "steps": [
+            {
+              "sibling": "305df59f9590c3c9ac63d2b2743c388e3792449078cebf7fb3dbe6471643b2b7",
+              "side": "left"
+            },
+            {
+              "sibling": "bd45ff28796704d88bdac51b1df553fda59837b616d6d1cb2114dbc3b087ff69",
+              "side": "right"
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "steps": [
+            {
+              "sibling": "f76836325aec5699d8d71f8e42e9d47c5c29b08059ba296384f7ca40ad3a40ae",
+              "side": "right"
+            },
+            {
+              "sibling": "60a53eed0de87a90c8e59427c59c46253c33a76a09502a51801300927b7e6bdc",
+              "side": "left"
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "steps": [
+            {
+              "sibling": "fca89f57c9f8c8eb4047a7ff9d333acf9e0f3384b20b255bceab0f216dcca267",
+              "side": "left"
+            },
+            {
+              "sibling": "60a53eed0de87a90c8e59427c59c46253c33a76a09502a51801300927b7e6bdc",
+              "side": "left"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "count": 5,
+      "leaves": [
+        "leaf-0",
+        "leaf-1",
+        "leaf-2",
+        "leaf-3",
+        "leaf-4"
+      ],
+      "root": "00d21829a5503145348abcf712513eacf2a274211ad83e970202bb5b6d80b286",
+      "proofs": [
+        {
+          "index": 0,
+          "steps": [
+            {
+              "sibling": "3145c409f259b7c53e32036090ff76751025a2498ba9823ef718cac50b4e616f",
+              "side": "right"
+            },
+            {
+              "sibling": "bd45ff28796704d88bdac51b1df553fda59837b616d6d1cb2114dbc3b087ff69",
+              "side": "right"
+            },
+            {
+              "sibling": "ea9fc1a1b6e191b460d0d6306e3e870c173f39330f13cda1b70cfc72bdc398ba",
+              "side": "right"
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "steps": [
+            {
+              "sibling": "305df59f9590c3c9ac63d2b2743c388e3792449078cebf7fb3dbe6471643b2b7",
+              "side": "left"
+            },
+            {
+              "sibling": "bd45ff28796704d88bdac51b1df553fda59837b616d6d1cb2114dbc3b087ff69",
+              "side": "right"
+            },
+            {
+              "sibling": "ea9fc1a1b6e191b460d0d6306e3e870c173f39330f13cda1b70cfc72bdc398ba",
+              "side": "right"
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "steps": [
+            {
+              "sibling": "f76836325aec5699d8d71f8e42e9d47c5c29b08059ba296384f7ca40ad3a40ae",
+              "side": "right"
+            },
+            {
+              "sibling": "60a53eed0de87a90c8e59427c59c46253c33a76a09502a51801300927b7e6bdc",
+              "side": "left"
+            },
+            {
+              "sibling": "ea9fc1a1b6e191b460d0d6306e3e870c173f39330f13cda1b70cfc72bdc398ba",
+              "side": "right"
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "steps": [
+            {
+              "sibling": "fca89f57c9f8c8eb4047a7ff9d333acf9e0f3384b20b255bceab0f216dcca267",
+              "side": "left"
+            },
+            {
+              "sibling": "60a53eed0de87a90c8e59427c59c46253c33a76a09502a51801300927b7e6bdc",
+              "side": "left"
+            },
+            {
+              "sibling": "ea9fc1a1b6e191b460d0d6306e3e870c173f39330f13cda1b70cfc72bdc398ba",
+              "side": "right"
+            }
+          ]
+        },
+        {
+          "index": 4,
+          "steps": [
+            {
+              "sibling": "bdd1c5ff55b19cb6b0e7c761bf9a6ccaa27fbbfc07b74f1fabb6e911a0bd2ab3",
+              "side": "left"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "count": 8,
+      "leaves": [
+        "leaf-0",
+        "leaf-1",
+        "leaf-2",
+        "leaf-3",
+        "leaf-4",
+        "leaf-5",
+        "leaf-6",
+        "leaf-7"
+      ],
+      "root": "ca6b7b3e674ac86c1027b59c87c064fc3bc27b313294c75f83bd05fdd13f0dcf",
+      "proofs": [
+        {
+          "index": 0,
+          "steps": [
+            {
+              "sibling": "3145c409f259b7c53e32036090ff76751025a2498ba9823ef718cac50b4e616f",
+              "side": "right"
+            },
+            {
+              "sibling": "bd45ff28796704d88bdac51b1df553fda59837b616d6d1cb2114dbc3b087ff69",
+              "side": "right"
+            },
+            {
+              "sibling": "f58aaab46122102d66b00c5eb50b13dd763b5f800139b424fda8b1cacae1408a",
+              "side": "right"
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "steps": [
+            {
+              "sibling": "305df59f9590c3c9ac63d2b2743c388e3792449078cebf7fb3dbe6471643b2b7",
+              "side": "left"
+            },
+            {
+              "sibling": "bd45ff28796704d88bdac51b1df553fda59837b616d6d1cb2114dbc3b087ff69",
+              "side": "right"
+            },
+            {
+              "sibling": "f58aaab46122102d66b00c5eb50b13dd763b5f800139b424fda8b1cacae1408a",
+              "side": "right"
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "steps": [
+            {
+              "sibling": "f76836325aec5699d8d71f8e42e9d47c5c29b08059ba296384f7ca40ad3a40ae",
+              "side": "right"
+            },
+            {
+              "sibling": "60a53eed0de87a90c8e59427c59c46253c33a76a09502a51801300927b7e6bdc",
+              "side": "left"
+            },
+            {
+              "sibling": "f58aaab46122102d66b00c5eb50b13dd763b5f800139b424fda8b1cacae1408a",
+              "side": "right"
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "steps": [
+            {
+              "sibling": "fca89f57c9f8c8eb4047a7ff9d333acf9e0f3384b20b255bceab0f216dcca267",
+              "side": "left"
+            },
+            {
+              "sibling": "60a53eed0de87a90c8e59427c59c46253c33a76a09502a51801300927b7e6bdc",
+              "side": "left"
+            },
+            {
+              "sibling": "f58aaab46122102d66b00c5eb50b13dd763b5f800139b424fda8b1cacae1408a",
+              "side": "right"
+            }
+          ]
+        },
+        {
+          "index": 4,
+          "steps": [
+            {
+              "sibling": "8f1593cb92f429d9340b9bbc1f0bb122adf8026c42a4a42142e2168931727236",
+              "side": "right"
+            },
+            {
+              "sibling": "398ebdeb46e179eeffacef4635fd30410954e169b88e22741fa96cffb1022a85",
+              "side": "right"
+            },
+            {
+              "sibling": "bdd1c5ff55b19cb6b0e7c761bf9a6ccaa27fbbfc07b74f1fabb6e911a0bd2ab3",
+              "side": "left"
+            }
+          ]
+        },
+        {
+          "index": 5,
+          "steps": [
+            {
+              "sibling": "ea9fc1a1b6e191b460d0d6306e3e870c173f39330f13cda1b70cfc72bdc398ba",
+              "side": "left"
+            },
+            {
+              "sibling": "398ebdeb46e179eeffacef4635fd30410954e169b88e22741fa96cffb1022a85",
+              "side": "right"
+            },
+            {
+              "sibling": "bdd1c5ff55b19cb6b0e7c761bf9a6ccaa27fbbfc07b74f1fabb6e911a0bd2ab3",
+              "side": "left"
+            }
+          ]
+        },
+        {
+          "index": 6,
+          "steps": [
+            {
+              "sibling": "060242692909024231d050c5d4434146ba77da322d450286f577c9f951615d53",
+              "side": "right"
+            },
+            {
+              "sibling": "985bb5d36b927800876871da925a7e82abe83a9ddba5882920a007a55ea2b376",
+              "side": "left"
+            },
+            {
+              "sibling": "bdd1c5ff55b19cb6b0e7c761bf9a6ccaa27fbbfc07b74f1fabb6e911a0bd2ab3",
+              "side": "left"
+            }
+          ]
+        },
+        {
+          "index": 7,
+          "steps": [
+            {
+              "sibling": "676f3782f5b3a5fb4370ed49572cedc523f4a66322269c85f2af0509d17b0a4d",
+              "side": "left"
+            },
+            {
+              "sibling": "985bb5d36b927800876871da925a7e82abe83a9ddba5882920a007a55ea2b376",
+              "side": "left"
+            },
+            {
+              "sibling": "bdd1c5ff55b19cb6b0e7c761bf9a6ccaa27fbbfc07b74f1fabb6e911a0bd2ab3",
+              "side": "left"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

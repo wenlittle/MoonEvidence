@@ -66,7 +66,7 @@ pub fn compute_root(leaves : Array[Bytes]) -> Bytes? {
 pub(all) enum Side {
   Left
   Right
-} derive(Eq)
+} derive(Eq, @debug.Debug)
 
 /// Renders `left` / `right`, the spec's wire spelling.
 pub impl Show for Side with output(self, logger) {
@@ -81,7 +81,7 @@ pub impl Show for Side with output(self, logger) {
 pub(all) struct ProofStep {
   sibling : Bytes
   side : Side
-} derive(Eq)
+} derive(Eq, @debug.Debug)
 
 /// Renders `side:sibling-hex`, compact enough for failed-assertion output.
 pub impl Show for ProofStep with output(self, logger) {

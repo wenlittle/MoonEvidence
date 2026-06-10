@@ -30,6 +30,29 @@ MoonEvidence is not a blockchain application or smart contract framework. It is 
 - [Roadmap](docs/ROADMAP.md)
 - [Results Log](docs/records/RESULTS_LOG.md)
 
+## Quick Start (CLI)
+
+```powershell
+# build the CLI (js artifact, runs via node; native works wherever a C compiler exists)
+moon build --target js
+
+# verify the bundled example packs
+node _build/js/debug/build/src/cmd/main/main.js verify examples/valid-pack
+node _build/js/debug/build/src/cmd/main/main.js verify examples/tampered-pack
+
+# machine-readable report / human-readable findings
+node _build/js/debug/build/src/cmd/main/main.js verify --json examples/valid-pack
+node _build/js/debug/build/src/cmd/main/main.js explain examples/tampered-pack
+
+# run the full black-box suite (12 cases)
+powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target js
+```
+
+Exit codes are frozen: `0` verification passed, `1` verification failed,
+`2` usage or IO error. On machines with a system C compiler (and in CI) the
+same CLI builds natively: `moon build --target native` then
+`tools/cli-test.ps1 -Target native`.
+
 ## Diagnostics Preview
 
 Every verification failure maps to a frozen error code (`E1xxx`..`E4xxx`,
@@ -57,13 +80,19 @@ All six pure library packages are implemented and green: `canonjson`
 MoonBit SHA-256, NIST vectors), `merkle` (RFC 6962 style domain separation,
 cross-checked against an independent Node reference), `model` (validated
 manifest + version chain), `verify` (seven-step pipeline), and `diag`
-(structured findings, explain, canonical JSON reports).
+(structured findings, explain, canonical JSON reports). On top of them the
+thin CLI adapter (`src/cmd/main`) ships `verify [--json]` / `explain` with
+frozen exit codes, exercised by a 12-case black-box suite over the bundled
+`examples/valid-pack` and `examples/tampered-pack`.
 
 ```powershell
 moon check
 moon test
-moon build --target native
+moon build --target js
+powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target js
 ```
 
-All three commands pass locally (125/125 tests) as of 2026-06-11
-Asia/Shanghai. Next up: the native CLI adapter (`verify` / `explain`).
+All commands pass locally (125/125 unit tests, 12/12 black-box cases) as of
+2026-06-11 Asia/Shanghai; CI additionally builds the native CLI and runs the
+same black-box suite against it. Next up: the fixtures full matrix
+(master plan step 7).

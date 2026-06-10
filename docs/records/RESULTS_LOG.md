@@ -269,6 +269,29 @@ manifest trips both (entry changed -> root drifts; file no longer matches the
 edited digest). A test pins each behavior so the demo narrative ("which line
 of defense caught what") stays accurate.
 
+## 2026-06-11 Asia/Shanghai (master plan step 6)
+
+### IO Spike: native argv/file APIs and the local C-compiler gap
+
+| Field | Result |
+| --- | --- |
+| Source | `src/cmd/main/main.mbt` (`@env.args()`, `moonbitlang/x/fs`), local build probes |
+| Method | Built the CLI for js and ran it via node end to end; probed native linking with `moon build --target native` and `MOON_CC` pointed at the bundled tcc |
+| Key result | `@env.args()` + `@fs` cover everything the CLI needs (argv, path-exists, is-dir, read text/bytes); no directory traversal required because files are read per the manifest list, exactly the fallback the plan reserved |
+| Local gap | Native linking fails: no system C compiler (`cl/cc/gcc/clang` absent); MoonBit ships `bin/internal/tcc.exe` but no libc headers (`stdio.h`/`errno.h`/`windows.h` unresolved, same in the original `~/.moon` install), so tcc cannot finish either |
+| Decision | Local dev loop runs the js artifact via node; native build + black-box run delegated to CI ubuntu (gcc preinstalled). Argv prefix differs per runtime (native: program path; js: node + script), handled by scanning for the first known token |
+| Confidence | High for js (executed); native layout confirmed from build-plan paths and a stubbed artifact-discovery dry-run, final proof lands with the first CI run |
+
+### Step 6 Deliverable Status
+
+| Task | Status |
+| --- | --- |
+| 6.1 IO spike recorded | Done (this entry) |
+| 6.2 CLI `verify [--json]` / `explain` / `--version` / `--help` | Done: thin adapter over the pure pipeline; exit codes frozen 0/1/2; IO failures surface as E5001/E5002 findings; optional `versions/version_chain.json` verified when present |
+| 6.3 black-box suite + CI step | Done: `tools/cli-test.ps1` runs 12 cases (exit codes 0/1/2, OK/FAILED lines, `"ok":true/false` JSON, E2003/E5001 codes, usage rejections) against a chosen target; CI runs it for native and js |
+| 6.4 example packs | Done: `examples/valid-pack` (2 files + linear version chain, verifies green) and `examples/tampered-pack` (a.txt byte changed so digest mismatches manifest, trips E2003); payload bytes pinned via `.gitattributes` binary rule |
+| Acceptance | `moon check` 0 warnings 0 errors; `moon test` 125/125; `moon build --target js` exit 0; `tools/cli-test.ps1 -Target js` 12/12 passed; native CLI suite wired into CI (documented exception in workflows README) |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

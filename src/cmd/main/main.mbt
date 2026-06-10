@@ -132,7 +132,7 @@ fn run_verify(args : Array[String], json_allowed~ : Bool) -> Int {
     // Parse errors are reported by verify_manifest itself.
     _ => ()
   } noraise {
-    manifest =>
+    manifest => {
       for entry in manifest.files {
         let file_path = "\{pack_root}/\{entry.path}"
         if @fs.path_exists(file_path) {
@@ -150,6 +150,26 @@ fn run_verify(args : Array[String], json_allowed~ : Bool) -> Int {
         }
         // Absent files surface as E2003 from the pure pipeline.
       }
+      // Pack-dir mode: also walk files/ so payloads the manifest does not
+      // list reach the pure pipeline, which reports them as W1001.
+      if is_directory {
+        let listed : Map[String, Bool] = {}
+        for entry in manifest.files {
+          listed[entry.path] = true
+        }
+        let on_disk : Array[String] = []
+        collect_pack_files(pack_root, "files", on_disk)
+        for rel_path in on_disk {
+          if listed.get(rel_path) is None {
+            try @fs.read_file_to_bytes("\{pack_root}/\{rel_path}") catch {
+              _ => () // unreadable unlisted file: nothing to attest
+            } noraise {
+              content => files[rel_path] = content
+            }
+          }
+        }
+      }
+    }
   }
 
   // Pure verification.
@@ -216,6 +236,30 @@ fn run_verify(args : Array[String], json_allowed~ : Bool) -> Int {
     0
   } else {
     1
+  }
+}
+
+/// Recursively collects files under `<root>/<rel_dir>` as pack-relative
+/// paths (`files/...`). Missing or unreadable directories yield nothing:
+/// a pack without a files/ tree is legal.
+fn collect_pack_files(
+  root : String,
+  rel_dir : String,
+  out : Array[String],
+) -> Unit {
+  let full_dir = "\{root}/\{rel_dir}"
+  if !@fs.path_exists(full_dir) {
+    return
+  }
+  let entries = @fs.read_dir(full_dir) catch { _ => return }
+  for name in entries {
+    let rel_path = "\{rel_dir}/\{name}"
+    let is_subdir = @fs.is_dir("\{root}/\{rel_path}") catch { _ => false }
+    if is_subdir {
+      collect_pack_files(root, rel_path, out)
+    } else {
+      out.push(rel_path)
+    }
   }
 }
 

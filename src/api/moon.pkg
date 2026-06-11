@@ -1,21 +1,16 @@
 import {
-  "moonbitlang/core/json" @json,
-  "wenlittle/MoonEvidence/src/model" @model,
-  "wenlittle/MoonEvidence/src/verify" @verify,
-  "wenlittle/MoonEvidence/src/diag" @diag,
+  "moonbitlang/core/json",
+  "wenlittle/MoonEvidence/src/model",
+  "wenlittle/MoonEvidence/src/verify",
+  "wenlittle/MoonEvidence/src/diag",
 }
 
 import {
-  "moonbitlang/core/debug" @debug,
-  "wenlittle/MoonEvidence/src/digest" @digest,
-  "wenlittle/MoonEvidence/src/merkle" @merkle,
+  "moonbitlang/core/debug",
+  "wenlittle/MoonEvidence/src/digest",
+  "wenlittle/MoonEvidence/src/merkle",
 } for "wbtest"
 
 options(
-  link: {
-    "js": {
-      "exports": ["verify_evidence"],
-      "format": "esm",
-    },
-  },
+  link: { "js": { "exports": [ "verify_evidence" ], "format": "esm" } },
 )

@@ -9,22 +9,23 @@
 // Constants (FIPS 180-4 sections 4.2.2 and 5.3.3)
 // ---------------------------------------------------------------------------
 
+///|
 /// First 32 bits of the fractional parts of the cube roots of the first 64
 /// primes (FIPS 180-4 section 4.2.2). One constant per compression round.
 let sha256_round_constants : FixedArray[UInt] = [
-  0x428a2f98U, 0x71374491U, 0xb5c0fbcfU, 0xe9b5dba5U, 0x3956c25bU, 0x59f111f1U,
-  0x923f82a4U, 0xab1c5ed5U, 0xd807aa98U, 0x12835b01U, 0x243185beU, 0x550c7dc3U,
-  0x72be5d74U, 0x80deb1feU, 0x9bdc06a7U, 0xc19bf174U, 0xe49b69c1U, 0xefbe4786U,
-  0x0fc19dc6U, 0x240ca1ccU, 0x2de92c6fU, 0x4a7484aaU, 0x5cb0a9dcU, 0x76f988daU,
-  0x983e5152U, 0xa831c66dU, 0xb00327c8U, 0xbf597fc7U, 0xc6e00bf3U, 0xd5a79147U,
-  0x06ca6351U, 0x14292967U, 0x27b70a85U, 0x2e1b2138U, 0x4d2c6dfcU, 0x53380d13U,
-  0x650a7354U, 0x766a0abbU, 0x81c2c92eU, 0x92722c85U, 0xa2bfe8a1U, 0xa81a664bU,
-  0xc24b8b70U, 0xc76c51a3U, 0xd192e819U, 0xd6990624U, 0xf40e3585U, 0x106aa070U,
-  0x19a4c116U, 0x1e376c08U, 0x2748774cU, 0x34b0bcb5U, 0x391c0cb3U, 0x4ed8aa4aU,
-  0x5b9cca4fU, 0x682e6ff3U, 0x748f82eeU, 0x78a5636fU, 0x84c87814U, 0x8cc70208U,
-  0x90befffaU, 0xa4506cebU, 0xbef9a3f7U, 0xc67178f2U,
+  0x428a2f98U, 0x71374491U, 0xb5c0fbcfU, 0xe9b5dba5U, 0x3956c25bU, 0x59f111f1U, 0x923f82a4U,
+  0xab1c5ed5U, 0xd807aa98U, 0x12835b01U, 0x243185beU, 0x550c7dc3U, 0x72be5d74U, 0x80deb1feU,
+  0x9bdc06a7U, 0xc19bf174U, 0xe49b69c1U, 0xefbe4786U, 0x0fc19dc6U, 0x240ca1ccU, 0x2de92c6fU,
+  0x4a7484aaU, 0x5cb0a9dcU, 0x76f988daU, 0x983e5152U, 0xa831c66dU, 0xb00327c8U, 0xbf597fc7U,
+  0xc6e00bf3U, 0xd5a79147U, 0x06ca6351U, 0x14292967U, 0x27b70a85U, 0x2e1b2138U, 0x4d2c6dfcU,
+  0x53380d13U, 0x650a7354U, 0x766a0abbU, 0x81c2c92eU, 0x92722c85U, 0xa2bfe8a1U, 0xa81a664bU,
+  0xc24b8b70U, 0xc76c51a3U, 0xd192e819U, 0xd6990624U, 0xf40e3585U, 0x106aa070U, 0x19a4c116U,
+  0x1e376c08U, 0x2748774cU, 0x34b0bcb5U, 0x391c0cb3U, 0x4ed8aa4aU, 0x5b9cca4fU, 0x682e6ff3U,
+  0x748f82eeU, 0x78a5636fU, 0x84c87814U, 0x8cc70208U, 0x90befffaU, 0xa4506cebU, 0xbef9a3f7U,
+  0xc67178f2U,
 ]
 
+///|
 /// Initial hash state H(0): first 32 bits of the fractional parts of the
 /// square roots of the first 8 primes (FIPS 180-4 section 5.3.3).
 fn sha256_initial_state() -> FixedArray[UInt] {
@@ -38,6 +39,7 @@ fn sha256_initial_state() -> FixedArray[UInt] {
 // Public one-shot API
 // ---------------------------------------------------------------------------
 
+///|
 /// Computes the SHA-256 digest of `data` and returns the raw 32-byte value.
 pub fn sha256(data : Bytes) -> Bytes {
   let ctx = Sha256Ctx::new()
@@ -45,6 +47,7 @@ pub fn sha256(data : Bytes) -> Bytes {
   ctx.finalize()
 }
 
+///|
 /// Computes the SHA-256 digest of `data` as a 64-character lowercase hex
 /// string, the canonical digest text form used across evidence packs.
 pub fn sha256_hex(data : Bytes) -> String {
@@ -55,6 +58,7 @@ pub fn sha256_hex(data : Bytes) -> String {
 // Streaming API
 // ---------------------------------------------------------------------------
 
+///|
 /// Incremental SHA-256 context for hashing data that arrives in chunks
 /// (large files, streamed IO). Equivalent chunkings always produce the same
 /// digest as the one-shot `sha256`.
@@ -72,6 +76,7 @@ pub struct Sha256Ctx {
   mut total_bytes : UInt64
 }
 
+///|
 /// Creates a fresh context seeded with the FIPS 180-4 initial state H(0).
 pub fn Sha256Ctx::new() -> Sha256Ctx {
   {
@@ -82,6 +87,7 @@ pub fn Sha256Ctx::new() -> Sha256Ctx {
   }
 }
 
+///|
 /// Absorbs `data` into the running hash. Bytes are staged into the internal
 /// block buffer and compressed every time 64 bytes accumulate.
 pub fn Sha256Ctx::update(self : Sha256Ctx, data : Bytes) -> Unit {
@@ -103,6 +109,7 @@ pub fn Sha256Ctx::update(self : Sha256Ctx, data : Bytes) -> Unit {
   }
 }
 
+///|
 /// Returns the digest of everything absorbed so far as raw 32 bytes.
 ///
 /// Padding (FIPS 180-4 section 5.1.1) is applied to copies of the internal
@@ -135,10 +142,12 @@ pub fn Sha256Ctx::finalize(self : Sha256Ctx) -> Bytes {
 // Compression (FIPS 180-4 sections 4.1.2 and 6.2.2)
 // ---------------------------------------------------------------------------
 
+///|
 fn rotr(value : UInt, amount : Int) -> UInt {
   (value >> amount) | (value << (32 - amount))
 }
 
+///|
 /// Processes one 64-byte block starting at `offset`, updating `state` in
 /// place. Callers guarantee `offset + 64 <= block.length()`.
 fn process_block(
@@ -180,7 +189,11 @@ fn process_block(
   for t in 0..<64 {
     let big_sigma1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)
     let choose = (e & f) ^ (e.lnot() & g)
-    let temp1 = h + big_sigma1 + choose + sha256_round_constants[t] + schedule[t]
+    let temp1 = h +
+      big_sigma1 +
+      choose +
+      sha256_round_constants[t] +
+      schedule[t]
     let big_sigma0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22)
     let majority = (a & b) ^ (a & c) ^ (b & c)
     let temp2 = big_sigma0 + majority
@@ -209,6 +222,7 @@ fn process_block(
 // Output encoding
 // ---------------------------------------------------------------------------
 
+///|
 /// Serializes the eight 32-bit state words big-endian into 32 bytes
 /// (FIPS 180-4 section 6.2.2 final step).
 fn state_to_bytes(state : FixedArray[UInt]) -> Bytes {
@@ -219,10 +233,12 @@ fn state_to_bytes(state : FixedArray[UInt]) -> Bytes {
   })
 }
 
+///|
 let hex_digits : FixedArray[Char] = [
   '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
 ]
 
+///|
 fn bytes_to_lower_hex(data : Bytes) -> String {
   let builder = StringBuilder::new(size_hint=data.length() * 2)
   for byte in data {

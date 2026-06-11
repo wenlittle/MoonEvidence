@@ -1,6 +1,7 @@
 // Renderer tests: explain text format (frozen for README examples) and
 // canonical JSON report bytes.
 
+///|
 fn sample_failed_report() -> VerifyReport {
   {
     ok: false,
@@ -22,6 +23,7 @@ fn sample_failed_report() -> VerifyReport {
   }
 }
 
+///|
 test "explain renders ok report with summary line" {
   let report : VerifyReport = {
     ok: true,
@@ -37,6 +39,7 @@ test "explain renders ok report with summary line" {
   )
 }
 
+///|
 test "explain renders one finding per line with verdict and summary" {
   inspect(
     explain(sample_failed_report()),
@@ -49,6 +52,7 @@ test "explain renders one finding per line with verdict and summary" {
   )
 }
 
+///|
 test "explain marks unchecked merkle root" {
   let report : VerifyReport = {
     ok: true,
@@ -58,6 +62,7 @@ test "explain marks unchecked merkle root" {
   assert_true(explain(report).contains("merkle root not checked"))
 }
 
+///|
 test "to json renders canonical key order" {
   let report : VerifyReport = {
     ok: true,
@@ -70,6 +75,7 @@ test "to json renders canonical key order" {
   )
 }
 
+///|
 test "to json renders findings with severity strings" {
   let json = to_json(sample_failed_report())
   assert_true(json.contains("\"severity\":\"error\""))
@@ -79,6 +85,7 @@ test "to json renders findings with severity strings" {
   assert_eq(@canonjson.canonicalize(json) catch { _ => "raised" }, json)
 }
 
+///|
 test "report severity counters" {
   let report = sample_failed_report()
   assert_eq(report.error_count(), 1)

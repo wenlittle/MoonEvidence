@@ -7,6 +7,7 @@
 // Findings
 // ---------------------------------------------------------------------------
 
+///|
 /// How severe a finding is. `Error` findings fail verification; `Warning`
 /// findings (W1xxx) are reported but keep the pack valid.
 pub(all) enum Severity {
@@ -14,14 +15,16 @@ pub(all) enum Severity {
   Warning
 } derive(Eq, @debug.Debug)
 
+///|
 /// Renders `error` / `warning`, the wire spelling used in JSON reports.
-pub impl Show for Severity with output(self, logger) {
+pub impl Show for Severity with fn output(self, logger) {
   match self {
     Error => logger.write_string("error")
     Warning => logger.write_string("warning")
   }
 }
 
+///|
 /// One verification finding. `code` is a frozen error/warning code
 /// (E1xxx..E4xxx, W1xxx), `path` points at the manifest field or pack file
 /// the finding is about, and `message` is the human-readable detail.
@@ -32,8 +35,9 @@ pub(all) struct Finding {
   message : String
 } derive(Eq, @debug.Debug)
 
+///|
 /// Renders `[code] path: message` - one finding per line in explain output.
-pub impl Show for Finding with output(self, logger) {
+pub impl Show for Finding with fn output(self, logger) {
   logger.write_string("[")
   logger.write_string(self.code)
   logger.write_string("] ")
@@ -46,6 +50,7 @@ pub impl Show for Finding with output(self, logger) {
 // Reports
 // ---------------------------------------------------------------------------
 
+///|
 /// What the verifier actually checked, for the explain summary line and
 /// machine consumers that want coverage numbers, not just pass/fail.
 pub(all) struct CheckStats {
@@ -54,6 +59,7 @@ pub(all) struct CheckStats {
   merkle_checked : Bool
 } derive(Eq, @debug.Debug)
 
+///|
 /// Outcome of one manifest verification run. `ok` is true when no
 /// error-severity finding was produced (warnings alone do not fail a pack).
 pub(all) struct VerifyReport {
@@ -62,16 +68,19 @@ pub(all) struct VerifyReport {
   checked : CheckStats
 } derive(Eq, @debug.Debug)
 
+///|
 /// Counts findings with `Error` severity.
 pub fn VerifyReport::error_count(self : VerifyReport) -> Int {
   count_severity(self.findings, Error)
 }
 
+///|
 /// Counts findings with `Warning` severity.
 pub fn VerifyReport::warning_count(self : VerifyReport) -> Int {
   count_severity(self.findings, Warning)
 }
 
+///|
 fn count_severity(findings : Array[Finding], severity : Severity) -> Int {
   let mut count = 0
   for finding in findings {
@@ -86,6 +95,7 @@ fn count_severity(findings : Array[Finding], severity : Severity) -> Int {
 // Human-readable output
 // ---------------------------------------------------------------------------
 
+///|
 /// Renders the report for CLI users. Format (frozen for README examples):
 ///
 /// ```text
@@ -99,7 +109,13 @@ fn count_severity(findings : Array[Finding], severity : Severity) -> Int {
 /// summary line always closes the report so scripts can tail it.
 pub fn explain(report : VerifyReport) -> String {
   let out = StringBuilder::new()
-  out.write_string(if report.ok { "verification OK" } else { "verification FAILED" })
+  out.write_string(
+    if report.ok {
+      "verification OK"
+    } else {
+      "verification FAILED"
+    },
+  )
   for finding in report.findings {
     out.write_string("\n  ")
     out.write_string(finding.to_string())
@@ -109,12 +125,30 @@ pub fn explain(report : VerifyReport) -> String {
   out.write_string(" files, ")
   out.write_string(report.checked.files_passed.to_string())
   out.write_string(" passed; merkle root ")
-  out.write_string(if report.checked.merkle_checked { "verified" } else { "not checked" })
+  out.write_string(
+    if report.checked.merkle_checked {
+      "verified"
+    } else {
+      "not checked"
+    },
+  )
   out.write_string("; ")
   out.write_string(report.error_count().to_string())
-  out.write_string(if report.error_count() == 1 { " error, " } else { " errors, " })
+  out.write_string(
+    if report.error_count() == 1 {
+      " error, "
+    } else {
+      " errors, "
+    },
+  )
   out.write_string(report.warning_count().to_string())
-  out.write_string(if report.warning_count() == 1 { " warning" } else { " warnings" })
+  out.write_string(
+    if report.warning_count() == 1 {
+      " warning"
+    } else {
+      " warnings"
+    },
+  )
   out.to_string()
 }
 
@@ -122,6 +156,7 @@ pub fn explain(report : VerifyReport) -> String {
 // Machine-readable output
 // ---------------------------------------------------------------------------
 
+///|
 /// Renders the report as canonical JSON (RFC 8785 key order via canonjson),
 /// so report bytes are themselves digest-stable and diffable:
 ///

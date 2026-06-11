@@ -9,6 +9,7 @@
 // Model types
 // ---------------------------------------------------------------------------
 
+///|
 /// What the evidence pack is about. JSON key `type` is a MoonBit keyword,
 /// hence the field name `kind`.
 pub(all) struct Subject {
@@ -16,6 +17,7 @@ pub(all) struct Subject {
   kind : String
 } derive(Eq, @debug.Debug)
 
+///|
 /// One `files[]` entry. `digest` is stored pre-validated: the manifest text
 /// must already be in canonical `<algo>:<lowercase-hex>` form (spec E2002),
 /// so re-rendering the entry for Merkle leaf hashing reproduces the original
@@ -26,12 +28,14 @@ pub(all) struct FileEntry {
   digest : @digest.Digest
 } derive(Eq, @debug.Debug)
 
+///|
 /// The manifest's own version stamp (`version` object).
 pub(all) struct VersionRef {
   id : String
   parent : String?
 } derive(Eq, @debug.Debug)
 
+///|
 /// Parsed and validated manifest.
 pub(all) struct Manifest {
   schema : String
@@ -46,9 +50,11 @@ pub(all) struct Manifest {
 // Parsing
 // ---------------------------------------------------------------------------
 
+///|
 /// Supported schema identifier (frozen v1 scope).
 const SUPPORTED_SCHEMA : String = "moon-evidence/v0"
 
+///|
 /// Parses and validates a manifest document. Every spec rule is enforced:
 /// schema id, supported algorithm, non-empty unique file paths, canonical
 /// digest strings (matching the manifest algorithm), non-negative integer
@@ -135,6 +141,7 @@ pub fn Manifest::parse(input : String) -> Manifest raise ModelError {
 // Field extraction helpers (shared with version.mbt)
 // ---------------------------------------------------------------------------
 
+///|
 /// Requires `value` to be a JSON object; returns its fields.
 fn expect_object(
   value : Json,
@@ -146,6 +153,7 @@ fn expect_object(
   fields
 }
 
+///|
 /// Requires the key to be present (any JSON value).
 fn expect_present(
   fields : Map[String, Json],
@@ -158,6 +166,7 @@ fn expect_present(
   value
 }
 
+///|
 /// Requires a present, non-empty string field.
 fn expect_string(
   fields : Map[String, Json],
@@ -176,6 +185,7 @@ fn expect_string(
   }
 }
 
+///|
 /// Optional string field: absent or `null` is `None`; an empty string is
 /// rejected (an empty parent id would silently break chain semantics).
 fn expect_optional_string(
@@ -195,6 +205,7 @@ fn expect_optional_string(
   }
 }
 
+///|
 /// Requires a non-negative integer field exactly representable in a double
 /// (the JSON parser's native number type), per the L1 number policy.
 fn expect_size(
@@ -224,6 +235,7 @@ fn expect_size(
   }
 }
 
+///|
 /// Step-7 hardening: entry paths are pack-relative file locators. Anything
 /// that could escape the pack root (absolute paths, drive letters / ADS
 /// colons, ".." segments) or alias another entry past the duplicate check
@@ -237,8 +249,7 @@ fn validate_entry_path(
     let unit = path[index].to_int()
     if unit == 0x5c {
       raise ModelError::InvalidField(
-        context,
-        "backslash separators are not allowed (use \"/\")",
+        context, "backslash separators are not allowed (use \"/\")",
       )
     }
     if unit == 0x3a {
@@ -255,22 +266,19 @@ fn validate_entry_path(
       let segment_length = index - segment_start
       if segment_length == 0 {
         raise ModelError::InvalidField(
-          context,
-          "empty path segment is not allowed",
+          context, "empty path segment is not allowed",
         )
       }
       if segment_length == 1 && path[segment_start].to_int() == 0x2e {
         raise ModelError::InvalidField(
-          context,
-          "path segment \".\" is not allowed",
+          context, "path segment \".\" is not allowed",
         )
       }
       if segment_length == 2 &&
         path[segment_start].to_int() == 0x2e &&
         path[segment_start + 1].to_int() == 0x2e {
         raise ModelError::InvalidField(
-          context,
-          "path segment \"..\" is not allowed",
+          context, "path segment \"..\" is not allowed",
         )
       }
       segment_start = index + 1
@@ -278,6 +286,7 @@ fn validate_entry_path(
   }
 }
 
+///|
 /// Validates a digest string: must parse as `<algo>:<hex>`, must already be
 /// in canonical lowercase form (so byte-exact re-rendering is possible), and
 /// must use the manifest's declared algorithm.
@@ -300,8 +309,7 @@ fn expect_digest(
   }
   if digest.algorithm != algorithm {
     raise ModelError::InvalidDigest(
-      path,
-      "digest algorithm does not match manifest hash_algorithm",
+      path, "digest algorithm does not match manifest hash_algorithm",
     )
   }
   digest

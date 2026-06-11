@@ -5,12 +5,14 @@
 // ECMAScript shortest-form algorithm (L2). The RFC 8785 Appendix B number
 // table lives in `canonjson_wbtest.mbt` as bit-pattern tests.
 
+///|
 fn jcs_canonicalize(input : String) -> String raise {
   canonicalize(input) catch {
     error => fail("unexpected CanonError: \{error}")
   }
 }
 
+///|
 /// Asserts the vector canonicalizes to `expected` and that the output is a
 /// fixed point: canonicalize(canonicalize(x)) == canonicalize(x).
 fn assert_jcs_vector(input : String, expected : String) -> Unit raise {
@@ -19,6 +21,7 @@ fn assert_jcs_vector(input : String, expected : String) -> Unit raise {
   assert_eq(jcs_canonicalize(canonical), canonical)
 }
 
+///|
 test "jcs vector rfc8785 sorting example" {
   // RFC 8785 section 3.2.3: keys sort by UTF-16 code units, so the emoji
   // surrogate pair (d83d/de00) lands before U+FB33 despite its larger code
@@ -29,6 +32,7 @@ test "jcs vector rfc8785 sorting example" {
   )
 }
 
+///|
 test "jcs vector french locale must be ignored" {
   // cyberphone french.json: code-unit order (e < é < ê), not French collation.
   assert_jcs_vector(
@@ -37,6 +41,7 @@ test "jcs vector french locale must be ignored" {
   )
 }
 
+///|
 test "jcs vector structures" {
   // cyberphone structures.json: empty key first, "10"/"111" sort as strings
   // not numbers, uppercase before lowercase, 56.0 collapses to 56.
@@ -46,14 +51,15 @@ test "jcs vector structures" {
   )
 }
 
+///|
 test "jcs vector arrays" {
   // cyberphone arrays.json: array order is preserved, nested object sorted.
   assert_jcs_vector(
-    "[56, {\"d\": true, \"10\": null, \"1\": [ ]}]",
-    "[56,{\"1\":[],\"10\":null,\"d\":true}]",
+    "[56, {\"d\": true, \"10\": null, \"1\": [ ]}]", "[56,{\"1\":[],\"10\":null,\"d\":true}]",
   )
 }
 
+///|
 test "jcs vector values full mixed sample" {
   // cyberphone values.json == the RFC 8785 section 3.2.2 worked example:
   // every number requires ES shortest-form rendering (333333333.33333329
@@ -67,6 +73,7 @@ test "jcs vector values full mixed sample" {
   )
 }
 
+///|
 test "canonicalize is idempotent on a mixed document" {
   // Belt-and-braces fixed-point check beyond the official vectors: escapes,
   // surrogate pairs, nested containers, and integer-valued numbers together.

@@ -5,9 +5,11 @@
 // Exit codes (frozen): 0 verification passed, 1 verification failed,
 // 2 usage or IO error.
 
+///|
 /// Kept in sync with moon.mod at release time.
 const CLI_VERSION : String = "0.1.0"
 
+///|
 let usage_text : String =
   #|moon-evidence - trusted evidence pack verification
   #|
@@ -26,6 +28,7 @@ let usage_text : String =
   #|  1  verification failed
   #|  2  usage or IO error
 
+///|
 fn main {
   @sys.exit(run(@env.args()))
 }
@@ -34,6 +37,7 @@ fn main {
 // Argument handling
 // ---------------------------------------------------------------------------
 
+///|
 /// Drops the runtime-dependent argv prefix (native: program path; js: node
 /// path + script path) by scanning for the first recognized token. Returns
 /// the empty array when no known command is present.
@@ -53,6 +57,7 @@ fn strip_runtime_prefix(raw : Array[String]) -> Array[String] {
   []
 }
 
+///|
 fn run(raw_args : Array[String]) -> Int {
   let args = strip_runtime_prefix(raw_args)
   if args.length() == 0 {
@@ -81,6 +86,7 @@ fn run(raw_args : Array[String]) -> Int {
 // verify / explain
 // ---------------------------------------------------------------------------
 
+///|
 fn run_verify(args : Array[String], json_allowed~ : Bool) -> Int {
   let mut json_mode = false
   let mut path : String? = None
@@ -239,6 +245,7 @@ fn run_verify(args : Array[String], json_allowed~ : Bool) -> Int {
   }
 }
 
+///|
 /// Recursively collects files under `<root>/<rel_dir>` as pack-relative
 /// paths (`files/...`). Missing or unreadable directories yield nothing:
 /// a pack without a files/ tree is legal.
@@ -263,6 +270,7 @@ fn collect_pack_files(
   }
 }
 
+///|
 /// Parent directory of a file path, handling both separators; `.` when the
 /// path has no directory component.
 fn parent_dir(path : String) -> String {

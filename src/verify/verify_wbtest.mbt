@@ -2,6 +2,7 @@
 // computed by the independent Node reference (tools/gen-pack-fixture.mjs),
 // so a green "valid pack" run is itself an end-to-end cross-check.
 
+///|
 let golden_manifest : String =
   #|{
   #|  "schema": "moon-evidence/v0",
@@ -23,9 +24,11 @@ let golden_manifest : String =
   #|  "version": { "id": "v1", "parent": null }
   #|}
 
+///|
 /// Node-computed canonical digest of golden_manifest (E2004 positive case).
 const GOLDEN_MANIFEST_DIGEST : String = "sha256:16bbf1e91de3acfb8bd9091233926b454045c6d96c24327baec20272af583f1e"
 
+///|
 fn golden_files() -> Map[String, Bytes] {
   {
     "files/a.txt": @digest.string_to_utf8_bytes("hello world\n"),
@@ -33,6 +36,7 @@ fn golden_files() -> Map[String, Bytes] {
   }
 }
 
+///|
 fn error_codes(report : @diag.VerifyReport) -> Array[String] {
   report.findings.map(fn(item) { item.code })
 }
@@ -41,6 +45,7 @@ fn error_codes(report : @diag.VerifyReport) -> Array[String] {
 // Valid pack
 // ---------------------------------------------------------------------------
 
+///|
 test "valid pack verifies with zero findings" {
   let report = verify_manifest(golden_manifest, golden_files())
   assert_true(report.ok)
@@ -50,6 +55,7 @@ test "valid pack verifies with zero findings" {
   assert_true(report.checked.merkle_checked)
 }
 
+///|
 test "valid pack passes recorded manifest digest check" {
   let report = verify_manifest(
     golden_manifest,
@@ -64,6 +70,7 @@ test "valid pack passes recorded manifest digest check" {
 // E1xxx: model and canonicalization failures surface as findings
 // ---------------------------------------------------------------------------
 
+///|
 test "unparsable manifest reports e1001 and stops" {
   let report = verify_manifest("{ not json", golden_files())
   assert_false(report.ok)
@@ -71,6 +78,7 @@ test "unparsable manifest reports e1001 and stops" {
   assert_eq(report.checked.files_total, 0)
 }
 
+///|
 test "model validation failure carries field path into the finding" {
   let report = verify_manifest(
     golden_manifest.replace(old="\"size\": 12", new="\"size\": -1"),
@@ -81,6 +89,7 @@ test "model validation failure carries field path into the finding" {
   assert_eq(report.findings[0].path, "files[0].size")
 }
 
+///|
 test "unsupported number in ignored field reports e1004" {
   // The model ignores unknown fields, but canonicalization must still cover
   // the whole document - a number with no canonical form (overflow to
@@ -100,6 +109,7 @@ test "unsupported number in ignored field reports e1004" {
 // E2xxx: digest findings
 // ---------------------------------------------------------------------------
 
+///|
 test "missing file content reports e2003" {
   let files = golden_files()
   files.remove("files/a.txt")
@@ -110,6 +120,7 @@ test "missing file content reports e2003" {
   assert_eq(report.checked.files_passed, 1)
 }
 
+///|
 test "tampered file content reports e2003 with expected and got" {
   let files = golden_files()
   files["files/a.txt"] = @digest.string_to_utf8_bytes("hello world!")
@@ -120,6 +131,7 @@ test "tampered file content reports e2003 with expected and got" {
   assert_true(report.findings[0].message.contains("got sha256:"))
 }
 
+///|
 test "wrong recorded manifest digest reports e2004" {
   let report = verify_manifest(
     golden_manifest,
@@ -130,6 +142,7 @@ test "wrong recorded manifest digest reports e2004" {
   @debug.assert_eq(error_codes(report), ["E2004"])
 }
 
+///|
 test "all file problems are reported in one run" {
   // Exhaustive, not fail-fast: tamper one file AND drop the other. Content
   // tampering does NOT disturb the Merkle root - the tree attests manifest
@@ -143,6 +156,7 @@ test "all file problems are reported in one run" {
   assert_true(report.checked.merkle_checked)
 }
 
+///|
 test "tampered manifest digest entry trips both e2003 and e3003" {
   // Editing a digest INSIDE the manifest changes the canonical file entry,
   // so the recomputed Merkle root drifts from the recorded one: the file
@@ -162,6 +176,7 @@ test "tampered manifest digest entry trips both e2003 and e3003" {
 // W1001: unlisted file is a warning, not a failure
 // ---------------------------------------------------------------------------
 
+///|
 test "unlisted file reports w1001 but pack stays ok" {
   let files = golden_files()
   files["files/extra.bin"] = b"\x01\x02"
@@ -176,6 +191,7 @@ test "unlisted file reports w1001 but pack stays ok" {
 // E3xxx: Merkle findings
 // ---------------------------------------------------------------------------
 
+///|
 test "missing merkle root with files reports e3001" {
   let report = verify_manifest(
     golden_manifest.replace(
@@ -189,6 +205,7 @@ test "missing merkle root with files reports e3001" {
   assert_false(report.checked.merkle_checked)
 }
 
+///|
 test "merkle root over empty files reports e3001" {
   let input =
     #|{
@@ -204,6 +221,7 @@ test "merkle root over empty files reports e3001" {
   @debug.assert_eq(error_codes(report), ["E3001"])
 }
 
+///|
 test "empty pack without merkle root is ok" {
   let input =
     #|{
@@ -218,6 +236,7 @@ test "empty pack without merkle root is ok" {
   assert_eq(report.findings.length(), 0)
 }
 
+///|
 test "tampered merkle root reports e3003" {
   let report = verify_manifest(
     golden_manifest.replace(

@@ -1,4 +1,4 @@
 import {
-  "wenlittle/MoonEvidence/src/digest" @digest,
-  "moonbitlang/core/debug" @debug,
+  "wenlittle/MoonEvidence/src/digest",
+  "moonbitlang/core/debug",
 }

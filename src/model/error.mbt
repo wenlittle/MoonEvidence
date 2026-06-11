@@ -2,6 +2,7 @@
 // (docs/spec/EVIDENCE_PACK_SPEC.md "Error Codes"); the code string is part
 // of the public contract and is what tests and the CLI assert on.
 
+///|
 /// Validation failure while parsing a manifest or version chain. The first
 /// payload of each variant is the field path context (e.g. `files[3].digest`)
 /// except for `ParseFailed`, which carries the parser diagnostic.
@@ -21,6 +22,7 @@ pub(all) suberror ModelError {
   InvalidDigest(String, String)
 } derive(Eq, @debug.Debug)
 
+///|
 /// Returns the frozen error code for this failure (`E1001`..`E2002`).
 pub fn ModelError::error_code(self : ModelError) -> String {
   match self {
@@ -33,6 +35,7 @@ pub fn ModelError::error_code(self : ModelError) -> String {
   }
 }
 
+///|
 /// Returns the field path the failure points at (`manifest` for whole-input
 /// parse failures). Used by verify when converting errors into findings.
 pub fn ModelError::field_path(self : ModelError) -> String {
@@ -46,6 +49,7 @@ pub fn ModelError::field_path(self : ModelError) -> String {
   }
 }
 
+///|
 /// Returns the human-readable detail without code or path prefix.
 pub fn ModelError::detail(self : ModelError) -> String {
   match self {
@@ -59,9 +63,10 @@ pub fn ModelError::detail(self : ModelError) -> String {
   }
 }
 
+///|
 /// Renders `[code] path: detail`, the same single-line shape diag findings
 /// use, so model errors read consistently in CLI output and test failures.
-pub impl Show for ModelError with output(self, logger) {
+pub impl Show for ModelError with fn output(self, logger) {
   logger.write_string("[")
   logger.write_string(self.error_code())
   logger.write_string("] ")

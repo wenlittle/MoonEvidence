@@ -11,6 +11,7 @@
 // Errors
 // ---------------------------------------------------------------------------
 
+///|
 /// Failure modes of canonicalization. Carried text is diagnostic context
 /// (parser detail or the offending number) for explain-style reporting.
 pub(all) suberror CanonError {
@@ -22,8 +23,9 @@ pub(all) suberror CanonError {
   UnsupportedNumber(String)
 } derive(Eq)
 
+///|
 /// Renders the error as `kind: detail`, keeping diagnostics single-line.
-pub impl Show for CanonError with output(self, logger) {
+pub impl Show for CanonError with fn output(self, logger) {
   match self {
     ParseFailed(detail) => {
       logger.write_string("ParseFailed: ")
@@ -40,6 +42,7 @@ pub impl Show for CanonError with output(self, logger) {
 // Public API
 // ---------------------------------------------------------------------------
 
+///|
 /// Canonicalizes a JSON document per RFC 8785: minimal whitespace, object
 /// keys sorted by UTF-16 code units, JCS string escaping, and ECMAScript
 /// shortest-form numbers. The output is the byte-stable payload evidence
@@ -53,15 +56,15 @@ pub fn canonicalize(input : String) -> String raise CanonError {
   out.to_string()
 }
 
+///|
 /// Returns `None` instead of raising when the input cannot be canonicalized.
 pub fn canonicalize_or_none(input : String) -> String? {
-  try {
-    Some(canonicalize(input))
-  } catch {
+  Some(canonicalize(input)) catch {
     (_ : CanonError) => None
   }
 }
 
+///|
 /// Checks whether two JSON payloads have the same canonical representation.
 pub fn same_canonical_payload(left : String, right : String) -> Bool {
   match (canonicalize_or_none(left), canonicalize_or_none(right)) {
@@ -74,6 +77,7 @@ pub fn same_canonical_payload(left : String, right : String) -> Bool {
 // Rendering
 // ---------------------------------------------------------------------------
 
+///|
 fn render(value : Json, out : StringBuilder) -> Unit raise CanonError {
   match value {
     Null => out.write_string("null")
@@ -117,6 +121,7 @@ fn render(value : Json, out : StringBuilder) -> Unit raise CanonError {
 // Key ordering (RFC 8785 section 3.2.3)
 // ---------------------------------------------------------------------------
 
+///|
 /// Pure lexicographic comparison of UTF-16 code units.
 ///
 /// Deliberately NOT the builtin `String::compare`: MoonBit's builtin is
@@ -126,7 +131,11 @@ fn render(value : Json, out : StringBuilder) -> Unit raise CanonError {
 fn compare_code_units(left : String, right : String) -> Int {
   let left_length = left.length()
   let right_length = right.length()
-  let shared = if left_length < right_length { left_length } else { right_length }
+  let shared = if left_length < right_length {
+    left_length
+  } else {
+    right_length
+  }
   for index in 0..<shared {
     let order = left[index].compare(right[index])
     if order != 0 {
@@ -140,10 +149,12 @@ fn compare_code_units(left : String, right : String) -> Int {
 // String escaping (RFC 8785 section 3.2.2.2)
 // ---------------------------------------------------------------------------
 
+///|
 let lower_hex_digits : FixedArray[Char] = [
   '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
 ]
 
+///|
 /// Serializes one string literal with the exact JCS escape set: `\"`, `\\`,
 /// the two-character forms `\b \f \n \r \t`, and `\u00xx` (lowercase hex)
 /// for the remaining control characters below U+0020. Every other code unit
@@ -184,6 +195,7 @@ fn render_string(text : String, out : StringBuilder) -> Unit {
 // Number serialization (RFC 8785 section 3.2.2.3, ECMAScript algorithm)
 // ---------------------------------------------------------------------------
 
+///|
 fn render_number(
   number : Double,
   repr : String?,
@@ -192,6 +204,7 @@ fn render_number(
   out.write_string(format_number(number, repr))
 }
 
+///|
 /// Serializes one JSON number exactly as ECMAScript `Number::toString`
 /// would, which is what RFC 8785 requires (section 3.2.2.3 defers to
 /// ECMA-262 section 7.1.12.1 including the "Note 2" shortest-form rule).

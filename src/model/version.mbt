@@ -7,15 +7,19 @@
 // rules (E4001 empty chain, E4002 broken parent, E4003 cycle, E4004 fork)
 // are verification semantics owned by the verify package.
 
+///|
 /// One node in the version chain. The root node has `parent: None`.
 pub(all) struct VersionNode {
   id : String
   parent : String?
 } derive(Eq, @debug.Debug)
 
+///|
 /// Parses `version_chain.json`. Each node needs a non-empty `id`; `parent`
 /// is absent, `null`, or a non-empty string.
-pub fn parse_version_chain(input : String) -> Array[VersionNode] raise ModelError {
+pub fn parse_version_chain(
+  input : String,
+) -> Array[VersionNode] raise ModelError {
   let document = @json.parse(input) catch {
     error => raise ModelError::ParseFailed(error.to_json().stringify())
   }

@@ -2,6 +2,7 @@
 // suite). Sources: FIPS 180-4 appendix examples and NIST CAVP SHA256ShortMsg.
 // Each expected digest is the official lowercase hex value.
 
+///|
 test "sha256 of empty input matches NIST vector" {
   inspect(
     sha256_hex(b""),
@@ -9,6 +10,7 @@ test "sha256 of empty input matches NIST vector" {
   )
 }
 
+///|
 test "sha256 of abc matches FIPS 180-4 example" {
   inspect(
     sha256_hex(b"abc"),
@@ -16,6 +18,7 @@ test "sha256 of abc matches FIPS 180-4 example" {
   )
 }
 
+///|
 test "sha256 of 448 bit two block message matches FIPS 180-4 example" {
   // 56 bytes: forces the padding to spill into a second block.
   inspect(
@@ -24,6 +27,7 @@ test "sha256 of 448 bit two block message matches FIPS 180-4 example" {
   )
 }
 
+///|
 test "sha256 of 896 bit message matches FIPS 180-4 example" {
   // 112 bytes: exercises multi-block scheduling across three blocks total.
   inspect(
@@ -34,6 +38,7 @@ test "sha256 of 896 bit message matches FIPS 180-4 example" {
   )
 }
 
+///|
 test "sha256 raw output is 32 bytes" {
   assert_eq(sha256(b"abc").length(), 32)
 }
@@ -42,6 +47,7 @@ test "sha256 raw output is 32 bytes" {
 // Incremental (streaming) API
 // ---------------------------------------------------------------------------
 
+///|
 test "sha256 ctx with no input matches empty vector" {
   let ctx = Sha256Ctx::new()
   inspect(
@@ -50,6 +56,7 @@ test "sha256 ctx with no input matches empty vector" {
   )
 }
 
+///|
 test "sha256 ctx split updates match one shot digest" {
   let ctx = Sha256Ctx::new()
   ctx.update(b"a")
@@ -60,6 +67,7 @@ test "sha256 ctx split updates match one shot digest" {
   )
 }
 
+///|
 test "sha256 ctx finalize is idempotent" {
   let ctx = Sha256Ctx::new()
   ctx.update(b"abc")
@@ -68,6 +76,7 @@ test "sha256 ctx finalize is idempotent" {
   assert_eq(first, second)
 }
 
+///|
 test "sha256 ctx of one million a matches NIST long message vector" {
   // FIPS 180-4 long-message example: 1,000,000 repetitions of 'a'. Fed in
   // 1000-byte chunks so memory stays flat and update paths are exercised.
@@ -82,6 +91,7 @@ test "sha256 ctx of one million a matches NIST long message vector" {
   )
 }
 
+///|
 test "sha256 ctx is chunk size invariant across block boundaries" {
   // 200 bytes of deterministic non-repeating data crosses three 64-byte
   // blocks; every chunking must agree with the one-shot digest.

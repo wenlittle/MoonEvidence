@@ -1,6 +1,7 @@
 // Unit tests for the RFC 8785 serializer. Official JCS vectors live in
 // canonjson_jcs_wbtest.mbt; these cover the mechanics piece by piece.
 
+///|
 fn must_canonicalize(input : String) -> String raise {
   canonicalize(input) catch {
     error => fail("unexpected CanonError: \{error}")
@@ -11,6 +12,7 @@ fn must_canonicalize(input : String) -> String raise {
 // Structure
 // ---------------------------------------------------------------------------
 
+///|
 test "canonicalize removes insignificant whitespace" {
   inspect(
     must_canonicalize("{ \"a\" : 1, \"b\" : true }"),
@@ -18,19 +20,23 @@ test "canonicalize removes insignificant whitespace" {
   )
 }
 
+///|
 test "canonicalize reordered object fields keeps same payload" {
   assert_true(same_canonical_payload("{\"b\":2,\"a\":1}", "{\"a\":1,\"b\":2}"))
 }
 
+///|
 test "canonicalize invalid json returns none" {
   debug_inspect(canonicalize_or_none("{"), content="None")
 }
 
+///|
 test "canonicalize invalid json raises parse failed" {
   let result = try? canonicalize("{")
   assert_true(result is Err(ParseFailed(_)))
 }
 
+///|
 test "canonicalize nested objects sorts keys recursively" {
   inspect(
     must_canonicalize("{\"z\":{\"b\":2,\"a\":1},\"a\":[{\"d\":4,\"c\":3}]}"),
@@ -38,6 +44,7 @@ test "canonicalize nested objects sorts keys recursively" {
   )
 }
 
+///|
 test "canonicalize renders literals and empty containers" {
   inspect(
     must_canonicalize("[null, true, false, [], {}, \"\"]"),
@@ -49,45 +56,39 @@ test "canonicalize renders literals and empty containers" {
 // Key ordering: UTF-16 code units, NOT MoonBit's shortlex builtin
 // ---------------------------------------------------------------------------
 
+///|
 test "key order is lexicographic not shortlex" {
   // Builtin String::compare is shortlex and would order "b" before "aa".
   // RFC 8785 requires pure code-unit comparison: "aa" < "b" (0x61 < 0x62).
-  inspect(
-    must_canonicalize("{\"b\":1,\"aa\":2}"),
-    content="{\"aa\":2,\"b\":1}",
-  )
+  inspect(must_canonicalize("{\"b\":1,\"aa\":2}"), content="{\"aa\":2,\"b\":1}")
 }
 
+///|
 test "key order compares prefixes shorter first" {
-  inspect(
-    must_canonicalize("{\"ab\":2,\"a\":1}"),
-    content="{\"a\":1,\"ab\":2}",
-  )
+  inspect(must_canonicalize("{\"ab\":2,\"a\":1}"), content="{\"a\":1,\"ab\":2}")
 }
 
+///|
 test "key order places surrogate pairs by code unit value" {
   // U+10000 is stored as the surrogate pair d800/dc00. Code-unit order puts
   // it BEFORE U+FB33 and U+FF61 even though its code point is larger - the
   // exact case where UTF-16 order and code-point order disagree.
   inspect(
-    must_canonicalize(
-      "{\"\u{ff61}\":3,\"\u{10000}\":1,\"\u{fb33}\":2}",
-    ),
+    must_canonicalize("{\"\u{ff61}\":3,\"\u{10000}\":1,\"\u{fb33}\":2}"),
     content="{\"\u{10000}\":1,\"\u{fb33}\":2,\"\u{ff61}\":3}",
   )
 }
 
+///|
 test "key order handles empty key first" {
-  inspect(
-    must_canonicalize("{\"a\":2,\"\":1}"),
-    content="{\"\":1,\"a\":2}",
-  )
+  inspect(must_canonicalize("{\"a\":2,\"\":1}"), content="{\"\":1,\"a\":2}")
 }
 
 // ---------------------------------------------------------------------------
 // String escaping (RFC 8785 section 3.2.2.2)
 // ---------------------------------------------------------------------------
 
+///|
 test "escape uses two character forms for control shorthands" {
   // Input uses JSON escapes (raw control characters are invalid in JSON
   // strings); output must use the short two-character forms.
@@ -97,13 +98,12 @@ test "escape uses two character forms for control shorthands" {
   )
 }
 
+///|
 test "escape quotes and backslashes" {
-  inspect(
-    must_canonicalize("[\"a\\\"b\\\\c\"]"),
-    content="[\"a\\\"b\\\\c\"]",
-  )
+  inspect(must_canonicalize("[\"a\\\"b\\\\c\"]"), content="[\"a\\\"b\\\\c\"]")
 }
 
+///|
 test "escape remaining control characters as lowercase u00xx" {
   // \u0001 and \u001F have no shorthand; JCS mandates lowercase \u00xx.
   // Uppercase hex input must normalize to lowercase output.
@@ -113,10 +113,12 @@ test "escape remaining control characters as lowercase u00xx" {
   )
 }
 
+///|
 test "forward slash is not escaped" {
   inspect(must_canonicalize("[\"a/b\"]"), content="[\"a/b\"]")
 }
 
+///|
 test "delete and non ascii characters pass through verbatim" {
   // U+007F is above the U+0020 escape threshold; JCS leaves it raw, along
   // with all non-ASCII text (here: euro sign, CJK, emoji surrogate pair).
@@ -130,6 +132,7 @@ test "delete and non ascii characters pass through verbatim" {
 // Numbers: ECMAScript serialization (RFC 8785 section 3.2.2.3, L2 policy)
 // ---------------------------------------------------------------------------
 
+///|
 test "numbers render safe integers verbatim" {
   inspect(
     must_canonicalize("[0,1,-1,42,9007199254740991,-9007199254740991]"),
@@ -137,6 +140,7 @@ test "numbers render safe integers verbatim" {
   )
 }
 
+///|
 test "numbers collapse integer valued forms to plain decimal" {
   // 5.0, 1e2, and 1E+2 all denote the same integer; RFC 8785 renders the
   // shortest form. -0 must collapse to 0 (section 3.2.2.3).
@@ -146,6 +150,7 @@ test "numbers collapse integer valued forms to plain decimal" {
   )
 }
 
+///|
 test "numbers render fractions in shortest round trip form" {
   // Trailing zeros vanish; the shortest digit string that round-trips to
   // the same double wins (ES "Note 2" rule).
@@ -155,6 +160,7 @@ test "numbers render fractions in shortest round trip form" {
   )
 }
 
+///|
 test "numbers switch to exponent notation at ecmascript thresholds" {
   // Fixed notation covers 1e-6 up to (not including) 1e21; outside that
   // window ES emits exponent form with an explicit sign on the exponent.
@@ -164,6 +170,7 @@ test "numbers switch to exponent notation at ecmascript thresholds" {
   )
 }
 
+///|
 test "numbers round lossy integers like an ecmascript engine" {
   // The MoonBit parser refuses to silently round integer literals beyond
   // 2^53 and hands the source text through; canonicalization must resolve
@@ -178,6 +185,7 @@ test "numbers round lossy integers like an ecmascript engine" {
   )
 }
 
+///|
 test "numbers reject overflow to infinity" {
   // Values beyond IEEE 754 double range resolve to Infinity, which JCS
   // must reject (RFC 8785 section 3.2.2.3 note). The parser keeps the
@@ -188,6 +196,7 @@ test "numbers reject overflow to infinity" {
   assert_true(digits_overflow is Err(UnsupportedNumber("-1e309")))
 }
 
+///|
 test "format_number rejects nan and infinity bit patterns" {
   // JSON cannot spell NaN/Infinity, but the formatter is also the boundary
   // for report rendering; pin the RFC-mandated error on the raw values.
@@ -203,6 +212,7 @@ test "format_number rejects nan and infinity bit patterns" {
   assert_true(infinity is Err(UnsupportedNumber("Infinity")))
 }
 
+///|
 test "jcs number vectors from rfc 8785 appendix b" {
   // Table 1 of RFC 8785 Appendix B: IEEE 754 bit pattern -> required JSON
   // text (also mirrored in tests/fixtures/jcs/numbers-appendix-b.txt).

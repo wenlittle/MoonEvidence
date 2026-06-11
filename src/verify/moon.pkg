@@ -1,12 +1,12 @@
 import {
-  "moonbitlang/core/debug" @debug,
-  "wenlittle/MoonEvidence/src/canonjson" @canonjson,
-  "wenlittle/MoonEvidence/src/digest" @digest,
-  "wenlittle/MoonEvidence/src/merkle" @merkle,
-  "wenlittle/MoonEvidence/src/model" @model,
-  "wenlittle/MoonEvidence/src/diag" @diag,
+  "moonbitlang/core/debug",
+  "wenlittle/MoonEvidence/src/canonjson",
+  "wenlittle/MoonEvidence/src/digest",
+  "wenlittle/MoonEvidence/src/merkle",
+  "wenlittle/MoonEvidence/src/model",
+  "wenlittle/MoonEvidence/src/diag",
 }
 
 import {
-  "moonbitlang/core/bench" @bench,
+  "moonbitlang/core/bench",
 } for "wbtest"

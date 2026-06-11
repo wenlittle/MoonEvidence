@@ -7,6 +7,7 @@
 // Golden data (same pack as verify_wbtest)
 // ---------------------------------------------------------------------------
 
+///|
 let golden_manifest : String =
   #|{
   #|  "schema": "moon-evidence/v0",
@@ -28,9 +29,11 @@ let golden_manifest : String =
   #|  "version": { "id": "v1", "parent": null }
   #|}
 
+///|
 /// Hex encoding of "hello world\n" (files/a.txt). files/b.bin is empty.
 const GOLDEN_A_HEX : String = "68656c6c6f20776f726c640a"
 
+///|
 let empty_manifest : String =
   #|{
   #|  "schema": "moon-evidence/v0",
@@ -44,6 +47,7 @@ let empty_manifest : String =
 // Request / response helpers
 // ---------------------------------------------------------------------------
 
+///|
 /// Builds a request envelope; absent arguments leave the field out entirely.
 /// `files` values are raw Json so tests can also inject non-string values.
 fn make_request(
@@ -68,6 +72,7 @@ fn make_request(
   Json::object(fields).stringify()
 }
 
+///|
 fn golden_request() -> String {
   make_request(manifest=golden_manifest, files=[
     ("files/a.txt", Json::string(GOLDEN_A_HEX)),
@@ -75,6 +80,7 @@ fn golden_request() -> String {
   ])
 }
 
+///|
 fn response_fields(response : String) -> Map[String, Json] raise {
   guard @json.parse(response) is Object(fields) else {
     fail("response is not a JSON object: \{response}")
@@ -82,6 +88,7 @@ fn response_fields(response : String) -> Map[String, Json] raise {
   fields
 }
 
+///|
 fn response_ok(response : String) -> Bool raise {
   match response_fields(response).get("ok") {
     Some(True) => true
@@ -90,6 +97,7 @@ fn response_ok(response : String) -> Bool raise {
   }
 }
 
+///|
 fn response_error(response : String) -> String raise {
   guard response_fields(response).get("error") is Some(String(message)) else {
     fail("response has no \"error\" field: \{response}")
@@ -97,6 +105,7 @@ fn response_error(response : String) -> String raise {
   message
 }
 
+///|
 fn response_explain(response : String) -> String raise {
   guard response_fields(response).get("explain") is Some(String(text)) else {
     fail("response has no \"explain\" field: \{response}")
@@ -104,6 +113,7 @@ fn response_explain(response : String) -> String raise {
   text
 }
 
+///|
 /// Finding codes inside the embedded report, in report order.
 fn report_codes(response : String) -> Array[String] raise {
   guard response_fields(response).get("report") is Some(Object(report)) else {
@@ -114,8 +124,7 @@ fn report_codes(response : String) -> Array[String] raise {
   }
   let codes : Array[String] = []
   for item in findings {
-    guard item is Object(finding) &&
-      finding.get("code") is Some(String(code)) else {
+    guard item is Object(finding) && finding.get("code") is Some(String(code)) else {
       fail("finding has no \"code\": \{response}")
     }
     codes.push(code)
@@ -127,30 +136,35 @@ fn report_codes(response : String) -> Array[String] raise {
 // Request envelope errors
 // ---------------------------------------------------------------------------
 
+///|
 test "non-json request is rejected" {
   let response = verify_evidence("{ not json")
   assert_false(response_ok(response))
   assert_eq(response_error(response), "request is not valid JSON")
 }
 
+///|
 test "non-object request is rejected" {
   let response = verify_evidence("[1, 2]")
   assert_false(response_ok(response))
   assert_eq(response_error(response), "request must be a JSON object")
 }
 
+///|
 test "missing manifest field is rejected" {
   let response = verify_evidence(make_request())
   assert_false(response_ok(response))
   assert_eq(response_error(response), "\"manifest\" must be a string field")
 }
 
+///|
 test "non-string manifest is rejected" {
   let response = verify_evidence("{\"manifest\": 42}")
   assert_false(response_ok(response))
   assert_eq(response_error(response), "\"manifest\" must be a string field")
 }
 
+///|
 test "non-object files is rejected" {
   let response = verify_evidence(
     "{\"manifest\": \"x\", \"files\": \"not an object\"}",
@@ -159,6 +173,7 @@ test "non-object files is rejected" {
   assert_eq(response_error(response), "\"files\" must be an object")
 }
 
+///|
 test "non-string file value is rejected" {
   let response = verify_evidence(
     make_request(manifest=golden_manifest, files=[
@@ -172,6 +187,7 @@ test "non-string file value is rejected" {
   )
 }
 
+///|
 test "odd-length hex is rejected" {
   let response = verify_evidence(
     make_request(manifest=golden_manifest, files=[
@@ -182,6 +198,7 @@ test "odd-length hex is rejected" {
   assert_eq(response_error(response), "files[\"files/a.txt\"] is not valid hex")
 }
 
+///|
 test "non-hex character is rejected" {
   let response = verify_evidence(
     make_request(manifest=golden_manifest, files=[
@@ -192,6 +209,7 @@ test "non-hex character is rejected" {
   assert_eq(response_error(response), "files[\"files/a.txt\"] is not valid hex")
 }
 
+///|
 test "non-string version chain is rejected" {
   let response = verify_evidence(
     "{\"manifest\": \"x\", \"version_chain\": [1]}",
@@ -204,6 +222,7 @@ test "non-string version chain is rejected" {
 // Manifest pipeline pass-through
 // ---------------------------------------------------------------------------
 
+///|
 test "golden pack verifies ok" {
   let response = verify_evidence(golden_request())
   assert_true(response_ok(response))
@@ -211,6 +230,7 @@ test "golden pack verifies ok" {
   assert_eq(report_codes(response).length(), 0)
 }
 
+///|
 test "uppercase hex decodes equally" {
   let response = verify_evidence(
     make_request(manifest=golden_manifest, files=[
@@ -221,6 +241,7 @@ test "uppercase hex decodes equally" {
   assert_true(response_ok(response))
 }
 
+///|
 test "tampered file reports e2003 in embedded report" {
   // "hello world!" instead of "hello world\n": same length, wrong digest.
   let response = verify_evidence(
@@ -234,6 +255,7 @@ test "tampered file reports e2003 in embedded report" {
   @debug.assert_eq(report_codes(response), ["E2003"])
 }
 
+///|
 test "invalid manifest json becomes e1001 finding" {
   // Malformed manifest is a verification finding, not a request error.
   let response = verify_evidence(make_request(manifest="{ not json"))
@@ -241,6 +263,7 @@ test "invalid manifest json becomes e1001 finding" {
   @debug.assert_eq(report_codes(response), ["E1001"])
 }
 
+///|
 test "null files and version chain are treated as absent" {
   let response = verify_evidence(
     "{\"manifest\": \{Json::string(empty_manifest).stringify()}, \"files\": null, \"version_chain\": null}",
@@ -253,6 +276,7 @@ test "null files and version chain are treated as absent" {
 // Version chain merging
 // ---------------------------------------------------------------------------
 
+///|
 test "valid version chain keeps pack ok" {
   let response = verify_evidence(
     make_request(
@@ -268,6 +292,7 @@ test "valid version chain keeps pack ok" {
   assert_eq(report_codes(response).length(), 0)
 }
 
+///|
 test "broken parent in chain fails with e4002" {
   let response = verify_evidence(
     make_request(
@@ -283,6 +308,7 @@ test "broken parent in chain fails with e4002" {
   @debug.assert_eq(report_codes(response), ["E4002"])
 }
 
+///|
 test "invalid chain json becomes e1001 finding at version_chain" {
   let response = verify_evidence(
     make_request(manifest=empty_manifest, version_chain="{ not json"),
@@ -296,10 +322,12 @@ test "invalid chain json becomes e1001 finding at version_chain" {
 // End-to-end: dynamically built pack (digest + merkle cross-check)
 // ---------------------------------------------------------------------------
 
+///|
 let wb_hex_digits : FixedArray[Char] = [
   '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
 ]
 
+///|
 fn bytes_to_hex(data : Bytes) -> String {
   let builder = StringBuilder::new(size_hint=data.length() * 2)
   for byte in data {
@@ -310,6 +338,7 @@ fn bytes_to_hex(data : Bytes) -> String {
   builder.to_string()
 }
 
+///|
 test "dynamically built single-file pack verifies end to end" {
   // Build a pack from scratch with the library's own digest and merkle
   // primitives, then push it through the JS adapter: proves the hex
@@ -317,8 +346,7 @@ test "dynamically built single-file pack verifies end to end" {
   let content = @digest.string_to_utf8_bytes("api adapter")
   let digest_hex = @digest.sha256_hex(content)
   let leaf = "{\"digest\":\"sha256:\{digest_hex}\",\"path\":\"files/x.txt\",\"size\":11}"
-  guard @merkle.compute_root([@digest.string_to_utf8_bytes(leaf)])
-    is Some(root) else {
+  guard @merkle.compute_root([@digest.string_to_utf8_bytes(leaf)]) is Some(root) else {
     fail("expected a merkle root for one leaf")
   }
   let manifest = Json::object({
@@ -339,7 +367,7 @@ test "dynamically built single-file pack verifies end to end" {
     "version": Json::object({ "id": Json::string("v1") }),
   }).stringify()
   let response = verify_evidence(
-    make_request(manifest=manifest, files=[
+    make_request(manifest~, files=[
       ("files/x.txt", Json::string(bytes_to_hex(content))),
     ]),
   )

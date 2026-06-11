@@ -14,14 +14,17 @@
 // Deterministic PRNG (splitmix64)
 // ---------------------------------------------------------------------------
 
+///|
 priv struct PropRng {
   mut state : UInt64
 }
 
+///|
 fn PropRng::make(seed : UInt64) -> PropRng {
   { state: seed }
 }
 
+///|
 fn PropRng::next(self : PropRng) -> UInt64 {
   self.state = self.state + 0x9E3779B97F4A7C15UL
   let mut z = self.state
@@ -30,6 +33,7 @@ fn PropRng::next(self : PropRng) -> UInt64 {
   z ^ (z >> 31)
 }
 
+///|
 /// Uniform-ish draw in `0..<bound` (modulo bias is irrelevant for tests).
 fn PropRng::below(self : PropRng, bound : Int) -> Int {
   (self.next() % bound.to_uint64()).to_int()
@@ -39,6 +43,7 @@ fn PropRng::below(self : PropRng, bound : Int) -> Int {
 // Generators
 // ---------------------------------------------------------------------------
 
+///|
 /// Random payload with a 4-byte little-endian `tag` prefix. Distinct tags
 /// guarantee distinct payloads, which the tamper property relies on.
 fn random_payload(rng : PropRng, tag : Int) -> Bytes {
@@ -55,6 +60,7 @@ fn random_payload(rng : PropRng, tag : Int) -> Bytes {
   Bytes::from_array(bytes)
 }
 
+///|
 fn random_leaves(rng : PropRng, count : Int) -> Array[Bytes] {
   let leaves : Array[Bytes] = []
   for index in 0..<count {
@@ -63,6 +69,7 @@ fn random_leaves(rng : PropRng, count : Int) -> Array[Bytes] {
   leaves
 }
 
+///|
 fn random_hash(rng : PropRng) -> Bytes {
   let bytes : Array[Byte] = []
   for _ in 0..<32 {
@@ -75,6 +82,7 @@ fn random_hash(rng : PropRng) -> Bytes {
 // Properties
 // ---------------------------------------------------------------------------
 
+///|
 test "property: every inclusion proof verifies against its root" {
   let rng = PropRng::make(0x6d6f6f6e2d657631UL) // "moon-ev1"
   for round in 0..<60 {
@@ -96,6 +104,7 @@ test "property: every inclusion proof verifies against its root" {
   }
 }
 
+///|
 test "property: any single tamper breaks verification" {
   let rng = PropRng::make(0x6d6f6f6e2d657632UL) // "moon-ev2"
   for round in 0..<120 {

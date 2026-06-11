@@ -4,6 +4,7 @@
 // second codebase instead of validating itself. Payloads are "leaf-0".. in
 // UTF-8, matching the generator.
 
+///|
 fn golden_leaves(count : Int) -> Array[Bytes] {
   let leaves : Array[Bytes] = []
   for index in 0..<count {
@@ -12,6 +13,7 @@ fn golden_leaves(count : Int) -> Array[Bytes] {
   leaves
 }
 
+///|
 fn root_hex(leaves : Array[Bytes]) -> String raise {
   match compute_root(leaves) {
     Some(root) => bytes_to_hex(root)
@@ -19,6 +21,7 @@ fn root_hex(leaves : Array[Bytes]) -> String raise {
   }
 }
 
+///|
 fn bytes_to_hex(data : Bytes) -> String {
   let builder = StringBuilder::new(size_hint=data.length() * 2)
   for byte in data {
@@ -29,6 +32,7 @@ fn bytes_to_hex(data : Bytes) -> String {
   builder.to_string()
 }
 
+///|
 fn hex_to_bytes(hex : String) -> Bytes raise {
   guard hex.length() % 2 == 0 else { fail("odd hex length") }
   Bytes::makei(hex.length() / 2, fn(index) {
@@ -38,6 +42,7 @@ fn hex_to_bytes(hex : String) -> Bytes raise {
   })
 }
 
+///|
 fn hex_digit_value(unit : Int) -> Int {
   if unit >= 0x30 && unit <= 0x39 {
     unit - 0x30
@@ -52,6 +57,7 @@ fn hex_digit_value(unit : Int) -> Int {
 // Golden roots (every shape)
 // ---------------------------------------------------------------------------
 
+///|
 test "golden roots match the node reference for every shape" {
   let expectations = [
     (1, "305df59f9590c3c9ac63d2b2743c388e3792449078cebf7fb3dbe6471643b2b7"),
@@ -71,6 +77,7 @@ test "golden roots match the node reference for every shape" {
 // Golden proofs (spot checks pinned from golden.json)
 // ---------------------------------------------------------------------------
 
+///|
 test "golden proof for eight leaves index three matches node reference" {
   let leaves = golden_leaves(8)
   let proof = match compute_proof(leaves, 3) {
@@ -109,6 +116,7 @@ test "golden proof for eight leaves index three matches node reference" {
   )
 }
 
+///|
 test "golden proof for five leaves promoted index matches node reference" {
   // The 5th leaf is promoted twice; its single proof step combines it with
   // the root of the 4-leaf subtree on the LEFT - pinning the promotion rule

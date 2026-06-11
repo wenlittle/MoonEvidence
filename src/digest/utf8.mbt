@@ -3,6 +3,7 @@
 // explicit UTF-16 -> UTF-8 transcoding step so the rest of the library never
 // hashes platform-dependent string representations by accident.
 
+///|
 /// Encodes `input` (UTF-16) into UTF-8 bytes.
 ///
 /// Well-formed surrogate pairs become 4-byte sequences. An unpaired
@@ -39,6 +40,7 @@ pub fn string_to_utf8_bytes(input : String) -> Bytes {
   Bytes::from_array(output)
 }
 
+///|
 /// Appends the UTF-8 encoding of one Unicode scalar value (RFC 3629):
 /// 1 byte up to U+007F, 2 up to U+07FF, 3 up to U+FFFF, otherwise 4.
 fn write_code_point(output : Array[Byte], code_point : Int) -> Unit {

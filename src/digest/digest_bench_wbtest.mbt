@@ -2,6 +2,7 @@
 // Numbers feed the README performance section; methodology lives in
 // docs/records/RESULTS_LOG.md (step 8 task 4).
 
+///|
 /// Deterministic pseudo-random payload (splitmix64 over 8-byte words) so
 /// every run hashes identical bytes.
 fn bench_payload(size : Int) -> Bytes {
@@ -22,11 +23,13 @@ fn bench_payload(size : Int) -> Bytes {
   Bytes::from_array(bytes)
 }
 
+///|
 test "bench: sha256 1 MiB" (b : @bench.T) {
   let payload = bench_payload(1024 * 1024)
   b.bench(fn() { b.keep(sha256(payload)) })
 }
 
+///|
 test "bench: sha256 64 KiB" (b : @bench.T) {
   let payload = bench_payload(64 * 1024)
   b.bench(fn() { b.keep(sha256(payload)) })

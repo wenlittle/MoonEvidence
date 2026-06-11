@@ -14,6 +14,7 @@
 // or, when the request itself is malformed:
 //   { "ok": false, "error": String }
 
+///|
 /// Verifies an evidence pack delivered as a JSON request string and returns
 /// a JSON response string. Exported to JS (see moon.pkg).
 pub fn verify_evidence(request_json : String) -> String {
@@ -91,7 +92,9 @@ pub fn verify_evidence(request_json : String) -> String {
 
   // Response envelope. The report is embedded as a JSON object (parsed back
   // from its canonical rendering, which cannot fail for our own output).
-  let report_value = @json.parse(@diag.to_json(merged)) catch { _ => Json::null() }
+  let report_value = @json.parse(@diag.to_json(merged)) catch {
+    _ => Json::null()
+  }
   Json::object({
     "ok": Json::boolean(merged.ok),
     "explain": Json::string(@diag.explain(merged)),
@@ -99,13 +102,12 @@ pub fn verify_evidence(request_json : String) -> String {
   }).stringify()
 }
 
+///|
 fn error_response(message : String) -> String {
-  Json::object({
-    "ok": Json::boolean(false),
-    "error": Json::string(message),
-  }).stringify()
+  Json::object({ "ok": Json::boolean(false), "error": Json::string(message) }).stringify()
 }
 
+///|
 /// Decodes lowercase/uppercase hex into bytes; `None` on odd length or any
 /// non-hex character.
 fn hex_to_bytes(hex : String) -> Bytes? {
@@ -124,6 +126,7 @@ fn hex_to_bytes(hex : String) -> Bytes? {
   Some(Bytes::from_array(out))
 }
 
+///|
 fn hex_digit(unit : Int) -> Int? {
   if unit >= 0x30 && unit <= 0x39 {
     Some(unit - 0x30)

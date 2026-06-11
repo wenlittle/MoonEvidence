@@ -3,6 +3,7 @@
 // synthetic packs of 1k and 10k files. Numbers feed the README performance
 // section; methodology lives in docs/records/RESULTS_LOG.md (step 8 task 4).
 
+///|
 /// Builds a structurally valid pack with `count` files of `file_size` bytes
 /// each: real digests, real Merkle root, deterministic content. The manifest
 /// is assembled in canonical entry order so the recorded root matches what
@@ -42,6 +43,7 @@ fn bench_pack(count : Int, file_size : Int) -> (String, Map[String, Bytes]) {
   (manifest, files)
 }
 
+///|
 fn assert_bench_pack_ok(report : @diag.VerifyReport) -> Unit {
   // Keep the benchmark honest: a pack that stops verifying would silently
   // benchmark the (cheaper) failure path.
@@ -54,12 +56,14 @@ fn assert_bench_pack_ok(report : @diag.VerifyReport) -> Unit {
   }
 }
 
+///|
 test "bench: verify 1k-file manifest" (b : @bench.T) {
   let (manifest, files) = bench_pack(1000, 64)
   assert_bench_pack_ok(verify_manifest(manifest, files))
   b.bench(fn() { b.keep(verify_manifest(manifest, files)) })
 }
 
+///|
 test "bench: verify 10k-file manifest" (b : @bench.T) {
   let (manifest, files) = bench_pack(10000, 64)
   assert_bench_pack_ok(verify_manifest(manifest, files))

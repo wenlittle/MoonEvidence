@@ -25,14 +25,17 @@
 // Deterministic PRNG (splitmix64)
 // ---------------------------------------------------------------------------
 
+///|
 priv struct PropRng {
   mut state : UInt64
 }
 
+///|
 fn PropRng::make(seed : UInt64) -> PropRng {
   { state: seed }
 }
 
+///|
 fn PropRng::next(self : PropRng) -> UInt64 {
   self.state = self.state + 0x9E3779B97F4A7C15UL
   let mut z = self.state
@@ -41,10 +44,12 @@ fn PropRng::next(self : PropRng) -> UInt64 {
   z ^ (z >> 31)
 }
 
+///|
 fn PropRng::below(self : PropRng, bound : Int) -> Int {
   (self.next() % bound.to_uint64()).to_int()
 }
 
+///|
 fn PropRng::chance(self : PropRng, percent : Int) -> Bool {
   self.below(100) < percent
 }
@@ -53,6 +58,7 @@ fn PropRng::chance(self : PropRng, percent : Int) -> Bool {
 // Abstract JSON values
 // ---------------------------------------------------------------------------
 
+///|
 priv enum PropValue {
   PNull
   PBool(Bool)
@@ -62,6 +68,7 @@ priv enum PropValue {
   PObject(Array[(String, PropValue)])
 }
 
+///|
 /// Finite random double mixing the interesting regimes: small integers,
 /// decimal-looking values, full random bit patterns (filtered to finite),
 /// and ECMAScript notation-threshold magnitudes.
@@ -91,6 +98,7 @@ fn random_number(rng : PropRng) -> Double {
   }
 }
 
+///|
 /// Random string mixing printable ASCII, characters JCS must escape,
 /// non-ASCII BMP text, and surrogate pairs.
 fn random_string(rng : PropRng) -> String {
@@ -112,7 +120,10 @@ fn random_string(rng : PropRng) -> String {
             (0x1f).unsafe_to_char(),
           ][rng.below(7)],
         )
-      2 => out.write_char(['\u{e9}', '\u{20ac}', '\u{4e2d}', '\u{7f}'][rng.below(4)])
+      2 =>
+        out.write_char(
+          ['\u{e9}', '\u{20ac}', '\u{4e2d}', '\u{7f}'][rng.below(4)],
+        )
       3 => {
         // Supplementary plane (surrogate pair in UTF-16).
         let scalars = ["\u{1F600}", "\u{10000}", "\u{1D11E}"]
@@ -126,6 +137,7 @@ fn random_string(rng : PropRng) -> String {
   out.to_string()
 }
 
+///|
 fn random_value(rng : PropRng, depth : Int) -> PropValue {
   let pick = if depth <= 0 { rng.below(4) } else { rng.below(6) }
   match pick {
@@ -162,10 +174,12 @@ fn random_value(rng : PropRng, depth : Int) -> PropValue {
 // Variant rendering: many spellings of the same value
 // ---------------------------------------------------------------------------
 
+///|
 let upper_hex_digits : FixedArray[Char] = [
   '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F',
 ]
 
+///|
 fn write_unicode_escape(rng : PropRng, unit : Int, out : StringBuilder) -> Unit {
   // JSON allows either hex case inside \uXXXX; flip per escape.
   let digits = if rng.chance(50) { lower_hex_digits } else { upper_hex_digits }
@@ -176,9 +190,14 @@ fn write_unicode_escape(rng : PropRng, unit : Int, out : StringBuilder) -> Unit 
   out.write_char(digits[unit & 0xf])
 }
 
+///|
 /// Renders `text` as a JSON string literal, randomly choosing among the
 /// legal spellings of every code unit (raw, short escape, \uXXXX).
-fn render_string_variant(rng : PropRng, text : String, out : StringBuilder) -> Unit {
+fn render_string_variant(
+  rng : PropRng,
+  text : String,
+  out : StringBuilder,
+) -> Unit {
   out.write_char('"')
   let mut index = 0
   while index < text.length() {
@@ -226,10 +245,15 @@ fn render_string_variant(rng : PropRng, text : String, out : StringBuilder) -> U
   out.write_char('"')
 }
 
+///|
 /// Renders a number through its canonical text, then applies value-preserving
 /// spelling tweaks: trailing fraction zeros, explicit `e0` exponents,
 /// exponent case/sign/zero-padding variations.
-fn render_number_variant(rng : PropRng, value : Double, out : StringBuilder) -> Unit {
+fn render_number_variant(
+  rng : PropRng,
+  value : Double,
+  out : StringBuilder,
+) -> Unit {
   let canonical = value.to_string()
   let has_exponent = canonical.contains("e")
   let has_fraction = canonical.contains(".")
@@ -241,11 +265,7 @@ fn render_number_variant(rng : PropRng, value : Double, out : StringBuilder) -> 
     }
     // `1e+30` may drop the plus or zero-pad the exponent; both parse back
     // to the same double because the decimal value is unchanged.
-    let text = if rng.chance(40) {
-      text.replace(old="+", new="")
-    } else {
-      text
-    }
+    let text = if rng.chance(40) { text.replace(old="+", new="") } else { text }
     out.write_string(text)
     return
   }
@@ -264,15 +284,21 @@ fn render_number_variant(rng : PropRng, value : Double, out : StringBuilder) -> 
   }
 }
 
+///|
 fn write_whitespace(rng : PropRng, out : StringBuilder) -> Unit {
   for _ in 0..<rng.below(3) {
     out.write_char([' ', '\t', '\n', '\r'][rng.below(4)])
   }
 }
 
+///|
 /// Renders one randomly spelled JSON text for `value`: shuffled object key
 /// order, random inter-token whitespace, random string/number spellings.
-fn render_variant(rng : PropRng, value : PropValue, out : StringBuilder) -> Unit {
+fn render_variant(
+  rng : PropRng,
+  value : PropValue,
+  out : StringBuilder,
+) -> Unit {
   match value {
     PNull => out.write_string("null")
     PBool(true) => out.write_string("true")
@@ -323,6 +349,7 @@ fn render_variant(rng : PropRng, value : PropValue, out : StringBuilder) -> Unit
   }
 }
 
+///|
 fn render_variant_text(rng : PropRng, value : PropValue) -> String {
   let out = StringBuilder::new()
   render_variant(rng, value, out)
@@ -333,6 +360,7 @@ fn render_variant_text(rng : PropRng, value : PropValue) -> String {
 // Properties
 // ---------------------------------------------------------------------------
 
+///|
 test "property: every spelling of a value canonicalizes to the same bytes" {
   let rng = PropRng::make(0x6a63732d70726f70UL) // "jcs-prop"
   for round in 0..<150 {
@@ -353,6 +381,7 @@ test "property: every spelling of a value canonicalizes to the same bytes" {
   }
 }
 
+///|
 test "property: canonical output is a fixed point of canonicalize" {
   let rng = PropRng::make(0x6a63732d70726f71UL)
   for round in 0..<150 {
@@ -362,12 +391,11 @@ test "property: canonical output is a fixed point of canonicalize" {
       error => fail("round \{round}: input rejected: \{error}\n\{text}")
     }
     let twice = canonicalize(once) catch {
-      error => fail("round \{round}: canonical output rejected: \{error}\n\{once}")
+      error =>
+        fail("round \{round}: canonical output rejected: \{error}\n\{once}")
     }
     if once != twice {
-      fail(
-        "round \{round}: not a fixed point\nonce : \{once}\ntwice: \{twice}",
-      )
+      fail("round \{round}: not a fixed point\nonce : \{once}\ntwice: \{twice}")
     }
   }
 }

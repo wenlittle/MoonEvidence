@@ -2,6 +2,7 @@
 // Golden cross-checks against the independent Node.js reference live in
 // merkle_golden_wbtest.mbt.
 
+///|
 /// Deterministic distinct leaf payloads: "leaf-0", "leaf-1", ...
 fn make_leaves(count : Int) -> Array[Bytes] {
   let leaves : Array[Bytes] = []
@@ -11,6 +12,7 @@ fn make_leaves(count : Int) -> Array[Bytes] {
   leaves
 }
 
+///|
 fn must_root(leaves : Array[Bytes]) -> Bytes raise {
   match compute_root(leaves) {
     Some(root) => root
@@ -18,6 +20,7 @@ fn must_root(leaves : Array[Bytes]) -> Bytes raise {
   }
 }
 
+///|
 fn must_proof(leaves : Array[Bytes], index : Int) -> Array[ProofStep] raise {
   match compute_proof(leaves, index) {
     Some(proof) => proof
@@ -29,15 +32,18 @@ fn must_proof(leaves : Array[Bytes], index : Int) -> Array[ProofStep] raise {
 // Tree shapes
 // ---------------------------------------------------------------------------
 
+///|
 test "empty tree has no root" {
   assert_true(compute_root([]) is None)
 }
 
+///|
 test "single leaf root is the leaf hash with no node hash applied" {
   let leaves = make_leaves(1)
   assert_eq(must_root(leaves), leaf_hash(leaves[0]))
 }
 
+///|
 test "two leaf root is the node hash of both leaf hashes" {
   let leaves = make_leaves(2)
   assert_eq(
@@ -46,6 +52,7 @@ test "two leaf root is the node hash of both leaf hashes" {
   )
 }
 
+///|
 test "three leaf root promotes the odd leaf without self pairing" {
   // Level 0: h0 h1 h2 -> level 1: node(h0,h1), h2 (promoted) -> root.
   let leaves = make_leaves(3)
@@ -63,6 +70,7 @@ test "three leaf root promotes the odd leaf without self pairing" {
   assert_true(must_root(leaves) != self_paired)
 }
 
+///|
 test "five leaf root promotes across two levels" {
   // 5 leaves: the lone 5th leaf is promoted twice before joining the root.
   let leaves = make_leaves(5)
@@ -72,6 +80,7 @@ test "five leaf root promotes across two levels" {
   assert_eq(must_root(leaves), expected)
 }
 
+///|
 test "proof round trip verifies for every index in every shape" {
   for count in [1, 2, 3, 4, 5, 8] {
     let leaves = make_leaves(count)
@@ -83,11 +92,13 @@ test "proof round trip verifies for every index in every shape" {
   }
 }
 
+///|
 test "single leaf proof is empty" {
   let leaves = make_leaves(1)
   assert_eq(must_proof(leaves, 0).length(), 0)
 }
 
+///|
 test "proof for out of range index is none" {
   assert_true(compute_proof(make_leaves(3), 3) is None)
   assert_true(compute_proof(make_leaves(3), -1) is None)
@@ -98,6 +109,7 @@ test "proof for out of range index is none" {
 // Adversarial cases
 // ---------------------------------------------------------------------------
 
+///|
 test "forged sibling fails verification" {
   let leaves = make_leaves(4)
   let root = must_root(leaves)
@@ -109,6 +121,7 @@ test "forged sibling fails verification" {
   assert_false(verify_inclusion(leaves[1], forged, root))
 }
 
+///|
 test "flipped side fails verification" {
   let leaves = make_leaves(4)
   let root = must_root(leaves)
@@ -124,6 +137,7 @@ test "flipped side fails verification" {
   assert_false(verify_inclusion(leaves[2], flipped, root))
 }
 
+///|
 test "truncated proof fails verification" {
   let leaves = make_leaves(8)
   let root = must_root(leaves)
@@ -135,6 +149,7 @@ test "truncated proof fails verification" {
   assert_false(verify_inclusion(leaves[0], truncated, root))
 }
 
+///|
 test "extended proof fails verification" {
   let leaves = make_leaves(4)
   let root = must_root(leaves)
@@ -143,6 +158,7 @@ test "extended proof fails verification" {
   assert_false(verify_inclusion(leaves[0], proof, root))
 }
 
+///|
 test "wrong leaf fails verification" {
   let leaves = make_leaves(4)
   let root = must_root(leaves)
@@ -150,6 +166,7 @@ test "wrong leaf fails verification" {
   assert_false(verify_inclusion(leaves[1], proof, root))
 }
 
+///|
 test "domain separation keeps leaf and node hashes apart" {
   // Without the 0x00/0x01 prefixes, hashing the concatenation of two leaf
   // hashes as a LEAF would collide with the interior NODE above them - the
@@ -168,6 +185,7 @@ test "domain separation keeps leaf and node hashes apart" {
   assert_true(as_leaf != as_node)
 }
 
+///|
 test "leaf hash used as node input cannot replay as proof step" {
   // A two-leaf tree whose root is node_hash(h0, h1). An attacker who only
   // controls leaf payloads cannot craft data whose LEAF hash equals an

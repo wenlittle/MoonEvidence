@@ -11,6 +11,7 @@
 // Hash encoding
 // ---------------------------------------------------------------------------
 
+///|
 /// Hashes one leaf payload: `SHA256(0x00 || data)`.
 pub fn leaf_hash(data : Bytes) -> Bytes {
   let ctx = @digest.Sha256Ctx::new()
@@ -19,6 +20,7 @@ pub fn leaf_hash(data : Bytes) -> Bytes {
   ctx.finalize()
 }
 
+///|
 /// Hashes one interior node: `SHA256(0x01 || left || right)`.
 pub fn node_hash(left : Bytes, right : Bytes) -> Bytes {
   let ctx = @digest.Sha256Ctx::new()
@@ -32,6 +34,7 @@ pub fn node_hash(left : Bytes, right : Bytes) -> Bytes {
 // Root computation
 // ---------------------------------------------------------------------------
 
+///|
 /// Computes the Merkle root of `leaves` (raw leaf payloads, in manifest
 /// order). Returns `None` for the empty input: the spec defines no valid
 /// empty-tree root. A single leaf is its own root (`leaf_hash`, no node
@@ -61,6 +64,7 @@ pub fn compute_root(leaves : Array[Bytes]) -> Bytes? {
 // Inclusion proofs
 // ---------------------------------------------------------------------------
 
+///|
 /// Position of the sibling hash relative to the running hash while walking
 /// the proof bottom-up.
 pub(all) enum Side {
@@ -68,14 +72,16 @@ pub(all) enum Side {
   Right
 } derive(Eq, @debug.Debug)
 
+///|
 /// Renders `left` / `right`, the spec's wire spelling.
-pub impl Show for Side with output(self, logger) {
+pub impl Show for Side with fn output(self, logger) {
   match self {
     Left => logger.write_string("left")
     Right => logger.write_string("right")
   }
 }
 
+///|
 /// One bottom-up proof entry: combine the running hash with `sibling` on
 /// the given side (`Left` means `node_hash(sibling, current)`).
 pub(all) struct ProofStep {
@@ -83,8 +89,9 @@ pub(all) struct ProofStep {
   side : Side
 } derive(Eq, @debug.Debug)
 
+///|
 /// Renders `side:sibling-hex`, compact enough for failed-assertion output.
-pub impl Show for ProofStep with output(self, logger) {
+pub impl Show for ProofStep with fn output(self, logger) {
   logger.write_string(self.side.to_string())
   logger.write_string(":")
   for byte in self.sibling {
@@ -94,10 +101,12 @@ pub impl Show for ProofStep with output(self, logger) {
   }
 }
 
+///|
 let proof_hex_digits : FixedArray[Char] = [
   '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
 ]
 
+///|
 /// Builds the inclusion proof for `leaves[index]`, bottom-up. Returns `None`
 /// when the index is out of range (which includes the empty tree). The proof
 /// for a single-leaf tree is empty: the leaf hash already equals the root.
@@ -134,6 +143,7 @@ pub fn compute_proof(leaves : Array[Bytes], index : Int) -> Array[ProofStep]? {
   Some(proof)
 }
 
+///|
 /// Recomputes the root from `leaf` (raw payload, not yet hashed) and the
 /// bottom-up `proof`, then compares it with `root` byte-for-byte.
 pub fn verify_inclusion(

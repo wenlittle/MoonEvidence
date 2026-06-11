@@ -1,10 +1,10 @@
 import {
-  "moonbitlang/core/env" @env,
-  "moonbitlang/x/fs" @fs,
-  "moonbitlang/x/sys" @sys,
-  "wenlittle/MoonEvidence/src/model" @model,
-  "wenlittle/MoonEvidence/src/verify" @verify,
-  "wenlittle/MoonEvidence/src/diag" @diag,
+  "moonbitlang/core/env",
+  "moonbitlang/x/fs",
+  "moonbitlang/x/sys",
+  "wenlittle/MoonEvidence/src/model",
+  "wenlittle/MoonEvidence/src/verify",
+  "wenlittle/MoonEvidence/src/diag",
 }
 
 options(

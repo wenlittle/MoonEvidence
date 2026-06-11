@@ -3,6 +3,7 @@
 // graph semantics: exactly one root, every parent resolvable, no cycles, no
 // forks, every node reachable.
 
+///|
 /// Outcome of a version chain verification. `ordered_ids` is the
 /// root-to-head order; on failure it holds the prefix that could be walked
 /// before the problem (useful context for explain output).
@@ -12,17 +13,21 @@ pub(all) struct ChainReport {
   findings : Array[@diag.Finding]
 } derive(Eq, @debug.Debug)
 
-fn chain_finding(code : String, path : String, message : String) -> @diag.Finding {
+///|
+fn chain_finding(
+  code : String,
+  path : String,
+  message : String,
+) -> @diag.Finding {
   { code, severity: Error, path, message }
 }
 
+///|
 /// Verifies that `nodes` forms one linear chain. Frozen codes:
 /// E4001 empty chain, E4002 broken parent reference, E4003 cycle (or no
 /// root / unreachable tail), E4004 fork (duplicate id, multiple roots, or a
 /// parent with two children).
-pub fn verify_version_chain(
-  nodes : Array[@model.VersionNode],
-) -> ChainReport {
+pub fn verify_version_chain(nodes : Array[@model.VersionNode]) -> ChainReport {
   let findings : Array[@diag.Finding] = []
   let ordered_ids : Array[String] = []
   if nodes.length() == 0 {
@@ -93,9 +98,7 @@ pub fn verify_version_chain(
   if roots.length() == 0 {
     findings.push(
       chain_finding(
-        "E4003",
-        "version_chain",
-        "no root version (every node has a parent), chain contains a cycle",
+        "E4003", "version_chain", "no root version (every node has a parent), chain contains a cycle",
       ),
     )
   } else if roots.length() > 1 {

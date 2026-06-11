@@ -6,6 +6,7 @@
 // Pure-core rule: no IO here. File contents arrive as a caller-provided
 // `Map[String, Bytes]` keyed by manifest path; the CLI adapter reads disk.
 
+///|
 fn finding(
   code : String,
   severity : @diag.Severity,
@@ -15,6 +16,7 @@ fn finding(
   { code, severity, path, message }
 }
 
+///|
 /// Verifies one manifest against caller-provided file bytes.
 ///
 /// `expected_manifest_digest`, when given, is the externally recorded value
@@ -46,7 +48,9 @@ pub fn verify_manifest(
   }
 
   // Step 2: canonicalize the manifest document (E1004 on failure).
-  let canonical_manifest : String? = @canonjson.canonicalize(manifest_json) catch {
+  let canonical_manifest : String? = try
+    @canonjson.canonicalize(manifest_json)
+  catch {
     error => {
       findings.push(
         finding("E1004", Error, "manifest", "canonicalization failed: \{error}"),
@@ -58,7 +62,8 @@ pub fn verify_manifest(
   }
 
   // Step 3: manifest canonical digest versus externally recorded value.
-  if expected_manifest_digest is Some(expected) && canonical_manifest is Some(canonical) {
+  if expected_manifest_digest is Some(expected) &&
+    canonical_manifest is Some(canonical) {
     let actual = @digest.Digest::of_bytes(
       manifest.algorithm,
       @digest.string_to_utf8_bytes(canonical),
@@ -191,6 +196,7 @@ pub fn verify_manifest(
   }
 }
 
+///|
 /// Canonical JSON of one `files[]` entry - the Merkle leaf payload defined
 /// by the spec (`canonical_file_entry_bytes`). Built from the validated
 /// model: digest strings are canonical by parse rule, so this re-rendering
@@ -208,10 +214,12 @@ fn canonical_file_entry(entry : @model.FileEntry) -> String {
   }
 }
 
+///|
 let verify_hex_digits : FixedArray[Char] = [
   '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
 ]
 
+///|
 fn bytes_to_lower_hex(data : Bytes) -> String {
   let builder = StringBuilder::new(size_hint=data.length() * 2)
   for byte in data {

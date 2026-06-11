@@ -3,6 +3,7 @@
 // context. Samples mirror tests/fixtures/manifest/ (single source of truth
 // for the step-7 CLI black-box suite).
 
+///|
 fn parse_error(input : String) -> ModelError raise {
   try Manifest::parse(input) catch {
     error => error
@@ -15,6 +16,7 @@ fn parse_error(input : String) -> ModelError raise {
 // Valid sample
 // ---------------------------------------------------------------------------
 
+///|
 let valid_manifest : String =
   #|{
   #|  "schema": "moon-evidence/v0",
@@ -36,6 +38,7 @@ let valid_manifest : String =
   #|  "version": { "id": "v1", "parent": null }
   #|}
 
+///|
 test "valid manifest parses with every field populated" {
   let manifest = Manifest::parse(valid_manifest) catch {
     error => fail("unexpected: \{error}")
@@ -56,6 +59,7 @@ test "valid manifest parses with every field populated" {
   assert_true(manifest.version.parent is None)
 }
 
+///|
 test "valid manifest without merkle root parses to none" {
   // merkle_root presence rules against files[] are verify semantics (E3001),
   // so the model accepts its absence.
@@ -79,11 +83,13 @@ test "valid manifest without merkle root parses to none" {
 // Invalid samples: one rule violated each (codes are the frozen contract)
 // ---------------------------------------------------------------------------
 
+///|
 test "invalid json reports e1001" {
   let error = parse_error("{ \"schema\": \"moon-evidence/v0\", ")
   assert_eq(error.error_code(), "E1001")
 }
 
+///|
 test "missing schema reports e1002 with path" {
   let input =
     #|{
@@ -97,6 +103,7 @@ test "missing schema reports e1002 with path" {
   inspect(error, content="[E1002] schema: required field missing or empty")
 }
 
+///|
 test "unsupported schema reports e1003" {
   let error = parse_error(
     valid_manifest.replace(old="moon-evidence/v0", new="moon-evidence/v9"),
@@ -108,6 +115,7 @@ test "unsupported schema reports e1003" {
   )
 }
 
+///|
 test "missing subject id reports e1002 with nested path" {
   let error = parse_error(
     valid_manifest.replace(old="\"id\": \"example-pack\", ", new=""),
@@ -116,6 +124,7 @@ test "missing subject id reports e1002 with nested path" {
   inspect(error, content="[E1002] subject.id: required field missing or empty")
 }
 
+///|
 test "empty subject type reports e1002" {
   let error = parse_error(
     valid_manifest.replace(old="\"type\": \"dataset\"", new="\"type\": \"\""),
@@ -127,6 +136,7 @@ test "empty subject type reports e1002" {
   )
 }
 
+///|
 test "unsupported algorithm reports e2001" {
   let error = parse_error(
     valid_manifest.replace(old="\"sha256\"", new="\"md5\""),
@@ -138,6 +148,7 @@ test "unsupported algorithm reports e2001" {
   )
 }
 
+///|
 test "files not an array reports e1002 invalid field" {
   let input =
     #|{
@@ -152,6 +163,7 @@ test "files not an array reports e1002 invalid field" {
   inspect(error, content="[E1002] files: expected an array")
 }
 
+///|
 test "duplicate file path reports e1002 with index context" {
   let error = parse_error(
     valid_manifest.replace(old="files/b.bin", new="files/a.txt"),
@@ -163,12 +175,16 @@ test "duplicate file path reports e1002 with index context" {
   )
 }
 
+///|
 test "negative size reports e1002" {
-  let error = parse_error(valid_manifest.replace(old="\"size\": 12", new="\"size\": -1"))
+  let error = parse_error(
+    valid_manifest.replace(old="\"size\": 12", new="\"size\": -1"),
+  )
   assert_eq(error.error_code(), "E1002")
   inspect(error, content="[E1002] files[0].size: size must be >= 0")
 }
 
+///|
 test "fractional size reports e1002" {
   let error = parse_error(
     valid_manifest.replace(old="\"size\": 12", new="\"size\": 3.5"),
@@ -177,6 +193,7 @@ test "fractional size reports e1002" {
   inspect(error, content="[E1002] files[0].size: size must be an integer")
 }
 
+///|
 test "bad digest format reports e2002" {
   let error = parse_error(
     valid_manifest.replace(
@@ -187,6 +204,7 @@ test "bad digest format reports e2002" {
   assert_eq(error.error_code(), "E2002")
 }
 
+///|
 test "uppercase digest hex reports e2002 canonical form required" {
   let error = parse_error(
     valid_manifest.replace(
@@ -197,6 +215,7 @@ test "uppercase digest hex reports e2002 canonical form required" {
   assert_eq(error.error_code(), "E2002")
 }
 
+///|
 test "bad merkle root reports e2002 with path" {
   let error = parse_error(
     valid_manifest.replace(
@@ -211,6 +230,7 @@ test "bad merkle root reports e2002 with path" {
   )
 }
 
+///|
 test "empty version parent reports e1002 invalid field" {
   let error = parse_error(
     valid_manifest.replace(old="\"parent\": null", new="\"parent\": \"\""),
@@ -226,6 +246,7 @@ test "empty version parent reports e1002 invalid field" {
 // Path traversal hardening (step 7): entry paths are pack-relative, "/" only
 // ---------------------------------------------------------------------------
 
+///|
 test "parent traversal path segment reports e1002" {
   let error = parse_error(
     valid_manifest.replace(old="files/a.txt", new="files/../../etc/passwd"),
@@ -237,6 +258,7 @@ test "parent traversal path segment reports e1002" {
   )
 }
 
+///|
 test "absolute path reports e1002" {
   let error = parse_error(
     valid_manifest.replace(old="files/a.txt", new="/etc/passwd"),
@@ -248,17 +270,16 @@ test "absolute path reports e1002" {
   )
 }
 
+///|
 test "drive letter path reports e1002" {
   let error = parse_error(
     valid_manifest.replace(old="files/a.txt", new="C:/secret.txt"),
   )
   assert_eq(error.error_code(), "E1002")
-  inspect(
-    error,
-    content="[E1002] files[0].path: \":\" is not allowed in paths",
-  )
+  inspect(error, content="[E1002] files[0].path: \":\" is not allowed in paths")
 }
 
+///|
 test "backslash separator reports e1002" {
   let error = parse_error(
     valid_manifest.replace(old="files/a.txt", new="files\\\\a.txt"),
@@ -270,6 +291,7 @@ test "backslash separator reports e1002" {
   )
 }
 
+///|
 test "single dot path segment reports e1002" {
   let error = parse_error(
     valid_manifest.replace(old="files/a.txt", new="files/./a.txt"),
@@ -281,6 +303,7 @@ test "single dot path segment reports e1002" {
   )
 }
 
+///|
 test "empty path segment reports e1002" {
   let error = parse_error(
     valid_manifest.replace(old="files/a.txt", new="files//a.txt"),
@@ -297,6 +320,7 @@ test "empty path segment reports e1002" {
   assert_eq(trailing.error_code(), "E1002")
 }
 
+///|
 test "size at the double precision limit parses and beyond is rejected" {
   let ok = Manifest::parse(
     valid_manifest.replace(old="\"size\": 12", new="\"size\": 9007199254740991"),

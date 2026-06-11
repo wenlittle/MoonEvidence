@@ -1,4 +1,4 @@
 import {
-  "moonbitlang/core/debug" @debug,
-  "wenlittle/MoonEvidence/src/canonjson" @canonjson,
+  "moonbitlang/core/debug",
+  "wenlittle/MoonEvidence/src/canonjson",
 }

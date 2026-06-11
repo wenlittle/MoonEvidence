@@ -380,6 +380,46 @@ of defense caught what") stays accurate.
 | 8.4 benchmarks | Done: `moon bench` suites for SHA-256 throughput and 1k/10k-file verify, README Performance section added, record above |
 | Acceptance | `moon check` 0 warnings; `moon bench --target js` 4/4 ok; benchmark data cited in README; property suites already in CI via `moon test` |
 
+## 2026-06-11 Asia/Shanghai (master plan step 9)
+
+### Browser Adapter: string-in/string-out boundary verified on two backends (step 9 task 1)
+
+| Field | Result |
+| --- | --- |
+| Source | `src/api/api.mbt` (`verify_evidence` esm export), `src/api/api_wbtest.mbt` (18 tests) |
+| Method | Whitebox suite covers the request envelope (malformed JSON, wrong field types, odd/invalid hex), pipeline pass-through (golden pack ok, tamper -> E2003, bad manifest -> E1001), version chain merging (valid, E4002 broken parent, E1001 bad chain JSON), and an end-to-end case that builds a pack with the library's own digest+merkle primitives and pushes it through the adapter |
+| Key result | `moon test --target wasm-gc,js` 155/155 on both backends; `moon check` 0 warnings; the js artifact is a self-contained esm bundle (no imports, ~306 KB release) with a typed `.d.ts` |
+| Confidence | High - every claim executed live this session |
+
+### Browser Demo: full client-side pack verification (step 9 task 2)
+
+| Field | Result |
+| --- | --- |
+| Source | `demo/web/index.html` (single file, no framework), `tools/smoke-api.mjs` |
+| Method | Page loads the esm bundle relative to the repo (`_build/js/release/...`), reads a picked pack directory via `webkitdirectory`, hex-encodes file bytes, and renders verdict/findings/stats plus the raw `explain` text; a paste-manifest mode covers structure-only checks. Verified live in a Playwright-driven browser against a static server: valid-pack -> ok with zero findings (including version chain), tampered-pack -> E2003, pasted bad merkle root -> E2003+E3003 with correct table rendering |
+| Key result | Verdicts in the browser match the CLI and the Node smoke script exactly; demo stays static-hostable (GitHub Pages ready) |
+| Deferral | GitHub Pages deployment deferred until the repository is first pushed: a Pages workflow cannot be validated locally (local-green-first rule) and the repo currently has no remote history |
+| Confidence | High for local behaviour; Pages hosting unverified by design |
+
+### CI: three-backend matrix (step 9 task 3)
+
+| Field | Result |
+| --- | --- |
+| Source | `.github/workflows/ci.yml`, `.github/workflows/README.md` |
+| Method | `moon test --target wasm-gc,js` (both proven locally 155/155), builds for native + wasm-gc + js, native/js black-box runs, and a new `node tools/smoke-api.mjs` step over the js artifact |
+| Key result | Backend matrix exercises String/Bytes behaviour divergence on every push, closing the risk-table item that motivated step 9; native unit-test behaviour remains covered by the black-box suite |
+| Confidence | High locally; first CI run after push will confirm on ubuntu |
+
+### Step 9 Deliverable Status
+
+| Task | Status |
+| --- | --- |
+| 9.1 api package + tests | Done: commit `458259a`, 18 wbtests, two-backend green |
+| 9.2 demo/web + smoke script | Done: commit `692e104`, Playwright-verified, screenshot in `docs/images/demo-web.png` |
+| 9.3 CI three-backend matrix | Done: commit `25d1de9`, includes browser adapter smoke step |
+| 9.4 README browser section + this record | Done: this commit |
+| Acceptance | `moon check` 0 warnings; `moon test --target wasm-gc,js` 155/155 both; `cli-test.ps1 -Target js` 22/22; `node tools/smoke-api.mjs` SMOKE PASS; demo verified in a real browser session |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

@@ -420,6 +420,47 @@ of defense caught what") stays accurate.
 | 9.4 README browser section + this record | Done: this commit |
 | Acceptance | `moon check` 0 warnings; `moon test --target wasm-gc,js` 155/155 both; `cli-test.ps1 -Target js` 22/22; `node tools/smoke-api.mjs` SMOKE PASS; demo verified in a real browser session |
 
+## 2026-06-11 Asia/Shanghai (master plan step 10)
+
+### Mooncakes Collision Re-check (step 10 task 1, pre-publish gate)
+
+| Field | Result |
+| --- | --- |
+| Source | `https://mooncakes.io/api/v0/modules` (live query this session) |
+| Method | Fetched the full module list (1315 modules; API now returns a bare JSON array, not `{modules: ...}` - the first scripted pass silently matched nothing until the shape was corrected) and matched `evidence / provenance / attestation / notari / merkle / canonical / jcs / 8785 / verif` against name+description+keywords |
+| Key result | Zero hits for every evidence-related keyword; `merkle` still hits only `zploc/loci` (known since step 0); `verif` hits are unrelated (JWT, ed25519, pathfinding). Positioning remains unique |
+| Confidence | High; rerun once more immediately before the actual `moon publish` |
+
+### Publish Readiness: packaged, blocked only on login (step 10 task 1)
+
+| Field | Result |
+| --- | --- |
+| Source | `moon package --list`, `moon publish --dry-run` (live runs) |
+| Method | Package the module and inspect the artifact list; dry-run publish to probe credentials |
+| Key result | `moon package` passes check and produces `_build/publish/wenlittle-MoonEvidence-0.1.0.zip` with a clean file list (src + docs + examples + tools, no build artifacts); `moon publish --dry-run` stops at `failed to open credentials file ... please login first` |
+| Decision | Publishing is an externally visible action and needs the account owner: run `moon login` then `moon publish` when ready; everything else (metadata in `moon.mod`: name/version/license/repository/keywords/description/readme) is already in place |
+| Confidence | High - the only missing ingredient is the user's Mooncakes credential |
+
+### moon doc Probe: moondoc requires legacy moon.mod.json (step 10 task 3)
+
+| Field | Result |
+| --- | --- |
+| Source | `moon doc` live run (moondoc.exe via moon 0.1.20260529) |
+| Method | Run the documented command and read the failure |
+| Key result | `moondoc.exe` aborts with `Sys_error(".../moon.mod.json: No such file or directory")`: this repository uses the current TOML-style `moon.mod`, and the bundled moondoc still expects the legacy JSON manifest. Same probe-and-fallback pattern as the step-8 `moon prove` record |
+| Fallback executed | Doc coverage was audited directly: every `pub` item across all 8 packages (38 pub fn/impl + 13 pub types) now carries a `///` doc comment - the gap was 10 items in `src/digest/digest.mbt`, fixed this step. Grep evidence: `^pub ` and `^pub\(` with `-B 1` show a doc line above every declaration |
+| Confidence | High on the failure cause locally; retry `moon doc` after the next toolchain update |
+
+### Step 10 Deliverable Status
+
+| Task | Status |
+| --- | --- |
+| 10.1 Mooncakes publish | Ready-blocked: collision re-check clean, package built, awaiting `moon login` by the account owner |
+| 10.2 bilingual README | Done: `README.zh.md` (30-second start, API overview, error code table, performance, mermaid architecture) + language links + mermaid section added to English README |
+| 10.3 moon doc + pub coverage | Done as probe + manual audit: toolchain gap recorded, 100% pub doc-comment coverage reached |
+| 10.4 docs/GUIDE.md | Done: three walked scenarios (dataset archival, AI output audit, pre-notarization anchoring) - every command in the guide was executed live this session, including the byte-tamper demo |
+| Acceptance | `moon check` 0 warnings; full suite re-run green (155/155 x 2 backends, 22/22 black-box, smoke pass) |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

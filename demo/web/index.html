@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MoonEvidence · 浏览器验证演示</title>
+<style>
+  :root {
+    --bg: #f6f8fa;
+    --card: #ffffff;
+    --ink: #1f2328;
+    --muted: #59636e;
+    --line: #d1d9e0;
+    --accent: #6e40c9;
+    --ok: #1a7f37;
+    --ok-bg: #dafbe1;
+    --fail: #cf222e;
+    --fail-bg: #ffebe9;
+    --warn: #9a6700;
+    --warn-bg: #fff8c5;
+    --mono: ui-monospace, "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 15px/1.6 -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 40px 20px 80px; }
+  header h1 {
+    margin: 0;
+    font-size: 28px;
+    letter-spacing: -0.5px;
+  }
+  header h1 .tag {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    background: #fbefff;
+    border: 1px solid #e2c5f8;
+    border-radius: 999px;
+    padding: 2px 10px;
+    vertical-align: 4px;
+    margin-left: 10px;
+  }
+  header p { color: var(--muted); margin: 8px 0 0; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 24px;
+  }
+  .picker { text-align: center; padding: 40px 24px; }
+  .picker .btn {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 28px;
+    cursor: pointer;
+  }
+  .picker .btn:hover { filter: brightness(1.1); }
+  .picker .hint { color: var(--muted); font-size: 13px; margin: 14px 0 0; }
+  .picker .hint code { font-family: var(--mono); background: var(--bg); padding: 1px 6px; border-radius: 4px; }
+  #verdict {
+    display: none;
+    border-radius: 12px;
+    padding: 18px 24px;
+    margin-top: 24px;
+    font-size: 18px;
+    font-weight: 700;
+    border: 1px solid transparent;
+  }
+  #verdict.ok    { display: block; color: var(--ok);   background: var(--ok-bg);   border-color: #aceebb; }
+  #verdict.fail  { display: block; color: var(--fail); background: var(--fail-bg); border-color: #ffc1bc; }
+  #verdict.error { display: block; color: var(--warn); background: var(--warn-bg); border-color: #ead27a; }
+  #verdict small { display: block; font-size: 13px; font-weight: 400; margin-top: 4px; }
+  #stats { color: var(--muted); font-size: 13px; margin-top: 10px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 4px; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; }
+  td.code { font-family: var(--mono); white-space: nowrap; font-weight: 600; }
+  td.code.sev-Error   { color: var(--fail); }
+  td.code.sev-Warning { color: var(--warn); }
+  td.path { font-family: var(--mono); word-break: break-all; }
+  details { margin-top: 18px; }
+  summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+  pre {
+    font-family: var(--mono);
+    font-size: 13px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px;
+    overflow-x: auto;
+    margin: 10px 0 0;
+  }
+  footer { color: var(--muted); font-size: 12px; margin-top: 40px; text-align: center; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>MoonEvidence<span class="tag">browser demo</span></h1>
+    <p>纯 MoonBit 验证核心编译为 JavaScript，在浏览器本地完成证据包校验——文件不离开你的电脑。</p>
+  </header>
+
+  <div class="card picker">
+    <button class="btn" id="pick">选择 evidence pack 目录</button>
+    <input type="file" id="pack-input" webkitdirectory multiple class="hidden">
+    <p class="hint">
+      目录需包含 <code>manifest.json</code>，可选 <code>files/</code> 与
+      <code>versions/version_chain.json</code>。仓库内可直接选
+      <code>examples/valid-pack</code> 或 <code>examples/tampered-pack</code> 试用。
+    </p>
+  </div>
+
+  <div id="verdict"></div>
+
+  <div class="card hidden" id="report-card">
+    <div id="stats"></div>
+    <table id="findings-table" class="hidden">
+      <thead><tr><th>代码</th><th>位置</th><th>说明</th></tr></thead>
+      <tbody id="findings-body"></tbody>
+    </table>
+    <details>
+      <summary>explain 原文（与 CLI 输出一致）</summary>
+      <pre id="explain"></pre>
+    </details>
+  </div>
+
+  <footer>moon-evidence · 退出语义与 CLI 一致：OK / FAILED / 请求错误</footer>
+</div>
+
+<script type="module">
+const verdict = document.getElementById("verdict");
+const reportCard = document.getElementById("report-card");
+const statsLine = document.getElementById("stats");
+const findingsTable = document.getElementById("findings-table");
+const findingsBody = document.getElementById("findings-body");
+const explainPre = document.getElementById("explain");
+const input = document.getElementById("pack-input");
+
+function showVerdict(kind, title, detail) {
+  verdict.className = kind;
+  verdict.textContent = title;
+  if (detail) {
+    const small = document.createElement("small");
+    small.textContent = detail;
+    verdict.appendChild(small);
+  }
+}
+
+// The adapter is a self-contained esm bundle produced by
+// `moon build --target js`; a missing bundle is the only setup error.
+let verify_evidence;
+try {
+  ({ verify_evidence } = await import(
+    "../../_build/js/release/build/src/api/api.js"
+  ));
+} catch {
+  showVerdict(
+    "error",
+    "未找到 JS 产物",
+    "请先在仓库根目录运行 moon build --target js，再从仓库根目录启动静态服务器打开本页。",
+  );
+}
+
+const bufToHex = (buf) =>
+  [...new Uint8Array(buf)]
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+// webkitRelativePath starts with the picked directory's own name;
+// pack paths are relative to the pack root, so drop that first segment.
+const relPath = (file) =>
+  file.webkitRelativePath.split("/").slice(1).join("/");
+
+async function buildRequest(files) {
+  const manifestFile = files.find((f) => relPath(f) === "manifest.json");
+  if (!manifestFile) {
+    return { error: "所选目录中没有 manifest.json" };
+  }
+  const request = { manifest: await manifestFile.text(), files: {} };
+  for (const file of files) {
+    const rel = relPath(file);
+    if (rel.startsWith("files/")) {
+      request.files[rel] = bufToHex(await file.arrayBuffer());
+    }
+  }
+  const chainFile = files.find(
+    (f) => relPath(f) === "versions/version_chain.json",
+  );
+  if (chainFile) {
+    request.version_chain = await chainFile.text();
+  }
+  return { request };
+}
+
+function render(response) {
+  reportCard.classList.remove("hidden");
+  statsLine.textContent = "";
+  findingsBody.replaceChildren();
+  explainPre.textContent = response.explain ?? "";
+
+  if (response.error !== undefined) {
+    showVerdict("error", "请求格式错误", response.error);
+    findingsTable.classList.add("hidden");
+    return;
+  }
+  if (response.ok) {
+    showVerdict("ok", "verification OK · 证据包完整");
+  } else {
+    showVerdict("fail", "verification FAILED · 发现问题");
+  }
+
+  const stats = response.report?.stats;
+  if (stats) {
+    statsLine.textContent =
+      `共 ${stats.files_total} 个登记文件，${stats.files_passed} 个通过；` +
+      `Merkle 根${stats.merkle_checked ? "已" : "未"}核验`;
+  }
+
+  const findings = response.report?.findings ?? [];
+  findingsTable.classList.toggle("hidden", findings.length === 0);
+  for (const finding of findings) {
+    const row = document.createElement("tr");
+    const code = document.createElement("td");
+    code.className = `code sev-${finding.severity}`;
+    code.textContent = finding.code;
+    const path = document.createElement("td");
+    path.className = "path";
+    path.textContent = finding.path;
+    const message = document.createElement("td");
+    message.textContent = finding.message;
+    row.append(code, path, message);
+    findingsBody.appendChild(row);
+  }
+}
+
+document.getElementById("pick").addEventListener("click", () => input.click());
+input.addEventListener("change", async () => {
+  if (!verify_evidence || input.files.length === 0) {
+    return;
+  }
+  const { request, error } = await buildRequest([...input.files]);
+  if (error) {
+    showVerdict("error", "无法读取证据包", error);
+    return;
+  }
+  render(JSON.parse(verify_evidence(JSON.stringify(request))));
+});
+</script>
+</body>
+</html>

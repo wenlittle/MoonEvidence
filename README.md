@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/wenlittle/MoonEvidence/actions/workflows/ci.yml/badge.svg)](https://github.com/wenlittle/MoonEvidence/actions/workflows/ci.yml)
 
+English | [中文](README.zh.md)
+
 MoonEvidence is a MoonBit ecosystem project for trusted evidence pack verification.
 
 The project goal is to provide a reusable MoonBit library and native CLI that can verify whether a group of files, metadata, Merkle proofs, and version records remain complete and untampered.
@@ -20,8 +22,41 @@ MoonEvidence is not a blockchain application or smart contract framework. It is 
 - Structured diagnostics and human-readable explain output.
 - Native CLI entry points: `verify` and `explain`.
 
+## Architecture at a Glance
+
+```mermaid
+graph TD
+  subgraph adapters["Adapters (the only place IO happens)"]
+    CLI["src/cmd/main<br/>CLI: verify / explain"]
+    API["src/api<br/>browser esm adapter"]
+  end
+  subgraph core["Pure verification core (zero IO, portable across 3 backends)"]
+    VERIFY["verify<br/>7-step pipeline + chain linearity"]
+    MODEL["model<br/>manifest / version chain"]
+    DIAG["diag<br/>findings · explain · canonical report"]
+    CANON["canonjson<br/>RFC 8785"]
+    DIGEST["digest<br/>pure SHA-256"]
+    MERKLE["merkle<br/>RFC 6962 style tree"]
+  end
+  CLI --> VERIFY
+  API --> VERIFY
+  VERIFY --> MODEL
+  VERIFY --> DIAG
+  VERIFY --> CANON
+  VERIFY --> MERKLE
+  VERIFY --> DIGEST
+  MODEL --> DIGEST
+  MERKLE --> DIGEST
+  DIAG --> CANON
+```
+
+File bytes are injected by the adapters (`Map[String, Bytes]`); the core
+only computes. That boundary is what lets the same semantics run in the
+CLI, in CI's three-backend matrix, and in the browser.
+
 ## Project Documents
 
+- [User Guide (three real scenarios)](docs/GUIDE.md)
 - [Project Index](docs/PROJECT_INDEX.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Evidence Pack Spec](docs/spec/EVIDENCE_PACK_SPEC.md)

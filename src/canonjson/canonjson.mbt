@@ -41,9 +41,9 @@ pub impl Show for CanonError with output(self, logger) {
 // ---------------------------------------------------------------------------
 
 /// Canonicalizes a JSON document per RFC 8785: minimal whitespace, object
-/// keys sorted by UTF-16 code units, JCS string escaping, and L1 safe-subset
-/// numbers. The output is the byte-stable payload evidence digests are
-/// computed over.
+/// keys sorted by UTF-16 code units, JCS string escaping, and ECMAScript
+/// shortest-form numbers. The output is the byte-stable payload evidence
+/// digests are computed over.
 pub fn canonicalize(input : String) -> String raise CanonError {
   let value = @json.parse(input) catch {
     error => raise CanonError::ParseFailed(error.to_json().stringify())

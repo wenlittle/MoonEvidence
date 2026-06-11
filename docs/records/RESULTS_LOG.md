@@ -343,6 +343,19 @@ of defense caught what") stays accurate.
 | 7.3 regression baseline locked | Done: black-box part 2 asserts exact code sets per pack; CI fixture rot guard wired |
 | Acceptance | `moon check` 0 warnings; `moon test` 131/131; `tools/cli-test.ps1 -Target js` 22/22; regenerate-then-diff clean |
 
+### moon prove Probe: toolchain present, prover environment unreachable locally (step 8 task 3)
+
+| Field | Result |
+| --- | --- |
+| Source | `moon prove --help`, `moon prove src/merkle` (live runs), MoonBit v0.9 release notes and the Formal Verification chapter of the official docs |
+| Method | Probe the command, identify its external dependencies, then test every local path to a working prover environment before deciding |
+| Toolchain | `moon prove` is a first-class command (MoonBit 0.9): executable code in `.mbt`, predicates/lemmas in `.mbtp`, `options("proof-enabled": true)` in `moon.pkg`, lowering to WhyML, obligations discharged by Why3 1.7.2 + an SMT solver (z3 / cvc5 / alt-ergo) |
+| Local path 1 (Windows) | Fails: `why3` not on PATH; recommended install is via opam, but this machine has no opam and no C compiler (step-6 spike: cl/gcc/clang absent, bundled tcc lacks libc headers), so building OCaml + Why3 is not feasible here |
+| Local path 2 (WSL) | Fails: the only distro (kali-linux) has corrupt glibc (`libc.so.6: file too short`, bash cannot start, drvfs mounts fail); repair means reinstalling the distro - a system-level change out of scope for this task |
+| CI path | Deliberately not taken: prove annotations cannot be validated locally first, and debugging an experimental prover pipeline directly on CI violates the repo's local-green-first rule; apt's why3 may also drift from the pinned 1.7.2 |
+| Decision | Master-plan risk table planned for exactly this case: property tests are the fallback (landed in task 2: 4 properties, mutation-verified) and the probe record itself is the deliverable. Candidate obligations once an environment exists: `compare_code_units` total-order laws, `Side` pairing symmetry in `verify_inclusion`, canonicalization fixed-point - all currently pinned by the property layer |
+| Confidence | High on the probe facts (every claim above was executed live this session) |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

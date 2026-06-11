@@ -343,6 +343,8 @@ of defense caught what") stays accurate.
 | 7.3 regression baseline locked | Done: black-box part 2 asserts exact code sets per pack; CI fixture rot guard wired |
 | Acceptance | `moon check` 0 warnings; `moon test` 131/131; `tools/cli-test.ps1 -Target js` 22/22; regenerate-then-diff clean |
 
+## 2026-06-11 Asia/Shanghai (master plan step 8)
+
 ### moon prove Probe: toolchain present, prover environment unreachable locally (step 8 task 3)
 
 | Field | Result |
@@ -355,6 +357,28 @@ of defense caught what") stays accurate.
 | CI path | Deliberately not taken: prove annotations cannot be validated locally first, and debugging an experimental prover pipeline directly on CI violates the repo's local-green-first rule; apt's why3 may also drift from the pinned 1.7.2 |
 | Decision | Master-plan risk table planned for exactly this case: property tests are the fallback (landed in task 2: 4 properties, mutation-verified) and the probe record itself is the deliverable. Candidate obligations once an environment exists: `compare_code_units` total-order laws, `Side` pairing symmetry in `verify_inclusion`, canonicalization fixed-point - all currently pinned by the property layer |
 | Confidence | High on the probe facts (every claim above was executed live this session) |
+
+### Benchmarks: SHA-256 throughput and end-to-end verify cost (step 8 task 4)
+
+| Field | Result |
+| --- | --- |
+| Source | `src/digest/digest_bench_wbtest.mbt`, `src/verify/verify_bench_wbtest.mbt`, run via `moon bench --target js` (criterion-style: 10 batches x N auto-tuned runs) |
+| Environment | moon 0.1.20260529 / Node v22.22.0 / Windows; js backend (native blocked locally per step-6 spike, CI covers it) |
+| Method | Deterministic payloads (seeded splitmix64) so every run hashes identical bytes; verify packs are synthesized with real per-file digests and a real Merkle root, assembled in canonical entry order; a guard assertion aborts if the pack stops verifying, so the bench cannot silently measure the cheaper failure path; `b.keep` prevents dead-code elimination |
+| SHA-256 | 1 MiB: 17.10 ms +- 0.21 ms (~58 MiB/s); 64 KiB: 1.12 ms +- 0.02 ms (~56 MiB/s) - flat rate across sizes, no per-call overhead cliff |
+| Full verify | 1k files (64 B each): 25.65 ms +- 0.78 ms (~26 us/file); 10k files: 283.52 ms +- 6.18 ms (~28 us/file) |
+| Key result | Cost scales near-linearly in file count (10x files -> 11.05x time; residual is the Merkle log-depth term). README Performance section cites these numbers |
+| Confidence | High for js-backend relative numbers (sigma < 3% everywhere); absolute numbers are machine-specific, native expected faster |
+
+### Step 8 Deliverable Status
+
+| Task | Status |
+| --- | --- |
+| 8.1 canonjson L2 shortest-number rendering | Done: full ECMAScript shortest form, RFC 8785 Appendix B vectors pass, step-2 skip list removed (commit `36f9752`) |
+| 8.2 property tests | Done: mutation-verified suites for canonicalization idempotence and Merkle proof soundness (commit `b35104b`) |
+| 8.3 moon prove attempt | Done as probe: toolchain present but no local prover environment; fallback to property layer, record above (commit `7e1c8f5`) |
+| 8.4 benchmarks | Done: `moon bench` suites for SHA-256 throughput and 1k/10k-file verify, README Performance section added, record above |
+| Acceptance | `moon check` 0 warnings; `moon bench --target js` 4/4 ok; benchmark data cited in README; property suites already in CI via `moon test` |
 
 ## Logging Rule
 

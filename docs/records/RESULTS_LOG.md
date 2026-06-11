@@ -494,6 +494,20 @@ Remaining owner-side actions (outside the repo): dual push to GitHub + Gitlink, 
 | --- | --- |
 | Confidence | High - every number above was produced by commands run in this session against the freeze point |
 
+## 2026-06-11 Asia/Shanghai (post-freeze conformance audit)
+
+### Code Conformance Audit and moon fmt Normalization
+
+| Field | Result |
+| --- | --- |
+| Trigger | Owner requested a final conformance review (comments, layering, style) after the step-11 freeze |
+| Layering | `@fs/@env/@sys` usages: **13, all inside `src/cmd/main/main.mbt`** - six pure packages and the browser adapter are IO-free, dependency edges acyclic (canonjson/digest leaf, verify aggregation, adapters top) |
+| Comments | 51/51 pub items carry `///` doc comments (audited step 10); every file opens with a purpose header; comments explain rules/invariants per CODE_GUIDELINES |
+| Finding 1: fmt drift | The codebase had never been run through `moon fmt`: the official formatter touched all 38 source files (475 insertions / 144 deletions - `///\|` separators and `with fn` syntax, purely mechanical). Normalized in commit `dced33c`; full suite re-verified green after formatting (check 0 warnings, 155/155 x 2 backends, 22/22 black-box, smoke pass) |
+| Finding 2: guidelines drift | `docs/CODE_GUIDELINES.md` "Diagnostics" still listed draft camel-case diagnostic names superseded by the frozen error-code contract; section now points at the spec table (this commit) |
+| Updated freeze point | `dced33c` (formatting) supersedes `40ef593` as the code freeze; verification results identical |
+| Confidence | High - all checks executed live this session |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

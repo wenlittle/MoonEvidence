@@ -28,18 +28,14 @@ Avoid comments that only repeat the code.
 
 Diagnostics should be structured first and rendered second.
 
-Minimum diagnostic kinds:
-
-- `InvalidCanonicalJson`
-- `UnsupportedHashAlgorithm`
-- `ManifestHashMismatch`
-- `MissingFile`
-- `FileDigestMismatch`
-- `MerkleProofInvalid`
-- `VersionParentMismatch`
-- `VersionRollbackSuspected`
-
-Each diagnostic should include enough context to locate the failed item, such as path, version id, expected digest, and actual digest.
+The draft diagnostic kinds listed in early revisions of this file evolved
+into the frozen error-code contract in
+`docs/spec/EVIDENCE_PACK_SPEC.md` ("Error Codes": `E1xxx` model,
+`E2xxx` digest, `E3xxx` merkle, `E4xxx` version chain, `E5xxx` adapter IO,
+`W1xxx` warnings); see DECISION_LOG for the rationale. The structural rule
+stands: every finding carries `code`, `severity`, `path`, and a `message`
+with enough context to locate the failed item (expected and actual digests
+included on mismatches).
 
 ## Testing Rules
 

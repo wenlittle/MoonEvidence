@@ -461,6 +461,39 @@ of defense caught what") stays accurate.
 | 10.4 docs/GUIDE.md | Done: three walked scenarios (dataset archival, AI output audit, pre-notarization anchoring) - every command in the guide was executed live this session, including the byte-tamper demo |
 | Acceptance | `moon check` 0 warnings; full suite re-run green (155/155 x 2 backends, 22/22 black-box, smoke pass) |
 
+## 2026-06-11 Asia/Shanghai (master plan step 11 - final freeze)
+
+### Competition Deliverables (step 11 tasks 1-3)
+
+| Field | Result |
+| --- | --- |
+| Development report | `docs/report/DEVELOPMENT_REPORT.md`: background -> 5 architecture decisions (DECISION_LOG) -> standards-compliance evidence -> test pyramid -> AI collaboration practices (4 distilled patterns with RESULTS_LOG citations) -> ecosystem value and roadmap |
+| Demo script | `docs/DEMO_SCRIPT.md`: 5-minute flow (verify OK -> live single-byte tamper -> E2003 + explain -> browser demo side-by-side -> quality base). Rehearsed live: the entire command portion (incl. 155x2 tests + 22 black-box) takes **5.7 s**, leaving virtually all 5 minutes for narration |
+| Acceptance checklist | `docs/records/ACCEPTANCE_CHECKLIST.md`: 7 requirements checked with evidence; the only ⏳ item is the dual push (GitHub + Gitlink), an owner-side action |
+
+### Final Freeze Snapshot (step 11 task 4)
+
+Code freeze point: commit `40ef593` (this record lands in the commit immediately after; no source files change between them).
+
+| Command | Result |
+| --- | --- |
+| `moon check` | exit 0, 0 warnings |
+| `moon test --target wasm-gc,js` | **155/155 [wasm-gc] + 155/155 [js]** |
+| `moon build --target js` | exit 0 |
+| `moon build --target wasm-gc` | exit 0 |
+| `moon build --target native` | not runnable locally (no system C compiler, step-6 record); covered by CI |
+| `tools/cli-test.ps1 -Target js` | **22/22 passed** |
+| `node tools/smoke-api.mjs` | **SMOKE PASS** |
+| `node tools/gen-fixtures.mjs` + `git diff tests/fixtures/packs` | regeneration byte-identical (rot guard clean) |
+
+Scale snapshot: 13 implementation files / 1973 lines + 17 test files / 2409 lines = **4382 MoonBit lines**; **52 commits** on main; packages: 6 pure + 2 adapters.
+
+Remaining owner-side actions (outside the repo): dual push to GitHub + Gitlink, watch first CI run, optional `moon login` + `moon publish` (readiness recorded in step 10).
+
+| Field | Result |
+| --- | --- |
+| Confidence | High - every number above was produced by commands run in this session against the freeze point |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

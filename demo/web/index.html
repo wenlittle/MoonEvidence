@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MoonEvidence · 浏览器验证演示</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='%236e40c9'/%3E%3Cpath d='M5 8.2l2 2 4-4.4' stroke='%23fff' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
 <style>
   :root {
     --bg: #f6f8fa;
@@ -67,6 +68,31 @@
   .picker .btn:hover { filter: brightness(1.1); }
   .picker .hint { color: var(--muted); font-size: 13px; margin: 14px 0 0; }
   .picker .hint code { font-family: var(--mono); background: var(--bg); padding: 1px 6px; border-radius: 4px; }
+  .paste { margin-top: 16px; text-align: left; }
+  .paste summary { text-align: center; }
+  .paste textarea {
+    width: 100%;
+    min-height: 140px;
+    margin-top: 10px;
+    font-family: var(--mono);
+    font-size: 13px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px;
+    resize: vertical;
+  }
+  .paste .btn-secondary {
+    margin-top: 10px;
+    background: none;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    font-weight: 600;
+    padding: 8px 20px;
+    cursor: pointer;
+  }
+  .paste .btn-secondary:hover { background: #fbefff; }
+  .paste .note { color: var(--muted); font-size: 12px; margin: 8px 0 0; }
   #verdict {
     display: none;
     border-radius: 12px;
@@ -87,7 +113,8 @@
   td.code { font-family: var(--mono); white-space: nowrap; font-weight: 600; }
   td.code.sev-Error   { color: var(--fail); }
   td.code.sev-Warning { color: var(--warn); }
-  td.path { font-family: var(--mono); word-break: break-all; }
+  td.path { font-family: var(--mono); min-width: 130px; overflow-wrap: anywhere; }
+  td:last-child { overflow-wrap: anywhere; }
   details { margin-top: 18px; }
   summary { cursor: pointer; color: var(--muted); font-size: 13px; }
   pre {
@@ -119,6 +146,16 @@
       <code>versions/version_chain.json</code>。仓库内可直接选
       <code>examples/valid-pack</code> 或 <code>examples/tampered-pack</code> 试用。
     </p>
+    <details class="paste">
+      <summary>或粘贴 manifest JSON 手动验证</summary>
+      <textarea id="manifest-text" spellcheck="false"
+        placeholder='{"schema": "moon-evidence/v0", "subject": …}'></textarea>
+      <button class="btn-secondary" id="verify-paste">验证 manifest</button>
+      <p class="note">
+        粘贴模式核验 manifest 结构、规范化与 Merkle 根一致性；未提供文件字节，
+        登记过文件的 manifest 会如实报告 E2003（内容缺失）。
+      </p>
+    </details>
   </div>
 
   <div id="verdict"></div>
@@ -255,6 +292,14 @@ input.addEventListener("change", async () => {
     return;
   }
   render(JSON.parse(verify_evidence(JSON.stringify(request))));
+});
+
+document.getElementById("verify-paste").addEventListener("click", () => {
+  const manifest = document.getElementById("manifest-text").value;
+  if (!verify_evidence || manifest.trim() === "") {
+    return;
+  }
+  render(JSON.parse(verify_evidence(JSON.stringify({ manifest }))));
 });
 </script>
 </body>

@@ -239,7 +239,9 @@ let hex_digits : FixedArray[Char] = [
 ]
 
 ///|
-fn bytes_to_lower_hex(data : Bytes) -> String {
+/// Renders bytes as lowercase hex. Shared by every package that prints raw
+/// hashes (digest text form, Merkle proof/root rendering).
+pub fn bytes_to_lower_hex(data : Bytes) -> String {
   let builder = StringBuilder::new(size_hint=data.length() * 2)
   for byte in data {
     let value = byte.to_int()

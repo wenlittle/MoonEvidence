@@ -14,15 +14,6 @@ pub(all) struct ChainReport {
 } derive(Eq, @debug.Debug)
 
 ///|
-fn chain_finding(
-  code : String,
-  path : String,
-  message : String,
-) -> @diag.Finding {
-  { code, severity: Error, path, message }
-}
-
-///|
 /// Verifies that `nodes` forms one linear chain. Frozen codes:
 /// E4001 empty chain, E4002 broken parent reference, E4003 cycle (or no
 /// root / unreachable tail), E4004 fork (duplicate id, multiple roots, or a
@@ -32,7 +23,7 @@ pub fn verify_version_chain(nodes : Array[@model.VersionNode]) -> ChainReport {
   let ordered_ids : Array[String] = []
   if nodes.length() == 0 {
     findings.push(
-      chain_finding("E4001", "version_chain", "version chain is empty"),
+      finding("E4001", Error, "version_chain", "version chain is empty"),
     )
     return { ok: false, ordered_ids, findings }
   }
@@ -42,8 +33,9 @@ pub fn verify_version_chain(nodes : Array[@model.VersionNode]) -> ChainReport {
   for node in nodes {
     if ids.get(node.id) is Some(_) {
       findings.push(
-        chain_finding(
+        finding(
           "E4004",
+          Error,
           "version_chain",
           "duplicate version id \"\{node.id}\"",
         ),
@@ -59,8 +51,9 @@ pub fn verify_version_chain(nodes : Array[@model.VersionNode]) -> ChainReport {
   for node in nodes {
     if node.parent is Some(parent_id) && ids.get(parent_id) is None {
       findings.push(
-        chain_finding(
+        finding(
           "E4002",
+          Error,
           "version_chain",
           "version \"\{node.id}\" references unknown parent \"\{parent_id}\"",
         ),
@@ -84,8 +77,9 @@ pub fn verify_version_chain(nodes : Array[@model.VersionNode]) -> ChainReport {
   for parent_id, children in child_of {
     if children.length() > 1 {
       findings.push(
-        chain_finding(
+        finding(
           "E4004",
+          Error,
           "version_chain",
           "version \"\{parent_id}\" has \{children.length()} children (chain must be linear)",
         ),
@@ -97,18 +91,19 @@ pub fn verify_version_chain(nodes : Array[@model.VersionNode]) -> ChainReport {
   // (E4003); several roots mean parallel heads (E4004).
   if roots.length() == 0 {
     findings.push(
-      chain_finding(
-        "E4003", "version_chain", "no root version (every node has a parent), chain contains a cycle",
+      finding(
+        "E4003",
+        Error,
+        "version_chain",
+        "no root version (every node has a parent), chain contains a cycle",
       ),
     )
   } else if roots.length() > 1 {
-    let mut listed = roots[0]
-    for index in 1..<roots.length() {
-      listed = listed + "\", \"" + roots[index]
-    }
+    let listed = roots.join("\", \"")
     findings.push(
-      chain_finding(
+      finding(
         "E4004",
+        Error,
         "version_chain",
         "multiple root versions (\"\{listed}\"), chain must be linear",
       ),
@@ -128,8 +123,9 @@ pub fn verify_version_chain(nodes : Array[@model.VersionNode]) -> ChainReport {
   if ordered_ids.length() < nodes.length() {
     // Unreachable remainder despite a clean walk: a detached cycle.
     findings.push(
-      chain_finding(
+      finding(
         "E4003",
+        Error,
         "version_chain",
         "\{nodes.length() - ordered_ids.length()} version(s) unreachable from the root, chain contains a cycle",
       ),
@@ -137,4 +133,20 @@ pub fn verify_version_chain(nodes : Array[@model.VersionNode]) -> ChainReport {
     return { ok: false, ordered_ids, findings }
   }
   { ok: true, ordered_ids, findings }
+}
+
+///|
+/// Parses and verifies a version chain document in one step, converting
+/// parse failures into findings at `path`. Shared entry point for adapters
+/// (CLI, JS API) that receive the chain as raw text; chain validity is
+/// simply the absence of error findings in the result.
+pub fn verify_chain_text(
+  chain_text : String,
+  path~ : String,
+) -> Array[@diag.Finding] {
+  try @model.parse_version_chain(chain_text) catch {
+    error => [finding(error.error_code(), Error, path, error.detail())]
+  } noraise {
+    nodes => verify_version_chain(nodes).findings
+  }
 }

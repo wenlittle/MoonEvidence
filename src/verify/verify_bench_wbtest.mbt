@@ -38,7 +38,7 @@ fn bench_pack(count : Int, file_size : Int) -> (String, Map[String, Bytes]) {
     Some(root) => root
     None => abort("bench pack cannot be empty")
   }
-  let root_hex = bytes_to_lower_hex(root)
+  let root_hex = @digest.bytes_to_lower_hex(root)
   let manifest = "{\"schema\":\"moon-evidence/v0\",\"subject\":{\"id\":\"bench-pack\",\"type\":\"dataset\"},\"hash_algorithm\":\"sha256\",\"files\":[\{entries.to_string()}],\"merkle_root\":\"sha256:\{root_hex}\",\"version\":{\"id\":\"v1\",\"parent\":null}}"
   (manifest, files)
 }

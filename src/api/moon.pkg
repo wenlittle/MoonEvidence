@@ -1,6 +1,5 @@
 import {
   "moonbitlang/core/json",
-  "wenlittle/MoonEvidence/src/model",
   "wenlittle/MoonEvidence/src/verify",
   "wenlittle/MoonEvidence/src/diag",
 }

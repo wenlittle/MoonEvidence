@@ -47,11 +47,7 @@ fn strip_runtime_prefix(raw : Array[String]) -> Array[String] {
   ]
   for index in 0..<raw.length() {
     if known.contains(raw[index]) {
-      let rest : Array[String] = []
-      for cursor in index..<raw.length() {
-        rest.push(raw[cursor])
-      }
-      return rest
+      return raw[index:].to_owned()
     }
   }
   []
@@ -183,56 +179,32 @@ fn run_verify(args : Array[String], json_allowed~ : Bool) -> Int {
 
   // Version chain is optional; verify it when the pack ships one.
   let chain_findings : Array[@diag.Finding] = []
-  let mut chain_ok = true
   let chain_path = "\{pack_root}/versions/version_chain.json"
   if @fs.path_exists(chain_path) {
     try @fs.read_file_to_string(chain_path) catch {
-      _ => {
-        chain_ok = false
+      _ =>
         chain_findings.push({
           code: "E5002",
           severity: Error,
           path: chain_path,
           message: "file read failed",
         })
-      }
     } noraise {
       chain_text =>
-        try @model.parse_version_chain(chain_text) catch {
-          error => {
-            chain_ok = false
-            chain_findings.push({
-              code: error.error_code(),
-              severity: Error,
-              path: "versions/version_chain.json",
-              message: error.detail(),
-            })
-          }
-        } noraise {
-          nodes => {
-            let chain_report = @verify.verify_version_chain(nodes)
-            chain_ok = chain_report.ok
-            for finding in chain_report.findings {
-              chain_findings.push(finding)
-            }
-          }
-        }
+        chain_findings.append(
+          @verify.verify_chain_text(
+            chain_text,
+            path="versions/version_chain.json",
+          ),
+        )
     }
   }
 
-  // Merge IO findings + pipeline report + chain findings into one report.
-  let merged_findings : Array[@diag.Finding] = []
-  for finding in io_findings {
-    merged_findings.push(finding)
-  }
-  for finding in report.findings {
-    merged_findings.push(finding)
-  }
-  for finding in chain_findings {
-    merged_findings.push(finding)
-  }
+  // Merge IO findings + pipeline report + chain findings into one report;
+  // the pack passes exactly when no error-severity finding survived.
+  let merged_findings = io_findings + report.findings + chain_findings
   let merged : @diag.VerifyReport = {
-    ok: report.ok && chain_ok && io_findings.length() == 0,
+    ok: !merged_findings.iter().any(f => f.severity is Error),
     findings: merged_findings,
     checked: report.checked,
   }

@@ -132,23 +132,13 @@ pub fn explain(report : VerifyReport) -> String {
       "not checked"
     },
   )
+  let errors = report.error_count()
+  let warnings = report.warning_count()
   out.write_string("; ")
-  out.write_string(report.error_count().to_string())
-  out.write_string(
-    if report.error_count() == 1 {
-      " error, "
-    } else {
-      " errors, "
-    },
-  )
-  out.write_string(report.warning_count().to_string())
-  out.write_string(
-    if report.warning_count() == 1 {
-      " warning"
-    } else {
-      " warnings"
-    },
-  )
+  out.write_string(errors.to_string())
+  out.write_string(if errors == 1 { " error, " } else { " errors, " })
+  out.write_string(warnings.to_string())
+  out.write_string(if warnings == 1 { " warning" } else { " warnings" })
   out.to_string()
 }
 

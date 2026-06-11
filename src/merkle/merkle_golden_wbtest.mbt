@@ -16,20 +16,9 @@ fn golden_leaves(count : Int) -> Array[Bytes] {
 ///|
 fn root_hex(leaves : Array[Bytes]) -> String raise {
   match compute_root(leaves) {
-    Some(root) => bytes_to_hex(root)
+    Some(root) => @digest.bytes_to_lower_hex(root)
     None => fail("expected a root for \{leaves.length()} leaves")
   }
-}
-
-///|
-fn bytes_to_hex(data : Bytes) -> String {
-  let builder = StringBuilder::new(size_hint=data.length() * 2)
-  for byte in data {
-    let value = byte.to_int()
-    builder.write_char(proof_hex_digits[value >> 4])
-    builder.write_char(proof_hex_digits[value & 0x0f])
-  }
-  builder.to_string()
 }
 
 ///|

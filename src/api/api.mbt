@@ -51,41 +51,16 @@ pub fn verify_evidence(request_json : String) -> String {
   let report = @verify.verify_manifest(manifest_text, files)
 
   // Optional version chain, merged exactly like the CLI does.
-  let chain_findings : Array[@diag.Finding] = []
-  let mut chain_ok = true
-  match fields.get("version_chain") {
-    None | Some(Null) => ()
+  let chain_findings : Array[@diag.Finding] = match
+    fields.get("version_chain") {
+    None | Some(Null) => []
     Some(String(chain_text)) =>
-      try @model.parse_version_chain(chain_text) catch {
-        error => {
-          chain_ok = false
-          chain_findings.push({
-            code: error.error_code(),
-            severity: Error,
-            path: "version_chain",
-            message: error.detail(),
-          })
-        }
-      } noraise {
-        nodes => {
-          let chain_report = @verify.verify_version_chain(nodes)
-          chain_ok = chain_report.ok
-          for finding in chain_report.findings {
-            chain_findings.push(finding)
-          }
-        }
-      }
+      @verify.verify_chain_text(chain_text, path="version_chain")
     Some(_) => return error_response("\"version_chain\" must be a string")
   }
-  let merged_findings : Array[@diag.Finding] = []
-  for finding in report.findings {
-    merged_findings.push(finding)
-  }
-  for finding in chain_findings {
-    merged_findings.push(finding)
-  }
+  let merged_findings = report.findings + chain_findings
   let merged : @diag.VerifyReport = {
-    ok: report.ok && chain_ok,
+    ok: !merged_findings.iter().any(f => f.severity is Error),
     findings: merged_findings,
     checked: report.checked,
   }

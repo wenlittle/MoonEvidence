@@ -80,9 +80,12 @@ pub fn verify_manifest(
     }
   }
 
-  // Step 4: per-file digests (E2003), exhaustive across all entries.
+  // Step 4: per-file digests (E2003), exhaustive across all entries; the
+  // same pass records listed paths for the unlisted-file check below.
   let mut files_passed = 0
+  let listed : Map[String, Bool] = {}
   for entry in manifest.files {
+    listed[entry.path] = true
     match files.get(entry.path) {
       None =>
         findings.push(
@@ -112,10 +115,6 @@ pub fn verify_manifest(
   }
 
   // Step 5: files provided but not listed in the manifest (W1001).
-  let listed : Map[String, Bool] = {}
-  for entry in manifest.files {
-    listed[entry.path] = true
-  }
   for path, _ in files {
     if listed.get(path) is None {
       findings.push(
@@ -144,10 +143,9 @@ pub fn verify_manifest(
         )
       }
     Some(recorded) => {
-      let leaves : Array[Bytes] = []
-      for entry in manifest.files {
-        leaves.push(@digest.string_to_utf8_bytes(canonical_file_entry(entry)))
-      }
+      let leaves = manifest.files.map(entry => {
+        @digest.string_to_utf8_bytes(canonical_file_entry(entry))
+      })
       match @merkle.compute_root(leaves) {
         None =>
           // merkle_root present but files[] empty: nothing it could attest.
@@ -161,7 +159,7 @@ pub fn verify_manifest(
           )
         Some(root) => {
           merkle_checked = true
-          let actual = bytes_to_lower_hex(root)
+          let actual = @digest.bytes_to_lower_hex(root)
           if actual != recorded.hex {
             findings.push(
               finding(
@@ -178,15 +176,8 @@ pub fn verify_manifest(
   }
 
   // Step 7: aggregate.
-  let mut has_error = false
-  for item in findings {
-    if item.severity == Error {
-      has_error = true
-      break
-    }
-  }
   {
-    ok: !has_error,
+    ok: !findings.iter().any(item => item.severity is Error),
     findings,
     checked: {
       files_total: manifest.files.length(),
@@ -212,20 +203,4 @@ fn canonical_file_entry(entry : @model.FileEntry) -> String {
     // unreachable, kept total to avoid a raising signature.
     _ => document.stringify()
   }
-}
-
-///|
-let verify_hex_digits : FixedArray[Char] = [
-  '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
-]
-
-///|
-fn bytes_to_lower_hex(data : Bytes) -> String {
-  let builder = StringBuilder::new(size_hint=data.length() * 2)
-  for byte in data {
-    let value = byte.to_int()
-    builder.write_char(verify_hex_digits[value >> 4])
-    builder.write_char(verify_hex_digits[value & 0x0f])
-  }
-  builder.to_string()
 }

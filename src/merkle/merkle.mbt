@@ -94,17 +94,8 @@ pub(all) struct ProofStep {
 pub impl Show for ProofStep with fn output(self, logger) {
   logger.write_string(self.side.to_string())
   logger.write_string(":")
-  for byte in self.sibling {
-    let value = byte.to_int()
-    logger.write_char(proof_hex_digits[value >> 4])
-    logger.write_char(proof_hex_digits[value & 0x0f])
-  }
+  logger.write_string(@digest.bytes_to_lower_hex(self.sibling))
 }
-
-///|
-let proof_hex_digits : FixedArray[Char] = [
-  '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
-]
 
 ///|
 /// Builds the inclusion proof for `leaves[index]`, bottom-up. Returns `None`

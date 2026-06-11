@@ -31,8 +31,8 @@ jobs:
       - name: Type check
         run: moon check
 
-      - name: Run tests
-        run: moon test
+      - name: Run tests (wasm-gc + js)
+        run: moon test --target wasm-gc,js
 
       - name: Build native
         run: moon build --target native
@@ -41,9 +41,15 @@ jobs:
         shell: pwsh
         run: ./tools/cli-test.ps1 -Target native
 
+      - name: Build wasm-gc
+        run: moon build --target wasm-gc
+
       - name: Build js
         run: moon build --target js
 
       - name: CLI black-box tests (js)
         shell: pwsh
         run: ./tools/cli-test.ps1 -Target js
+
+      - name: Browser adapter smoke (node over js artifact)
+        run: node tools/smoke-api.mjs

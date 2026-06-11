@@ -76,7 +76,8 @@ JSON (RFC 8785 key order), so report bytes are digest-stable:
 ## Current Status
 
 All six pure library packages are implemented and green: `canonjson`
-(RFC 8785 escaping, code-unit key order, L1 numbers), `digest` (pure
+(RFC 8785 escaping, code-unit key order, full ECMAScript number
+serialization pinned by the Appendix B vectors), `digest` (pure
 MoonBit SHA-256, NIST vectors), `merkle` (RFC 6962 style domain separation,
 cross-checked against an independent Node reference), `model` (validated
 manifest + version chain), `verify` (seven-step pipeline), and `diag`

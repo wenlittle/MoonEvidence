@@ -1,8 +1,9 @@
 // Official JCS vectors, mirrored from `tests/fixtures/jcs/` (single source
 // listed there for the step-7 CLI black-box reuse). Sources: RFC 8785
 // section 3.2.3 sorting example and the cyberphone/json-canonicalization
-// testdata set. Number-formatting vectors that need L2 shortest-form
-// rendering are intentionally absent - see `tests/fixtures/jcs/SKIPPED.md`.
+// testdata set, including the number-formatting vectors that require the
+// ECMAScript shortest-form algorithm (L2). The RFC 8785 Appendix B number
+// table lives in `canonjson_wbtest.mbt` as bit-pattern tests.
 
 fn jcs_canonicalize(input : String) -> String raise {
   canonicalize(input) catch {
@@ -50,6 +51,19 @@ test "jcs vector arrays" {
   assert_jcs_vector(
     "[56, {\"d\": true, \"10\": null, \"1\": [ ]}]",
     "[56,{\"1\":[],\"10\":null,\"d\":true}]",
+  )
+}
+
+test "jcs vector values full mixed sample" {
+  // cyberphone values.json == the RFC 8785 section 3.2.2 worked example:
+  // every number requires ES shortest-form rendering (333333333.33333329
+  // rounds, 1E30 -> 1e+30, 4.50 -> 4.5, 2e-3 -> 0.002, 1e-27 stays
+  // exponential), the string mixes \uXXXX escapes that must collapse to
+  // raw text or short escapes, and keys re-sort (literals < numbers <
+  // string). Expected output is the RFC section 3.2.3 result.
+  assert_jcs_vector(
+    "{\"numbers\": [333333333.33333329, 1E30, 4.50, 2e-3, 0.000000000000000000000000001], \"string\": \"\\u20ac$\\u000F\\u000aA'\\u0042\\u0022\\u005c\\\\\\\"\\/\", \"literals\": [null, true, false]}",
+    "{\"literals\":[null,true,false],\"numbers\":[333333333.3333333,1e+30,4.5,0.002,1e-27],\"string\":\"\u{20ac}$\\u000f\\nA'B\\\"\\\\\\\\\\\"/\"}",
   )
 }
 

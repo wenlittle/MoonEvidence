@@ -1,5 +1,30 @@
 # Decision Log
 
+## 2026-06-11: Number Serialization L2 via Core Double::to_string (step 8)
+
+Decision: canonjson numbers upgrade from the L1 safe subset to the full
+RFC 8785 §3.2.2.3 ECMAScript algorithm by delegating finite doubles to
+MoonBit core `Double::to_string`, with the RFC 8785 Appendix B vector table
+(all 24 published edge cases, bit-pattern level) plus the cyberphone
+`values.json` mixed vector pinning the behavior on both js and wasm-gc
+backends. Integer literals the parser cannot capture losslessly (beyond
+2^53, kept as source text) resolve through `@string.parse_double` the way
+an ES engine parses them; overflow to Infinity and NaN raise
+`UnsupportedNumber` (E1004) per the RFC note.
+
+Reason:
+
+- The spec defined L2 as a planned second delivery level since step 2, so
+  this fulfils the frozen roadmap rather than changing frozen semantics.
+- Core `Double::to_string` is a Ryu port explicitly adjusted to the
+  ECMAScript shortest-round-trip rule (js backend calls
+  `Number.prototype.toString` directly). Hand-rolling Grisu/Ryu (~1k lines)
+  would duplicate an audited implementation and add divergence risk, against
+  the correctness-first instruction in the master plan.
+- The real risk is the *assumption* that `to_string` matches ES on every
+  backend; the Appendix B table turns that assumption into a tested fact on
+  two independent code paths (Ryu port on wasm-gc/native, host engine on js).
+
 ## 2026-06-11: Manifest Path Hardening (spec hardening, step 7)
 
 Decision: `Manifest::parse` rejects entry paths that are absolute, contain

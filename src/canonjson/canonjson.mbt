@@ -1,11 +1,11 @@
 // RFC 8785 (JSON Canonicalization Scheme) serializer.
 //
-// Scope: full JCS string escaping (section 3.2.2.2) and UTF-16 code unit key
-// ordering (section 3.2.3). Number serialization implements the L1 "safe
-// subset" policy: integers within +/-(2^53 - 1) render exactly; every other
-// number raises `UnsupportedNumber` instead of guessing a representation.
-// The full ECMAScript shortest-round-trip formatting (L2) is a planned
-// hardening step tracked in the master plan.
+// Scope: full JCS string escaping (section 3.2.2.2), UTF-16 code unit key
+// ordering (section 3.2.3), and ECMAScript number serialization (section
+// 3.2.2.3, the L2 policy): finite values render through the ES-compliant
+// shortest-round-trip algorithm, pinned by the RFC 8785 Appendix B vector
+// suite. NaN, Infinity, and literals that overflow IEEE 754 double range
+// raise `UnsupportedNumber`, as the RFC mandates an error for them.
 
 // ---------------------------------------------------------------------------
 // Errors
@@ -16,8 +16,9 @@
 pub(all) suberror CanonError {
   /// Input is not valid JSON. Payload is the upstream parser diagnostic.
   ParseFailed(String)
-  /// Number cannot be rendered under the L1 safe-subset policy. Payload is
-  /// the rejected value's text form.
+  /// Number has no RFC 8785 representation: NaN, Infinity, or a literal
+  /// whose magnitude overflows IEEE 754 double range. Payload is the
+  /// rejected value's text form.
   UnsupportedNumber(String)
 } derive(Eq)
 
@@ -180,34 +181,49 @@ fn render_string(text : String, out : StringBuilder) -> Unit {
 }
 
 // ---------------------------------------------------------------------------
-// Number serialization (L1 safe subset)
+// Number serialization (RFC 8785 section 3.2.2.3, ECMAScript algorithm)
 // ---------------------------------------------------------------------------
 
-/// Largest integer a Double represents exactly (2^53 - 1, IEEE 754 binary64).
-const SAFE_INTEGER_LIMIT : Double = 9007199254740991
-
-/// L1 policy: render integers in the exact range as plain decimal text
-/// (`-0` collapses to `0` via the Int64 conversion); raise on everything
-/// else rather than risk a digest that disagrees with RFC 8785.
 fn render_number(
   number : Double,
   repr : String?,
   out : StringBuilder,
 ) -> Unit raise CanonError {
-  // The parser keeps the source text only for values that overflowed to
-  // infinity (e.g. 1e999); those are never representable.
-  if repr is Some(source) {
-    raise CanonError::UnsupportedNumber(source)
+  out.write_string(format_number(number, repr))
+}
+
+/// Serializes one JSON number exactly as ECMAScript `Number::toString`
+/// would, which is what RFC 8785 requires (section 3.2.2.3 defers to
+/// ECMA-262 section 7.1.12.1 including the "Note 2" shortest-form rule).
+///
+/// MoonBit's builtin `Double::to_string` is a Ryu port explicitly adjusted
+/// to the ECMAScript algorithm (js backend calls `Number.prototype.toString`
+/// directly), so finite doubles delegate to it; the RFC 8785 Appendix B
+/// vector suite in `canonjson_wbtest.mbt` pins this assumption against
+/// every published edge case.
+fn format_number(number : Double, repr : String?) -> String raise CanonError {
+  let resolved : Double = match repr {
+    // The parser refuses to silently round literals it cannot capture
+    // losslessly (integers beyond 2^53, extreme magnitudes) and hands the
+    // source text through. Resolve it to the nearest IEEE 754 double the
+    // way an ECMAScript engine would; true overflow stays out of range and
+    // is rejected below, exactly like the RFC's Infinity rule.
+    Some(source) =>
+      @string.parse_double(source) catch {
+        _ => raise CanonError::UnsupportedNumber(source)
+      }
+    None => number
   }
-  if number != number {
+  if resolved != resolved {
     raise CanonError::UnsupportedNumber("NaN")
   }
-  if number == @double.infinity || number == @double.neg_infinity {
-    raise CanonError::UnsupportedNumber("Infinity")
+  if resolved == @double.infinity || resolved == @double.neg_infinity {
+    raise CanonError::UnsupportedNumber(
+      match repr {
+        Some(source) => source
+        None => "Infinity"
+      },
+    )
   }
-  if @double.trunc(number) == number && number.abs() <= SAFE_INTEGER_LIMIT {
-    out.write_string(number.to_int64().to_string())
-  } else {
-    raise CanonError::UnsupportedNumber(number.to_string())
-  }
+  resolved.to_string()
 }

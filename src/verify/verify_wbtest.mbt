@@ -83,11 +83,12 @@ test "model validation failure carries field path into the finding" {
 
 test "unsupported number in ignored field reports e1004" {
   // The model ignores unknown fields, but canonicalization must still cover
-  // the whole document - a non-integer number is rejected under L1 (E1004).
+  // the whole document - a number with no canonical form (overflow to
+  // Infinity, RFC 8785 section 3.2.2.3 note) is rejected as E1004.
   let report = verify_manifest(
     golden_manifest.replace(
       old="\"hash_algorithm\": \"sha256\",",
-      new="\"hash_algorithm\": \"sha256\", \"annotation\": 12.34,",
+      new="\"hash_algorithm\": \"sha256\", \"annotation\": 1e999,",
     ),
     golden_files(),
   )

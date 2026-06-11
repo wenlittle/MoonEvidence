@@ -77,17 +77,20 @@ The first implementation should follow RFC 8785-style deterministic serializatio
 - Object keys are sorted by UTF-16 code units (RFC 8785 §3.2.3).
 - Whitespace is eliminated.
 - Strings use deterministic escaping.
-- Numbers need a carefully documented subset until full RFC-compatible number formatting is verified.
+- Numbers use the ECMAScript serialization algorithm (RFC 8785 §3.2.2.3).
 
-Number formatting is delivered in two levels:
+Number formatting was delivered in two levels; both are now implemented:
 
-- **L1 (safe subset, frozen):** integers with |n| ≤ 2^53-1 pass through, `-0`
-  normalizes to `0`. Any number whose canonical form cannot be guaranteed
-  (decimals, exponents) is rejected.
-- **L2 (full RFC 8785):** ECMAScript shortest-representation formatting,
-  delivered as a later hardening step.
+- **L1 (safe subset):** integers with |n| ≤ 2^53-1 pass through, `-0`
+  normalizes to `0`. Historical first delivery; its behavior is a strict
+  subset of L2.
+- **L2 (full RFC 8785, current):** ECMAScript shortest-round-trip
+  formatting for all finite doubles, verified against the RFC 8785
+  Appendix B vector table. Integer literals beyond 2^53 resolve to the
+  nearest IEEE 754 double exactly as an ECMAScript engine parses them.
 
-If a JSON number cannot be canonicalized safely, fail with `E1004` rather than guessing.
+NaN, Infinity, and literals whose magnitude overflows IEEE 754 double range
+have no canonical form; they fail with `E1004` (RFC 8785 §3.2.2.3 note).
 
 ## Error Codes (frozen)
 

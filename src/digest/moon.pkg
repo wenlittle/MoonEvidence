@@ -1,3 +1,7 @@
 import {
   "moonbitlang/core/debug" @debug,
 }
+
+import {
+  "moonbitlang/core/bench" @bench,
+} for "wbtest"

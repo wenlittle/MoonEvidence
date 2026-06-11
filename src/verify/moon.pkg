@@ -6,3 +6,7 @@ import {
   "wenlittle/MoonEvidence/src/model" @model,
   "wenlittle/MoonEvidence/src/diag" @diag,
 }
+
+import {
+  "moonbitlang/core/bench" @bench,
+} for "wbtest"

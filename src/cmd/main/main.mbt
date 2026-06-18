@@ -14,20 +14,24 @@ let usage_text : String =
   #|moon-evidence - trusted evidence pack verification
   #|
   #|Usage:
-  #|  moon-evidence verify [--json] <pack-dir | manifest.json>
-  #|  moon-evidence explain <pack-dir | manifest.json>
+  #|  moon-evidence verify [--json] <path> [<path> ...]
+  #|  moon-evidence explain <path> [<path> ...]
   #|  moon-evidence create <dir> --subject-id <id> --subject-type <type> [-o <out>]
   #|  moon-evidence --version
   #|  moon-evidence --help
   #|
   #|Commands:
-  #|  verify    Verify an evidence pack; --json emits the canonical JSON report
-  #|  explain   Verify and print the human-readable findings report
+  #|  verify    Verify evidence packs; --json emits canonical JSON reports
+  #|  explain   Verify and print human-readable findings reports
   #|  create    Create a manifest from files in a directory
   #|
+  #|Batch mode:
+  #|  Pass multiple paths to verify/explain several packs in one invocation.
+  #|  Exit code is 0 only if ALL packs pass; 1 if any fails; 2 on usage error.
+  #|
   #|Exit codes:
-  #|  0  verification passed
-  #|  1  verification failed
+  #|  0  verification passed (all packs)
+  #|  1  verification failed (at least one pack)
   #|  2  usage or IO error
 
 ///|
@@ -89,23 +93,51 @@ fn run(raw_args : Array[String]) -> Int {
 ///|
 fn run_verify(args : Array[String], json_allowed~ : Bool) -> Int {
   let mut json_mode = false
-  let mut path : String? = None
+  let paths : Array[String] = []
   for index in 1..<args.length() {
     let arg = args[index]
     if arg == "--json" && json_allowed {
       json_mode = true
-    } else if !arg.has_prefix("-") && path is None {
-      path = Some(arg)
+    } else if !arg.has_prefix("-") {
+      paths.push(arg)
     } else {
       println(usage_text)
       return 2
     }
   }
-  guard path is Some(pack_path) else {
+  if paths.is_empty() {
     println(usage_text)
     return 2
   }
+  if paths.length() == 1 {
+    return run_verify_single(paths[0], json_mode)
+  }
+  let mut all_ok = true
+  let mut pass_count = 0
+  let mut fail_count = 0
+  for pack_path in paths {
+    if paths.length() > 1 {
+      println("--- \{pack_path} ---")
+    }
+    let code = run_verify_single(pack_path, json_mode)
+    if code == 2 {
+      return 2
+    }
+    if code == 0 {
+      pass_count = pass_count + 1
+    } else {
+      fail_count = fail_count + 1
+      all_ok = false
+    }
+  }
+  println(
+    "\nbatch: \{pass_count} passed, \{fail_count} failed out of \{paths.length()} packs",
+  )
+  if all_ok { 0 } else { 1 }
+}
 
+///|
+fn run_verify_single(pack_path : String, json_mode : Bool) -> Int {
   // Resolve pack layout (E5001 when the path itself is absent).
   if !@fs.path_exists(pack_path) {
     println("[E5001] \{pack_path}: path does not exist")

@@ -2,5 +2,5 @@ import {
   "moonbitlang/core/json",
   "moonbitlang/core/double",
   "moonbitlang/core/debug",
-  "wenlittle/MoonEvidence/src/digest",
+  "starlittle/MoonEvidence/src/digest",
 }

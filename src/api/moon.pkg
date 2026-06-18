@@ -1,13 +1,13 @@
 import {
   "moonbitlang/core/json",
-  "wenlittle/MoonEvidence/src/verify",
-  "wenlittle/MoonEvidence/src/diag",
+  "starlittle/MoonEvidence/src/verify",
+  "starlittle/MoonEvidence/src/diag",
 }
 
 import {
   "moonbitlang/core/debug",
-  "wenlittle/MoonEvidence/src/digest",
-  "wenlittle/MoonEvidence/src/merkle",
+  "starlittle/MoonEvidence/src/digest",
+  "starlittle/MoonEvidence/src/merkle",
 } for "wbtest"
 
 options(

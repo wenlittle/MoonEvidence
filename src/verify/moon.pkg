@@ -1,10 +1,10 @@
 import {
   "moonbitlang/core/debug",
-  "wenlittle/MoonEvidence/src/canonjson",
-  "wenlittle/MoonEvidence/src/digest",
-  "wenlittle/MoonEvidence/src/merkle",
-  "wenlittle/MoonEvidence/src/model",
-  "wenlittle/MoonEvidence/src/diag",
+  "starlittle/MoonEvidence/src/canonjson",
+  "starlittle/MoonEvidence/src/digest",
+  "starlittle/MoonEvidence/src/merkle",
+  "starlittle/MoonEvidence/src/model",
+  "starlittle/MoonEvidence/src/diag",
 }
 
 import {

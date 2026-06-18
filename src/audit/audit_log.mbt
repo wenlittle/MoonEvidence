@@ -169,6 +169,78 @@ pub fn AuditLog::length(self : AuditLog) -> Int {
 }
 
 ///|
+/// Signs the last entry in the log with Ed25519.
+pub fn AuditLog::sign_last(self : AuditLog, sk : Bytes) -> Unit {
+  if self.entries.length() == 0 {
+    return
+  }
+  let idx = self.entries.length() - 1
+  let entry = self.entries[idx]
+  let hash_str = entry.compute_hash()
+  let hash_bytes = @digest.string_to_utf8_bytes(hash_str)
+  let sig = @crypto.ed25519_sign(sk, hash_bytes)
+  let sig_hex = @digest.bytes_to_lower_hex(sig)
+  let signed_entry : AuditEntry = {
+    timestamp: entry.timestamp,
+    actor: entry.actor,
+    action: entry.action,
+    subject_id: entry.subject_id,
+    manifest_digest: entry.manifest_digest,
+    prev_hash: entry.prev_hash,
+    signature: Some(sig_hex),
+  }
+  self.entries[idx] = signed_entry
+}
+
+///|
+/// Verifies all Ed25519 signatures in the log.
+/// Entries without signatures are skipped (returns true for them).
+pub fn AuditLog::verify_signatures(self : AuditLog, pk : Bytes) -> Bool {
+  for entry in self.entries {
+    match entry.signature {
+      Some(sig_hex) => {
+        let hash_str = entry.compute_hash()
+        let hash_bytes = @digest.string_to_utf8_bytes(hash_str)
+        let sig = hex_to_bytes(sig_hex)
+        if @crypto.ed25519_verify(pk, hash_bytes, sig) == false {
+          return false
+        }
+      }
+      None => ()
+    }
+  }
+  true
+}
+
+///|
+fn hex_to_bytes(hex : String) -> Bytes {
+  let chars = hex.to_array()
+  let arr : Array[Byte] = []
+  let mut i = 0
+  while i + 1 < chars.length() {
+    let hi = hex_char_val(chars[i])
+    let lo = hex_char_val(chars[i + 1])
+    let val = hi * 16 + lo
+    arr.push((val.to_uint64() & 0xffUL).to_byte())
+    i = i + 2
+  }
+  Bytes::from_array(arr)
+}
+
+///|
+fn hex_char_val(c : Char) -> Int {
+  if c >= '0' && c <= '9' {
+    c.to_int() - '0'.to_int()
+  } else if c >= 'a' && c <= 'f' {
+    c.to_int() - 'a'.to_int() + 10
+  } else if c >= 'A' && c <= 'F' {
+    c.to_int() - 'A'.to_int() + 10
+  } else {
+    0
+  }
+}
+
+///|
 /// Serializes the entire log as a JSON array.
 pub fn AuditLog::to_json(self : AuditLog) -> String {
   let entries_json : Array[Json] = []

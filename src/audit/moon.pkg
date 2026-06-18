@@ -1,5 +1,6 @@
 import {
   "starlittle/MoonEvidence/src/digest",
   "starlittle/MoonEvidence/src/canonjson",
+  "starlittle/MoonEvidence/src/crypto",
   "moonbitlang/core/json",
 }

@@ -3,16 +3,19 @@
 // Products fit in 32 bits, accumulators in ~42 bits, all within UInt64.
 
 ///|
+/// A field element in GF(2^255-19), stored as 16 limbs of ~16 bits each.
 pub struct Fe {
   limbs : FixedArray[UInt64]
 }
 
 ///|
+/// The additive identity (0).
 pub fn Fe::zero() -> Fe {
   { limbs: FixedArray::make(16, 0UL) }
 }
 
 ///|
+/// The multiplicative identity (1).
 pub fn Fe::one() -> Fe {
   let l = FixedArray::make(16, 0UL)
   l[0] = 1UL
@@ -20,6 +23,7 @@ pub fn Fe::one() -> Fe {
 }
 
 ///|
+/// Creates a field element from a small integer (fits in UInt64).
 pub fn Fe::from_small(n : UInt64) -> Fe {
   let l = FixedArray::make(16, 0UL)
   l[0] = n & 0xffffUL
@@ -41,6 +45,7 @@ fn fe_carry(o : FixedArray[UInt64]) -> Unit {
 }
 
 ///|
+/// Field addition: (a + b) mod p.
 pub fn Fe::add(self : Fe, other : Fe) -> Fe {
   let r = FixedArray::make(16, 0UL)
   for i in 0..<16 {
@@ -51,6 +56,7 @@ pub fn Fe::add(self : Fe, other : Fe) -> Fe {
 }
 
 ///|
+/// Field subtraction: (a - b) mod p. Uses 4p bias for unsigned safety.
 pub fn Fe::sub(self : Fe, other : Fe) -> Fe {
   let r = FixedArray::make(16, 0UL)
   for i in 0..<16 {
@@ -71,6 +77,7 @@ pub fn Fe::sub(self : Fe, other : Fe) -> Fe {
 }
 
 ///|
+/// Field multiplication: (a * b) mod p. Schoolbook 16x16 with mod-reduction.
 pub fn Fe::mul(self : Fe, other : Fe) -> Fe {
   let a = self.limbs
   let b = other.limbs
@@ -94,6 +101,7 @@ pub fn Fe::mul(self : Fe, other : Fe) -> Fe {
 }
 
 ///|
+/// Field squaring: a^2 mod p.
 pub fn Fe::square(self : Fe) -> Fe {
   self.mul(self)
 }
@@ -180,6 +188,7 @@ pub fn Fe::to_bytes(self : Fe) -> Bytes {
 }
 
 ///|
+/// Equality test via canonical byte comparison.
 pub fn Fe::eq(self : Fe, other : Fe) -> Bool {
   let a = self.to_bytes()
   let b = other.to_bytes()

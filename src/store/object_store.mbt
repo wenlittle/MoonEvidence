@@ -3,6 +3,7 @@
 // The store is a pure in-memory data structure with no IO dependency.
 
 ///|
+/// In-memory content-addressable store keyed by SHA-256 digest.
 pub struct ObjectStore {
   objects : Map[String, Bytes]
 }

@@ -3,6 +3,7 @@
 // Uses (X:Y:Z:T) extended coordinates where x=X/Z, y=Y/Z, xy=T/Z.
 
 ///|
+/// A point on the Ed25519 twisted Edwards curve in extended coordinates.
 pub struct Point {
   x : Fe
   y : Fe
@@ -50,16 +51,19 @@ fn base_y() -> Fe {
 }
 
 ///|
+/// The neutral element (identity point) of the curve group.
 pub fn Point::identity() -> Point {
   { x: Fe::zero(), y: Fe::one(), z: Fe::one(), t: Fe::zero() }
 }
 
 ///|
+/// Lifts affine coordinates (x, y) into extended (X:Y:Z:T) with Z=1.
 pub fn Point::from_affine(x : Fe, y : Fe) -> Point {
   { x, y, z: Fe::one(), t: x.mul(y) }
 }
 
 ///|
+/// The Ed25519 base point B with y = 4/5 mod p.
 pub fn Point::base_point() -> Point {
   Point::from_affine(base_x(), base_y())
 }

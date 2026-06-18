@@ -4,6 +4,7 @@
 /// change.
 pub(all) enum HashAlgorithm {
   Sha256
+  Sha512
 } derive(Eq, @debug.Debug)
 
 ///|
@@ -34,6 +35,7 @@ pub impl Show for Digest with fn output(self, logger) {
 pub fn HashAlgorithm::label(self : HashAlgorithm) -> String {
   match self {
     Sha256 => "sha256"
+    Sha512 => "sha512"
   }
 }
 
@@ -44,6 +46,8 @@ pub fn normalize_algorithm(name : String) -> HashAlgorithm? {
   let folded = name[:].to_lower().to_owned()
   if folded == "sha256" || folded == "sha-256" {
     Some(Sha256)
+  } else if folded == "sha512" || folded == "sha-512" {
+    Some(Sha512)
   } else {
     None
   }
@@ -93,6 +97,7 @@ pub fn parse_digest(input : String) -> Digest? {
 pub fn Digest::of_bytes(algorithm : HashAlgorithm, data : Bytes) -> Digest {
   match algorithm {
     Sha256 => { algorithm: Sha256, hex: sha256_hex(data) }
+    Sha512 => { algorithm: Sha512, hex: sha512_hex(data) }
   }
 }
 

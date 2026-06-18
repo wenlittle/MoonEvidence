@@ -9,4 +9,5 @@ import {
 
 import {
   "moonbitlang/core/bench",
+  "starlittle/MoonEvidence/src/create",
 } for "wbtest"

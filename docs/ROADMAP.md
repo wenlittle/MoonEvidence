@@ -1,42 +1,65 @@
-# Roadmap
+# 开发路线图
 
-## Week 1: Skeleton and Verification Core Start
+## 第一阶段：MVP 开发（已完成）
 
-- Freeze minimal evidence pack spec.
-- Verify MoonBit toolchain installation.
-- Generate or validate MoonBit module/package files.
-- Implement `canonjson` MVP.
-- Implement `digest` wrapper and SHA-256 integration.
-- Add first valid and tampered fixtures.
-- Add CI skeleton after local `moon check` and `moon test` pass.
+### 第 1 周：骨架与验证核心
 
-## Week 2: Manifest and Merkle
+- 冻结最小证据包规范
+- 验证 MoonBit 工具链安装
+- 生成/验证模块和包配置文件
+- 实现 `canonjson` MVP（RFC 8785 规范化 JSON）
+- 实现 `digest` 封装和 SHA-256 集成
+- 添加首组 valid 和 tampered 测试夹具
+- 本地 `moon check` 和 `moon test` 通过后搭建 CI
 
-- Implement manifest model and validation.
-- Implement Merkle root/proof verification.
-- Add tamper cases for missing file, digest mismatch, and invalid proof.
-- Add structured diagnostics.
+### 第 2 周：清单与 Merkle 树
 
-## Week 3: Version Chain and CLI
+- 实现证据清单（manifest）模型和验证
+- 实现 Merkle 根计算和证明验证（RFC 6962）
+- 添加缺失文件、摘要不匹配、无效证明等篡改用例
+- 添加结构化诊断输出
 
-- Implement linear version chain verification.
-- Implement `verify` and `explain` CLI.
-- Add black-box CLI regression fixtures.
-- Write user-facing README examples.
+### 第 3 周：版本链与 CLI
 
-## Week 4: Completion Polish
+- 实现线性版本链验证
+- 实现 `verify` 和 `explain` CLI 命令
+- 添加黑盒 CLI 回归测试夹具
+- 编写面向用户的 README 示例
 
-- Add property tests for canonical JSON and Merkle proof behavior.
-- Add benchmarks if the MoonBit benchmark package is stable enough.
-- Add JS/Wasm demo only if pure library build is stable.
-- Publish package/docs and prepare Mooncakes submission.
-- Prepare competition report and demonstration script.
+### 第 4 周：收尾打磨
 
-## Out of MVP
+- 添加 Canonical JSON 和 Merkle 证明的属性测试
+- 添加性能基准测试（criterion 风格）
+- 添加浏览器端验证 Demo（JS/Wasm 适配器）
+- 发布 Mooncakes 包 + 准备比赛材料
 
-- Full signing/PKI.
-- Multi-chain adapters.
-- Smart contract deployment.
-- Full in-toto/SLSA compatibility.
-- Version DAG and authorization snapshot.
+## 第二阶段：功能扩展（2026-06-18 — 2026-07-12）
 
+按性价比排序，服务 OSC2026 竞赛验收。
+
+### 高优先级（必做）
+
+- [ ] **证据包创建**（约 1000 行）：从文件构建证据包，不只是验证。CLI `create` 命令 + 库 API。让项目从"只能验"变成"能建能验"，实用价值翻倍
+- [ ] **HMAC-SHA256**（约 300 行）：基于已有 SHA-256 实现消息认证码。为清单签名和认证元数据提供基础
+
+### 中优先级（有时间就做）
+
+- [ ] **SHA-512 摘要**（约 500 行）：多算法支持，展示可扩展设计
+- [ ] **增量验证**（约 600 行）：只验证变更文件，跳过未改动部分
+- [ ] **批量 CLI 模式**（约 300 行）：`verify dir1 dir2 dir3` 一次验证多个包
+
+### 低优先级（锦上添花）
+
+- [ ] **内容寻址存储**（约 800 行）：类 Git object store，文件去重
+- [ ] **开发报告 + 演示视频**：比赛交付物
+- [ ] **moondoc 完整性**：所有公开 API 补全文档注释
+
+## 第三阶段：进阶探索（第二阶段完成后视时间选做）
+
+以下功能当前受限于生态基础设施或工作量，但在条件成熟时值得尝试：
+
+- [ ] **Ed25519 数字签名**：需要先实现椭圆曲线运算（MoonBit 生态暂无现成库），工作量大但价值极高
+- [ ] **多链适配器**：对接以太坊/Solana 等具体链的存证接口
+- [ ] **完整 in-toto/SLSA 兼容**：软件供应链安全框架完整实现
+- [ ] **版本 DAG**：从线性版本链升级为有向无环图，支持分支合并
+- [ ] **授权快照**：记录谁在什么时候对证据包做了什么操作

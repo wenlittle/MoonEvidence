@@ -1,0 +1,10 @@
+import {
+  "starlittle/MoonEvidence/src/canonjson",
+  "starlittle/MoonEvidence/src/digest",
+  "starlittle/MoonEvidence/src/merkle",
+  "moonbitlang/core/json",
+}
+
+import {
+  "starlittle/MoonEvidence/src/verify",
+} for "wbtest"

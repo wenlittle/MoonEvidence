@@ -12,15 +12,22 @@ The project goal is to provide a reusable MoonBit library and native CLI that ca
 
 MoonEvidence is not a blockchain application or smart contract framework. It is a chain-agnostic verification core that can be used before blockchain notarization, dataset archival, digital copyright packaging, AI output audit, or research artifact release.
 
-## MVP Scope
+## Features
 
-- Canonical JSON serialization for stable digests.
-- SHA-256 digest wrapper and digest comparison.
+### Core Verification (v0.1)
+- Canonical JSON serialization (RFC 8785) for stable digests.
+- Pure MoonBit SHA-256 and SHA-512 digest implementations.
+- HMAC-SHA256 message authentication (RFC 2104).
 - Evidence manifest model and validation.
-- Merkle root/proof verification.
+- Merkle root/proof verification (RFC 6962 style).
 - Linear version chain verification.
 - Structured diagnostics and human-readable explain output.
 - Native CLI entry points: `verify` and `explain`.
+
+### Pack Creation (v0.2)
+- Evidence pack creation from raw files (`create_manifest` API).
+- Incremental verification with digest caching.
+- Multi-algorithm support (SHA-256, SHA-512).
 
 ## Architecture at a Glance
 
@@ -157,7 +164,7 @@ is expected to be faster. Methodology and raw output:
 
 ## Current Status
 
-All six pure library packages are implemented and green: `canonjson`
+All eight pure library packages are implemented and green: `canonjson`
 (RFC 8785 escaping, code-unit key order, full ECMAScript number
 serialization pinned by the Appendix B vectors), `digest` (pure
 MoonBit SHA-256, NIST vectors), `merkle` (RFC 6962 style domain separation,

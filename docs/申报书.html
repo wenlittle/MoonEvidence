@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>MoonEvidence 项目申报书</title>
+<style>
+  @page { size: A4; margin: 20mm 22mm 20mm 22mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif;
+    font-size: 11pt;
+    line-height: 1.6;
+    color: #222;
+    max-width: 210mm;
+    margin: 0 auto;
+    padding: 20mm 22mm;
+  }
+  h1 {
+    font-size: 18pt;
+    text-align: center;
+    margin-bottom: 16pt;
+    padding-bottom: 6pt;
+    border-bottom: 2.5px solid #1a56db;
+    color: #1a56db;
+    letter-spacing: 2px;
+  }
+  h2 {
+    font-size: 12pt;
+    color: #1a56db;
+    margin-top: 12pt;
+    margin-bottom: 6pt;
+    padding-left: 8px;
+    border-left: 3px solid #1a56db;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 8pt;
+    font-size: 10pt;
+  }
+  th, td {
+    border: 1px solid #d0d0d0;
+    padding: 4pt 8pt;
+    text-align: left;
+  }
+  th {
+    background: #f0f4ff;
+    font-weight: 600;
+    width: 120px;
+    white-space: nowrap;
+  }
+  td a { color: #1a56db; text-decoration: none; }
+  p { margin-bottom: 6pt; text-align: justify; }
+  ul { margin-left: 18pt; margin-bottom: 6pt; }
+  li { margin-bottom: 2pt; font-size: 10.5pt; }
+  .tag {
+    display: inline-block;
+    background: #e8eefb;
+    color: #1a56db;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 9pt;
+    margin-right: 4px;
+  }
+  .highlight { background: #fffbe6; padding: 6pt 10pt; border-radius: 4px; margin-bottom: 8pt; border-left: 3px solid #f59e0b; font-size: 10pt; }
+  .two-col { display: flex; gap: 16pt; }
+  .two-col > div { flex: 1; }
+  @media print {
+    body { padding: 0; }
+    h1 { margin-top: 0; }
+  }
+</style>
+</head>
+<body>
+
+<h1>MoonEvidence 项目申报书</h1>
+
+<h2>基本信息</h2>
+<table>
+  <tr><th>项目名称</th><td>MoonEvidence：可信证据包验证库</td></tr>
+  <tr><th>参赛者</th><td>陈俊文</td></tr>
+  <tr><th>联系方式</th><td>18718241181</td></tr>
+  <tr><th>项目方向</th><td>工程基础设施与工具链 / 数据完整性验证</td></tr>
+  <tr><th>是否移植</th><td>否（原创项目）</td></tr>
+  <tr><th>许可证</th><td>Apache-2.0</td></tr>
+  <tr><th>GitHub</th><td><a href="https://github.com/wenlittle/MoonEvidence">https://github.com/wenlittle/MoonEvidence</a></td></tr>
+  <tr><th>Gitlink</th><td><a href="https://gitlink.org.cn/starlittle/MoonEvidence">https://gitlink.org.cn/starlittle/MoonEvidence</a></td></tr>
+</table>
+
+<h2>项目简介</h2>
+<p>
+MoonEvidence 是一个纯 MoonBit 实现的<strong>可信证据包验证库</strong>和 CLI 工具。给定一组文件及其元数据、SHA-256 摘要、Merkle 树证明和版本链记录，MoonEvidence 能验证这些内容是否<strong>完整且未被篡改</strong>。
+</p>
+<p>
+项目定位为<strong>链无关验证核心</strong>——不是区块链框架，而是可在区块链存证前校验、数据集归档、数字版权打包、AI 输出审计、学术成果发布等场景中复用的通用验证引擎。核心逻辑<strong>零 IO 依赖</strong>，同一套代码可运行于 CLI、CI 和浏览器。
+</p>
+
+<h2>核心功能</h2>
+<ul>
+  <li><strong>Canonical JSON 序列化</strong>：遵循 RFC 8785 规范，确保序列化结果字节级稳定，安全用于摘要计算</li>
+  <li><strong>纯 MoonBit SHA-256</strong>：通过 NIST 标准向量验证，吞吐量约 58 MiB/s（js 后端）</li>
+  <li><strong>Merkle 树验证</strong>：RFC 6962 风格域分离，支持根计算与证明验证</li>
+  <li><strong>证据清单模型</strong>：带验证的 manifest 解析，拒绝路径遍历攻击，文件级摘要比对</li>
+  <li><strong>线性版本链验证</strong>：确保版本记录时间线性和哈希链完整性</li>
+  <li><strong>7 步验证流水线</strong>：从解析到诊断的完整管线，输出结构化 findings 报告（冻结错误码 E1xxx‑E4xxx）</li>
+  <li><strong>CLI 工具</strong>：<code>verify [--json]</code> / <code>explain</code>，冻结退出码（0/1/2）</li>
+  <li><strong>浏览器端验证</strong>：同一核心编译为 ESM 模块，纯客户端验证无需上传</li>
+</ul>
+
+<h2>工程质量</h2>
+<div class="two-col">
+  <div>
+    <p><span class="tag">三后端</span> native / wasm-gc / js 全部通过</p>
+    <p><span class="tag">测试</span> 155 单元 + 22 黑盒 + 属性 + 变异测试</p>
+    <p><span class="tag">CI</span> GitHub Actions 三后端矩阵构建</p>
+  </div>
+  <div>
+    <p><span class="tag">性能</span> 全流水线验证 ~26 µs/file</p>
+    <p><span class="tag">规模</span> ~4,600 有效代码行，57 个有效 commit</p>
+    <p><span class="tag">Demo</span> 含浏览器端验证页面</p>
+  </div>
+</div>
+
+<h2>为什么值得做</h2>
+<div class="highlight">
+MoonBit 生态当前缺少数据完整性验证基础设施。MoonEvidence 填补了这一空白，提供了边界清晰、可复用、可发布为 Mooncakes 包的验证核心，同时通过三后端全绿和浏览器 Demo 展示了 MoonBit 的跨平台能力。项目对标 RFC 8785 / RFC 6962 等国际标准，测试覆盖充分，可作为其他 MoonBit 项目的可信数据基础层。
+</div>
+
+</body>
+</html>

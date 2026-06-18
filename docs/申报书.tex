@@ -1,0 +1,77 @@
+\documentclass[10.5pt,a4paper]{article}
+\usepackage[top=16mm,bottom=16mm,left=22mm,right=22mm]{geometry}
+\usepackage{xeCJK}
+\setCJKmainfont{Microsoft YaHei}
+\setmainfont{Segoe UI}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{hyperref}
+
+\definecolor{primary}{HTML}{1a56db}
+
+\hypersetup{colorlinks=true,urlcolor=primary,linkcolor=primary}
+
+\titleformat{\section}{\large\bfseries}{}{0em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{}{0em}{}
+\titlespacing{\section}{0pt}{7pt}{3pt}
+\titlespacing{\subsection}{0pt}{5pt}{2pt}
+
+\setlength{\parindent}{2em}
+\setlength{\parskip}{2pt}
+\pagestyle{empty}
+
+\begin{document}
+
+\begin{center}
+{\LARGE\bfseries MoonEvidence 项目申报书}
+\end{center}
+
+\section{基本信息}
+
+\begin{itemize}[leftmargin=16pt,itemsep=1pt,parsep=0pt]
+  \item 项目名称：MoonEvidence：可信证据包验证库
+  \item 参赛者：陈俊文
+  \item 联系方式：18718241181
+  \item GitHub 仓库链接：\url{https://github.com/wenlittle/MoonEvidence}
+  \item Gitlink 仓库链接：\url{https://gitlink.org.cn/starlittle/MoonEvidence}
+  \item 项目方向：MoonBit 数据完整性验证库 / 工程基础设施
+  \item 是否为移植项目：否（原创项目）
+  \item 许可证：Apache-2.0
+\end{itemize}
+
+\section{项目简介}
+
+MoonEvidence 是一个纯 MoonBit 实现的可信证据包验证库和 CLI 工具。给定一组文件及其元数据、SHA-256 摘要、Merkle 树证明和版本链记录，MoonEvidence 能验证这些内容是否完整且未被篡改。项目面向需要在区块链存证前校验数据完整性、数据集归档、数字版权打包、AI 输出审计或学术成果发布等场景的库作者和应用开发者，提供 Canonical JSON 序列化、SHA-256 摘要计算、Merkle 树验证、证据清单解析、线性版本链校验和结构化诊断报告等能力的 MoonBit 实现。
+
+项目定位为链无关验证核心——不是区块链应用或智能合约框架，而是一个可被任何需要证明"这组文件没被改过"的场景复用的通用验证引擎。核心逻辑零 IO 依赖，同一套代码可运行于 CLI、CI 和浏览器三种环境。
+
+\section{核心功能范围}
+
+\begin{itemize}[leftmargin=16pt,itemsep=1pt,parsep=0pt]
+  \item 提供 RFC 8785 Canonical JSON 序列化，确保 JSON 输出字节级稳定，可安全用于摘要计算；完整实现 ECMAScript 最短数字表示和 code-unit 级别键排序；
+  \item 提供纯 MoonBit SHA-256 摘要实现，通过 NIST 标准测试向量验证，js 后端吞吐量约 58 MiB/s；
+  \item 提供 RFC 6962 风格 Merkle 树构建与证明验证，带域分离前缀，与独立 Node 参考实现交叉校验；
+  \item 提供证据清单（manifest）模型和验证，拒绝路径遍历攻击，支持文件级摘要比对和 Merkle 根校验；
+  \item 提供线性版本链验证，确保版本记录的时间线性和哈希链完整性；
+  \item 提供 7 步验证流水线，从解析、规范化、摘要比对到 Merkle 根重算的完整管线，输出带冻结错误码（E1xxx--E4xxx、W1xxx）的结构化 findings 报告；
+  \item 提供 CLI 工具 \texttt{verify [-{}-json]} 和 \texttt{explain}，冻结退出码（0 通过 / 1 失败 / 2 错误），支持机器可读 JSON 报告和人类可读诊断文本；
+  \item 提供浏览器端验证适配器，同一核心编译为 ESM 模块，纯客户端验证无需上传服务器，配套 Demo 页面；
+  \item 三后端支持：native / wasm-gc / js 全部通过构建和测试，GitHub Actions CI 三后端矩阵构建；
+  \item 提供 155 个单元测试、22 个黑盒 CLI 测试、属性测试（规范化幂等性、Merkle 证明健全性）和变异验证测试，配套 criterion 风格性能基准（全流水线约 26 $\mu$s/file）；
+  \item 提供 README 示例，覆盖 CLI 验证、JSON 报告、explain 输出和浏览器端使用。
+\end{itemize}
+
+\section{原创说明}
+
+本项目为原创实现，非移植项目。设计参考了以下公开标准：
+
+\begin{itemize}[leftmargin=16pt,itemsep=1pt,parsep=0pt]
+  \item RFC 8785（JSON Canonicalization Scheme）
+  \item RFC 6962（Certificate Transparency, Merkle Tree 部分）
+  \item NIST FIPS 180-4（SHA-256）
+\end{itemize}
+
+项目在 MoonBit 生态中填补数据完整性验证这一空白，可作为其他项目的可信数据基础层发布至 Mooncakes 包管理器。
+
+\end{document}

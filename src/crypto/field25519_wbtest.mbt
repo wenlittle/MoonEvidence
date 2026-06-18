@@ -14,14 +14,14 @@ test "fe one * one = one" {
 
 ///|
 test "fe a + (-a) = 0" {
-  let a = Fe::{ limbs: [42UL, 0UL, 0UL, 0UL, 0UL] }.reduce()
+  let a = Fe::from_small(42UL)
   let result = a.sub(a)
   assert_true!(result.eq(Fe::zero()))
 }
 
 ///|
 test "fe a * a^(-1) = 1 for nonzero a" {
-  let a = Fe::{ limbs: [7UL, 0UL, 0UL, 0UL, 0UL] }.reduce()
+  let a = Fe::from_small(7UL)
   let inv = a.invert()
   let result = a.mul(inv)
   assert_true!(result.eq(Fe::one()))
@@ -42,9 +42,9 @@ test "fe from_bytes round-trip" {
 
 ///|
 test "fe distributive law: a*(b+c) = a*b + a*c" {
-  let a = Fe::{ limbs: [3UL, 0UL, 0UL, 0UL, 0UL] }
-  let b = Fe::{ limbs: [5UL, 0UL, 0UL, 0UL, 0UL] }
-  let c = Fe::{ limbs: [11UL, 0UL, 0UL, 0UL, 0UL] }
+  let a = Fe::from_small(3UL)
+  let b = Fe::from_small(5UL)
+  let c = Fe::from_small(11UL)
   let lhs = a.mul(b.add(c))
   let rhs = a.mul(b).add(a.mul(c))
   assert_true!(lhs.eq(rhs))

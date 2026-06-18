@@ -7,7 +7,7 @@
 
 ///|
 /// Kept in sync with moon.mod at release time.
-const CLI_VERSION : String = "0.1.0"
+const CLI_VERSION : String = "0.3.0"
 
 ///|
 let usage_text : String =
@@ -16,12 +16,14 @@ let usage_text : String =
   #|Usage:
   #|  moon-evidence verify [--json] <pack-dir | manifest.json>
   #|  moon-evidence explain <pack-dir | manifest.json>
+  #|  moon-evidence create <dir> --subject-id <id> --subject-type <type> [-o <out>]
   #|  moon-evidence --version
   #|  moon-evidence --help
   #|
   #|Commands:
   #|  verify    Verify an evidence pack; --json emits the canonical JSON report
   #|  explain   Verify and print the human-readable findings report
+  #|  create    Create a manifest from files in a directory
   #|
   #|Exit codes:
   #|  0  verification passed
@@ -43,7 +45,8 @@ fn main {
 /// the empty array when no known command is present.
 fn strip_runtime_prefix(raw : Array[String]) -> Array[String] {
   let known = [
-    "verify", "explain", "--version", "-v", "--help", "-h", "version", "help",
+    "verify", "explain", "create", "--version", "-v", "--help", "-h", "version",
+    "help",
   ]
   for index in 0..<raw.length() {
     if known.contains(raw[index]) {
@@ -71,6 +74,7 @@ fn run(raw_args : Array[String]) -> Int {
     }
     "verify" => run_verify(args, json_allowed=true)
     "explain" => run_verify(args, json_allowed=false)
+    "create" => run_create(args)
     _ => {
       println(usage_text)
       2
@@ -258,4 +262,101 @@ fn parent_dir(path : String) -> String {
   } else {
     path[0:cut].to_owned()
   }
+}
+
+// ---------------------------------------------------------------------------
+// create
+// ---------------------------------------------------------------------------
+
+///|
+fn run_create(args : Array[String]) -> Int {
+  let mut dir_path : String? = None
+  let mut subject_id : String? = None
+  let mut subject_type : String? = None
+  let mut output_path : String? = None
+  let mut i = 1
+  while i < args.length() {
+    let arg = args[i]
+    if arg == "--subject-id" && i + 1 < args.length() {
+      i = i + 1
+      subject_id = Some(args[i])
+    } else if arg == "--subject-type" && i + 1 < args.length() {
+      i = i + 1
+      subject_type = Some(args[i])
+    } else if (arg == "-o" || arg == "--output") && i + 1 < args.length() {
+      i = i + 1
+      output_path = Some(args[i])
+    } else if !arg.has_prefix("-") && dir_path is None {
+      dir_path = Some(arg)
+    } else {
+      println(usage_text)
+      return 2
+    }
+    i = i + 1
+  }
+  guard dir_path is Some(pack_dir) else {
+    println("create: directory path required")
+    return 2
+  }
+  guard subject_id is Some(sid) else {
+    println("create: --subject-id required")
+    return 2
+  }
+  let stype = match subject_type {
+    Some(t) => t
+    None => "generic"
+  }
+  if !@fs.path_exists(pack_dir) {
+    println("[E5001] \{pack_dir}: path does not exist")
+    return 2
+  }
+  let is_dir = @fs.is_dir(pack_dir) catch { _ => false }
+  if !is_dir {
+    println("create: \{pack_dir} is not a directory")
+    return 2
+  }
+  let entries = @fs.read_dir(pack_dir) catch {
+    _ => {
+      println("[E5002] \{pack_dir}: cannot read directory")
+      return 2
+    }
+  }
+  let files : Map[String, Bytes] = {}
+  for entry in entries {
+    if entry == "manifest.json" || entry == "versions" {
+      continue
+    }
+    let file_path = "\{pack_dir}/\{entry}"
+    let is_file = !(@fs.is_dir(file_path) catch { _ => false })
+    if is_file {
+      let content = try @fs.read_file_to_bytes(file_path) catch {
+        _ => {
+          println("[E5002] \{file_path}: file read failed")
+          return 2
+        }
+      }
+      files[entry] = content
+    }
+  }
+  let manifest_json = @create.create_manifest(
+    files,
+    {
+      subject: { id: sid, kind: stype },
+      algorithm: @digest.Sha256,
+      version_id: "v1",
+      version_parent: None,
+    },
+  )
+  let out = match output_path {
+    Some(p) => p
+    None => "\{pack_dir}/manifest.json"
+  }
+  @fs.write_string_to_file(out, manifest_json) catch {
+    _ => {
+      println("[E5002] \{out}: write failed")
+      return 2
+    }
+  }
+  println("created \{out} (\{files.size()} files)")
+  0
 }

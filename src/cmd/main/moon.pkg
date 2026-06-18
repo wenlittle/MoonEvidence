@@ -5,6 +5,8 @@ import {
   "starlittle/MoonEvidence/src/model",
   "starlittle/MoonEvidence/src/verify",
   "starlittle/MoonEvidence/src/diag",
+  "starlittle/MoonEvidence/src/create",
+  "starlittle/MoonEvidence/src/digest",
 }
 
 options(

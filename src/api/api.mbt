@@ -580,8 +580,13 @@ pub fn audit_append(request_json : String) -> String {
   }).stringify()
 }
 
-// audit_verify request: { "log": "<log JSON>" }
-// audit_verify response: { "ok": true, "chain_valid": <bool>, "length": <int> }
+// audit_verify request: { "log": "<log JSON>", "verify_signatures": <bool>, "public_key": "<hex>" }
+// audit_verify response: { "ok": true, "chain_valid": <bool>, "signatures_valid": <bool>, "length": <int> }
+//
+// When verify_signatures is true, also validates Ed25519 signatures on all
+// entries using the provided public_key. Entries without signatures are
+// treated as valid (skipped). If any signed entry fails verification,
+// signatures_valid is false.
 
 ///|
 pub fn audit_verify(request_json : String) -> String {
@@ -602,10 +607,68 @@ pub fn audit_verify(request_json : String) -> String {
     _ => return error_response("\"log\" must be a string")
   }
   let chain_valid = log.verify_chain()
+  // Optional: verify Ed25519 signatures on all entries that have them.
+  let verify_sigs = match fields.get("verify_signatures") {
+    Some(True) => true
+    _ => false
+  }
+  let signatures_valid = if verify_sigs {
+    match fields.get("public_key") {
+      Some(String(pk_hex)) =>
+        match @digest.hex_to_bytes(pk_hex) {
+          Some(pk) => log.verify_signatures(pk)
+          None => false
+        }
+      _ => false
+    }
+  } else {
+    true
+  }
   Json::object({
     "ok": Json::boolean(true),
     "chain_valid": Json::boolean(chain_valid),
+    "signatures_valid": Json::boolean(signatures_valid),
     "length": Json::number(log.length().to_double()),
+  }).stringify()
+}
+
+// audit_sign request: { "log": "<log JSON>", "secret_key": "<32-byte hex>" }
+// audit_sign response: { "ok": true, "log": "<signed log JSON>" }
+//
+// Signs the last entry of the audit log with an Ed25519 private key.
+// The signature is stored in the entry's "signature" field. If the log
+// is empty, the call succeeds but no signature is added.
+
+///|
+pub fn audit_sign(request_json : String) -> String {
+  let request = @json.parse(request_json) catch {
+    _ => return error_response("request is not valid JSON")
+  }
+  guard request is Object(fields) else {
+    return error_response("request must be a JSON object")
+  }
+  let log = match fields.get("log") {
+    Some(String(log_json)) =>
+      match @audit.AuditLog::from_json(log_json) {
+        Some(rebuilt) => rebuilt
+        None =>
+          return error_response("\"log\" is not a valid audit log JSON array")
+      }
+    _ => return error_response("\"log\" must be a string")
+  }
+  guard fields.get("secret_key") is Some(String(sk_hex)) else {
+    return error_response("\"secret_key\" must be a hex string")
+  }
+  guard @digest.hex_to_bytes(sk_hex) is Some(sk) else {
+    return error_response("\"secret_key\" is not valid hex")
+  }
+  if sk.length() != 32 {
+    return error_response("\"secret_key\" must be 32 bytes")
+  }
+  log.sign_last(sk)
+  Json::object({
+    "ok": Json::boolean(true),
+    "log": Json::string(log.to_json()),
   }).stringify()
 }
 

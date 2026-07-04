@@ -998,3 +998,162 @@ test "ed25519_keypair warns when using demo seed" {
     fail("should warn about demo seed: \{resp}")
   }
 }
+
+// ---------------------------------------------------------------------------
+// audit_sign + audit_verify signature verification API tests
+// ---------------------------------------------------------------------------
+
+///|
+/// Builds a one-entry audit log JSON string via audit_append.
+fn make_one_entry_log(subject_id : String) -> String raise {
+  let req = json_request([
+    ("log", Json::string("[]")),
+    ("timestamp", Json::string("2026-07-05T10:00:00Z")),
+    ("actor", Json::string("alice")),
+    ("action", Json::string("created")),
+    ("subject_id", Json::string(subject_id)),
+  ])
+  match parse_json_obj(audit_append(req)).get("log") {
+    Some(String(l)) => l
+    _ => fail("audit_append should return a log")
+  }
+}
+
+///|
+test "audit_sign: sign last entry" {
+  // Generate a keypair with a fixed seed.
+  let seed_hex = demo_seed_hex()
+  let kp = parse_json_obj(
+    ed25519_keypair(json_request([("seed", Json::string(seed_hex))])),
+  )
+  guard kp.get("secret_key") is Some(String(sk_hex)) else {
+    fail("keypair should have secret_key: \{ed25519_keypair(json_request([("seed", Json::string(seed_hex))]))}")
+  }
+  // Create a log with one entry.
+  let log_json = make_one_entry_log("ds-sign") catch {
+    err => fail("make_one_entry_log failed: \{err}")
+  }
+  // Sign the last entry.
+  let sign_resp = audit_sign(
+    json_request([
+      ("log", Json::string(log_json)),
+      ("secret_key", Json::string(sk_hex)),
+    ]),
+  )
+  let sf = parse_json_obj(sign_resp)
+  guard sf.get("ok") is Some(True) else {
+    fail("audit_sign should succeed: \{sign_resp}")
+  }
+  guard sf.get("log") is Some(String(signed_log)) else {
+    fail("audit_sign should return a log: \{sign_resp}")
+  }
+  // The returned log should contain a "signature" field on the last entry.
+  assert_true(signed_log.contains("signature"))
+}
+
+///|
+test "audit_verify: verify_signatures true with valid signature" {
+  // Generate keypair, create log, sign it.
+  let seed_hex = demo_seed_hex()
+  let kp = parse_json_obj(
+    ed25519_keypair(json_request([("seed", Json::string(seed_hex))])),
+  )
+  guard kp.get("public_key") is Some(String(pk_hex)) else { fail("no public_key") }
+  guard kp.get("secret_key") is Some(String(sk_hex)) else { fail("no secret_key") }
+  let log_json = make_one_entry_log("ds-verify-valid") catch {
+    err => fail("make_one_entry_log failed: \{err}")
+  }
+  let sign_resp = audit_sign(
+    json_request([
+      ("log", Json::string(log_json)),
+      ("secret_key", Json::string(sk_hex)),
+    ]),
+  )
+  let signed_log = match parse_json_obj(sign_resp).get("log") {
+    Some(String(l)) => l
+    _ => fail("audit_sign should return a log: \{sign_resp}")
+  }
+  // Verify with verify_signatures=true and the public_key.
+  let verify_req = json_request([
+    ("log", Json::string(signed_log)),
+    ("verify_signatures", Json::boolean(true)),
+    ("public_key", Json::string(pk_hex)),
+  ])
+  let vresp = audit_verify(verify_req)
+  let vf = parse_json_obj(vresp)
+  guard vf.get("chain_valid") is Some(True) else {
+    fail("chain should be valid: \{vresp}")
+  }
+  guard vf.get("signatures_valid") is Some(True) else {
+    fail("signatures should be valid: \{vresp}")
+  }
+}
+
+///|
+test "audit_verify: verify_signatures true with tampered signature" {
+  // Generate keypair, create log, sign it.
+  let seed_hex = demo_seed_hex()
+  let kp = parse_json_obj(
+    ed25519_keypair(json_request([("seed", Json::string(seed_hex))])),
+  )
+  guard kp.get("public_key") is Some(String(pk_hex)) else { fail("no public_key") }
+  guard kp.get("secret_key") is Some(String(sk_hex)) else { fail("no secret_key") }
+  let log_json = make_one_entry_log("ds-verify-tamper") catch {
+    err => fail("make_one_entry_log failed: \{err}")
+  }
+  let sign_resp = audit_sign(
+    json_request([
+      ("log", Json::string(log_json)),
+      ("secret_key", Json::string(sk_hex)),
+    ]),
+  )
+  let signed_log = match parse_json_obj(sign_resp).get("log") {
+    Some(String(l)) => l
+    _ => fail("audit_sign should return a log: \{sign_resp}")
+  }
+  // Extract the signature from the last entry, then tamper with it.
+  guard @json.parse(signed_log) is Array(entries) else {
+    fail("signed log should be a JSON array: \{signed_log}")
+  }
+  guard entries[entries.length() - 1] is Object(last_entry) else {
+    fail("last entry should be a JSON object")
+  }
+  guard last_entry.get("signature") is Some(String(sig)) else {
+    fail("last entry should have a signature")
+  }
+  // Inject non-hex characters at the front (preserving even length so the
+  // decoder reaches per-character validation rather than the odd-length
+  // early return). Mirrors the tamper approach in audit_log_wbtest.
+  let tampered_sig = "zz" + sig
+  let tampered_log = signed_log.replace(old=sig, new=tampered_sig)
+  // Verify with verify_signatures=true.
+  let verify_req = json_request([
+    ("log", Json::string(tampered_log)),
+    ("verify_signatures", Json::boolean(true)),
+    ("public_key", Json::string(pk_hex)),
+  ])
+  let vresp = audit_verify(verify_req)
+  let vf = parse_json_obj(vresp)
+  guard vf.get("signatures_valid") is Some(False) else {
+    fail("tampered signature should be invalid: \{vresp}")
+  }
+}
+
+///|
+test "audit_verify: verify_signatures false (default)" {
+  // Create a log without any signatures.
+  let log_json = make_one_entry_log("ds-default") catch {
+    err => fail("make_one_entry_log failed: \{err}")
+  }
+  // Call audit_verify without the verify_signatures field.
+  let verify_req = json_request([("log", Json::string(log_json))])
+  let vresp = audit_verify(verify_req)
+  let vf = parse_json_obj(vresp)
+  guard vf.get("ok") is Some(True) else {
+    fail("audit_verify should succeed: \{vresp}")
+  }
+  // Default when not verifying: signatures_valid should be true.
+  guard vf.get("signatures_valid") is Some(True) else {
+    fail("signatures_valid should default to true: \{vresp}")
+  }
+}

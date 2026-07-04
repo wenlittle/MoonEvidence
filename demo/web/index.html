@@ -286,6 +286,17 @@
         <input type="text" id="audit-digest" placeholder="sha256:..." style="margin-bottom:8px">
         <button class="btn" id="audit-append-btn">追加记录</button>
         <button class="btn secondary" id="audit-verify-btn" style="margin-top:8px">验证链条</button>
+        <div style="margin-top:12px;border-top:1px solid var(--line);padding-top:12px">
+          <strong style="font-size:14px">Ed25519 签名</strong>
+          <p style="font-size:13px;color:var(--muted);margin:4px 0">用私钥对最后一条记录签名，或用公钥验签所有签名。</p>
+          <button class="btn secondary" id="audit-import-keys" style="margin-bottom:8px;font-size:13px">从签名视图导入密钥</button>
+          <label>Secret Key（私钥 hex）</label>
+          <input type="text" id="audit-sk" placeholder="64位 hex..." style="margin-bottom:8px;font-family:monospace;font-size:12px">
+          <button class="btn" id="audit-sign-btn">签名最后一条</button>
+          <label style="margin-top:8px;display:block">Public Key（公钥 hex）</label>
+          <input type="text" id="audit-pk" placeholder="64位 hex..." style="margin-bottom:8px;font-family:monospace;font-size:12px">
+          <button class="btn secondary" id="audit-verify-sig-btn">验签全部签名</button>
+        </div>
       </div>
       <div>
         <label>审计日志 JSON</label>
@@ -565,6 +576,53 @@
       const el = $("audit-verify-result");
       if (resp.ok) {
         el.innerHTML = `<div class="status-badge ${resp.chain_valid ? 'ok' : 'bad'}">${resp.chain_valid ? '✓ 链条完整' : '✗ 链条断裂'}（${resp.length} 条记录）</div>`;
+      }
+    } catch (e) {
+      $("audit-verify-result").innerHTML = `<div class="status-badge bad">错误: ${e.message}</div>`;
+    }
+  });
+
+  // Import keypair from Sign view
+  $("audit-import-keys").addEventListener("click", () => {
+    if (!keypair) return alert("请先在签名视图中生成密钥对");
+    $("audit-sk").value = keypair.secret_key;
+    $("audit-pk").value = keypair.public_key;
+    $("audit-verify-result").innerHTML = `<div class="status-badge ok">✓ 密钥已导入</div>`;
+  });
+
+  // Sign the last audit entry with Ed25519
+  $("audit-sign-btn").addEventListener("click", () => {
+    if (!mod || !auditLogJson) return alert("请先追加记录");
+    const sk = $("audit-sk").value.trim();
+    if (!sk) return alert("请输入 Secret Key");
+    const req = JSON.stringify({ log: auditLogJson, secret_key: sk });
+    try {
+      const resp = JSON.parse(mod.audit_sign(req));
+      if (resp.ok) {
+        auditLogJson = resp.log;
+        $("audit-log").value = JSON.stringify(JSON.parse(resp.log), null, 2);
+        $("audit-verify-result").innerHTML = `<div class="status-badge ok">✓ 最后一条记录已签名</div>`;
+      } else {
+        alert("错误: " + resp.error);
+      }
+    } catch (e) {
+      $("audit-verify-result").innerHTML = `<div class="status-badge bad">错误: ${e.message}</div>`;
+    }
+  });
+
+  // Verify all Ed25519 signatures in the audit log
+  $("audit-verify-sig-btn").addEventListener("click", () => {
+    if (!mod || !auditLogJson) return alert("请先追加记录");
+    const pk = $("audit-pk").value.trim();
+    if (!pk) return alert("请输入 Public Key");
+    const req = JSON.stringify({ log: auditLogJson, verify_signatures: true, public_key: pk });
+    try {
+      const resp = JSON.parse(mod.audit_verify(req));
+      const el = $("audit-verify-result");
+      if (resp.ok) {
+        let html = `<div class="status-badge ${resp.chain_valid ? 'ok' : 'bad'}">${resp.chain_valid ? '✓ 链条完整' : '✗ 链条断裂'}（${resp.length} 条记录）</div>`;
+        html += `<div class="status-badge ${resp.signatures_valid ? 'ok' : 'bad'}" style="margin-top:4px">${resp.signatures_valid ? '✓ 签名有效' : '✗ 签名无效或缺失'}</div>`;
+        el.innerHTML = html;
       }
     } catch (e) {
       $("audit-verify-result").innerHTML = `<div class="status-badge bad">错误: ${e.message}</div>`;

@@ -14,19 +14,24 @@ let usage_text : String =
   #|moon-evidence - trusted evidence pack verification
   #|
   #|Usage:
-  #|  moon-evidence verify [--json] <path> [<path> ...]
-  #|  moon-evidence explain <path> [<path> ...]
-  #|  moon-evidence create <dir> --subject-id <id> [--subject-type <type>]
-  #|                          [--algorithm sha256|sha512]
-  #|                          [--version-id <id>] [--version-parent <hash>]
-  #|                          [-o <out>]
-  #|  moon-evidence --version
-  #|  moon-evidence --help
-  #|
-  #|Commands:
-  #|  verify    Verify evidence packs; --json emits canonical JSON reports
-  #|  explain   Verify and print human-readable findings reports
-  #|  create    Create a manifest from files in a directory
+#|  moon-evidence verify [--json] [--incremental <cache-dir>] <path> [<path> ...]
+#|  moon-evidence explain <path> [<path> ...]
+#|  moon-evidence create <dir> --subject-id <id> [--subject-type <type>]
+#|                          [--algorithm sha256|sha512]
+#|                          [--version-id <id>] [--version-parent <hash>]
+#|                          [-o <out>]
+#|  moon-evidence --version
+#|  moon-evidence --help
+#|
+#|Commands:
+#|  verify    Verify evidence packs; --json emits canonical JSON reports
+#|  explain   Verify and print human-readable findings reports
+#|  create    Create a manifest from files in a directory
+#|
+#|Verify options:
+#|  --json               Emit canonical JSON instead of human-readable text
+#|  --incremental <dir>  Cache file digests in <dir> for fast re-verification;
+#|                       unchanged files are skipped on subsequent runs
   #|
   #|Create options:
   #|  --subject-id <id>       Evidence subject identifier (required)
@@ -104,24 +109,30 @@ fn run(raw_args : Array[String]) -> Int {
 ///|
 fn run_verify(args : Array[String], json_allowed~ : Bool) -> Int {
   let mut json_mode = false
+  let mut incremental_dir : String? = None
   let paths : Array[String] = []
-  for index in 1..<args.length() {
-    let arg = args[index]
+  let mut i = 1
+  while i < args.length() {
+    let arg = args[i]
     if arg == "--json" && json_allowed {
       json_mode = true
+    } else if arg == "--incremental" && i + 1 < args.length() {
+      i = i + 1
+      incremental_dir = Some(args[i])
     } else if !arg.has_prefix("-") {
       paths.push(arg)
     } else {
       println(usage_text)
       return 2
     }
+    i = i + 1
   }
   if paths.is_empty() {
     println(usage_text)
     return 2
   }
   if paths.length() == 1 {
-    return run_verify_single(paths[0], json_mode)
+    return run_verify_single(paths[0], json_mode, incremental_dir)
   }
   let mut all_ok = true
   let mut pass_count = 0
@@ -130,7 +141,7 @@ fn run_verify(args : Array[String], json_allowed~ : Bool) -> Int {
     if paths.length() > 1 {
       println("--- \{pack_path} ---")
     }
-    let code = run_verify_single(pack_path, json_mode)
+    let code = run_verify_single(pack_path, json_mode, incremental_dir)
     if code == 2 {
       return 2
     }
@@ -152,7 +163,11 @@ fn run_verify(args : Array[String], json_allowed~ : Bool) -> Int {
 }
 
 ///|
-fn run_verify_single(pack_path : String, json_mode : Bool) -> Int {
+fn run_verify_single(
+  pack_path : String,
+  json_mode : Bool,
+  cache_dir : String?,
+) -> Int {
   // Resolve pack layout (E5001 when the path itself is absent).
   if !@fs.path_exists(pack_path) {
     println("[E5001] \{pack_path}: path does not exist")
@@ -181,11 +196,13 @@ fn run_verify_single(pack_path : String, json_mode : Bool) -> Int {
   // and the entry is left out so verification also reports it as E2003.
   let io_findings : Array[@diag.Finding] = []
   let files : Map[String, Bytes] = {}
+  let mut parsed_manifest : @model.Manifest? = None
   try @model.Manifest::parse(manifest_text) catch {
     // Parse errors are reported by verify_manifest itself.
     _ => ()
   } noraise {
     manifest => {
+      parsed_manifest = Some(manifest)
       for entry in manifest.files {
         let file_path = "\{pack_root}/\{entry.path}"
         if @fs.path_exists(file_path) {
@@ -225,8 +242,27 @@ fn run_verify_single(pack_path : String, json_mode : Bool) -> Int {
     }
   }
 
-  // Pure verification.
-  let report = @verify.verify_manifest(manifest_text, files)
+  // Pure verification: incremental when a cache dir is provided, full
+  // otherwise. Incremental skips rehashing files whose (path, digest)
+  // match the previous run — the Merkle root is always recomputed, so
+  // the security guarantee is identical to full verification.
+  let mut files_rehashed = 0
+  let mut files_skipped = 0
+  let report = match cache_dir {
+    Some(dir) => {
+      let (previous, expected_digest) = load_incremental_cache(dir)
+      let inc = @verify.verify_manifest_incremental(
+        manifest_text,
+        files,
+        previous,
+        expected_manifest_digest=expected_digest,
+      )
+      files_rehashed = inc.files_rehashed
+      files_skipped = inc.files_skipped
+      inc.report
+    }
+    None => @verify.verify_manifest(manifest_text, files)
+  }
 
   // Version chain is optional; verify it when the pack ships one.
   let chain_findings : Array[@diag.Finding] = []
@@ -260,11 +296,112 @@ fn run_verify_single(pack_path : String, json_mode : Bool) -> Int {
     checked: report.checked,
   }
 
-  println(if json_mode { @diag.to_json(merged) } else { @diag.explain(merged) })
+  // Save the incremental cache after a successful verification so the
+  // next run can skip unchanged files. The cache stores the manifest's
+  // file digests (path → digest) and the manifest's canonical digest
+  // (for tamper detection on the next run).
+  if cache_dir is Some(dir) && merged.ok {
+    save_incremental_cache(dir, manifest_text, parsed_manifest)
+  }
+
+  // Output: text mode appends incremental stats; JSON mode stays
+  // unchanged to preserve the contract for automated consumers.
+  if json_mode {
+    println(@diag.to_json(merged))
+  } else {
+    println(@diag.explain(merged))
+    if cache_dir is Some(_) {
+      println(
+        "incremental: \{files_rehashed} rehashed, \{files_skipped} skipped",
+      )
+    }
+  }
   if merged.ok {
     0
   } else {
     1
+  }
+}
+
+///|
+/// Loads the incremental cache from `<cache_dir>/cache.json`. Returns
+/// (previous digests, expected manifest digest); both empty/None when
+/// the cache file does not exist or is unreadable (first run).
+fn load_incremental_cache(cache_dir : String) -> (Map[String, String], String?) {
+  let previous : Map[String, String] = {}
+  let mut expected_digest : String? = None
+  let cache_file = "\{cache_dir}/cache.json"
+  if !@fs.path_exists(cache_file) {
+    return (previous, expected_digest)
+  }
+  let cache_text = @fs.read_file_to_string(cache_file) catch {
+    _ => return (previous, expected_digest)
+  }
+  try @json.parse(cache_text) catch {
+    _ => return (previous, expected_digest)
+  } noraise {
+    parsed =>
+      match parsed {
+        Object(fields) => {
+          match fields.get("manifest_digest") {
+            Some(String(d)) => expected_digest = Some(d)
+            _ => ()
+          }
+          match fields.get("files") {
+            Some(Object(files_map)) =>
+              for path in files_map.keys() {
+                match files_map.get(path) {
+                  Some(String(d)) => previous[path] = d
+                  _ => ()
+                }
+              }
+            _ => ()
+          }
+        }
+        _ => ()
+      }
+  }
+  (previous, expected_digest)
+}
+
+///|
+/// Saves the incremental cache to `<cache_dir>/cache.json`. Stores the
+/// manifest's canonical digest and each file entry's path → digest so
+/// the next run can skip rehashing unchanged files and detect manifest
+/// tampering.
+fn save_incremental_cache(
+  cache_dir : String,
+  manifest_text : String,
+  parsed_manifest : @model.Manifest?,
+) -> Unit {
+  // Compute the manifest's canonical digest for tamper detection.
+  let canonical = @canonjson.canonicalize(manifest_text) catch {
+    _ => manifest_text
+  }
+  let manifest_digest = @digest.Digest::of_bytes(
+    @digest.Sha256,
+    @digest.string_to_utf8_bytes(canonical),
+  ).to_string()
+  // Build the files map from the parsed manifest.
+  let files_map : Map[String, Json] = {}
+  match parsed_manifest {
+    Some(manifest) =>
+      for entry in manifest.files {
+        files_map[entry.path] = Json::string(entry.digest.to_string())
+      }
+    None => ()
+  }
+  let cache_json = Json::object({
+    "manifest_digest": Json::string(manifest_digest),
+    "files": Json::object(files_map),
+  })
+  let cache_str = cache_json.stringify()
+  // Ensure the cache directory exists, then write.
+  if !@fs.path_exists(cache_dir) {
+    return // User must create the cache directory beforehand.
+  }
+  @fs.write_string_to_file("\{cache_dir}/cache.json", cache_str) catch {
+    _ => ()
   }
 }
 

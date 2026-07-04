@@ -414,7 +414,54 @@ if ($p.Count -eq 0) {
 # Cleanup
 Remove-Item $createTmp -Recurse -Force -ErrorAction SilentlyContinue
 
-$total = @($cases).Count + @($matrix).Count + @($manifestMatrix).Count + 9
+# --- Part 5: incremental verification (round 4 phase 1) --------------------
+#
+# The --incremental flag caches file digests between runs. The first run
+# rehashes everything; the second run should skip all unchanged files.
+# The Merkle root is always recomputed, so security is identical to full
+# verification.
+
+$incCache = Join-Path $env:TEMP "moon-evidence-cli-test-incremental"
+if (Test-Path $incCache) { Remove-Item $incCache -Recurse -Force }
+New-Item -ItemType Directory -Path $incCache -Force | Out-Null
+
+# Case 1: first run — no cache, all files rehashed
+$r = Invoke-Cli -CliArgs @("verify", "--incremental", $incCache, "examples/valid-pack")
+$p = @()
+if ($r.ExitCode -ne 0) { $p += "exit: expected 0, got $($r.ExitCode)" }
+if ($r.Output -notmatch 'incremental:.*rehashed.*0 skipped') { $p += "first run should show 0 skipped, got: $($r.Output)" }
+if ($p.Count -eq 0) {
+  Write-Host "PASS  incremental: first run (all rehashed)"
+} else {
+  $failed += 1; Write-Host "FAIL  incremental: first run"; $p | ForEach-Object { Write-Host "      $_" }
+}
+
+# Case 2: second run — cache exists, all files skipped
+$r = Invoke-Cli -CliArgs @("verify", "--incremental", $incCache, "examples/valid-pack")
+$p = @()
+if ($r.ExitCode -ne 0) { $p += "exit: expected 0, got $($r.ExitCode)" }
+if ($r.Output -notmatch 'incremental:.*0 rehashed.*skipped') { $p += "second run should show 0 rehashed, got: $($r.Output)" }
+if ($p.Count -eq 0) {
+  Write-Host "PASS  incremental: second run (all skipped)"
+} else {
+  $failed += 1; Write-Host "FAIL  incremental: second run"; $p | ForEach-Object { Write-Host "      $_" }
+}
+
+# Case 3: --incremental with --json (should not crash)
+$r = Invoke-Cli -CliArgs @("verify", "--json", "--incremental", $incCache, "examples/valid-pack")
+$p = @()
+if ($r.ExitCode -ne 0) { $p += "exit: expected 0, got $($r.ExitCode)" }
+if ($r.Output -notmatch '"ok":true') { $p += "json output missing ok:true" }
+if ($p.Count -eq 0) {
+  Write-Host "PASS  incremental: json mode"
+} else {
+  $failed += 1; Write-Host "FAIL  incremental: json mode"; $p | ForEach-Object { Write-Host "      $_" }
+}
+
+# Cleanup
+Remove-Item $incCache -Recurse -Force -ErrorAction SilentlyContinue
+
+$total = @($cases).Count + @($matrix).Count + @($manifestMatrix).Count + 9 + 3
 Write-Host ""
 Write-Host "cli-test ($Target): $($total - $failed)/$total passed"
 if ($failed -gt 0) { exit 1 }

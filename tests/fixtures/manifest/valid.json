@@ -17,7 +17,7 @@
       "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     }
   ],
-  "merkle_root": "sha256:60a53eed0de87a90c8e59427c59c46253c33a76a09502a51801300927b7e6bdc",
+  "merkle_root": "sha256:cf1f6c8608a5cde942bb3fd7daaf0aac63040cde5bc394cffde3c689d9600142",
   "version": {
     "id": "v1",
     "parent": null

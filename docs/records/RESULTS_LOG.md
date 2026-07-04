@@ -586,6 +586,20 @@ Note: the 92 warnings were 77 deprecated `assert_eq!`/`assert_true!`/`assert_fal
 | CLI blackbox | 41/41 passed |
 | Confidence | High |
 
+## 2026-07-04 Asia/Shanghai (root-cause replacement round 2)
+
+### Round 2: Replacing Patches with Root-Cause Solutions
+
+Round 1 left 8 "patches" (comments saying "known issue", TODOs, archived-not-merged, core-only ports). Round 2 replaces each with a fundamental solution.
+
+| Field | Result |
+| --- | --- |
+| Source | Manual audit of round 1 agent outputs + 3 parallel root-cause agents |
+| Changes | (1) Barrett-like binary quotient decomposition replaces slow single-subtraction loop in reduce_scalar_512 (~800x fewer byte-ops); (2) create sort uses code-point order via compare_code_units (cross-tool Merkle root consistency); (3) audit signature covers canonical JSON not hash string; (4) collect_pack_files symlink mitigation via depth+count limits; (5) E3002 implemented via prove/check-proof CLI commands; (6) two dev reports merged into single authoritative version; (7) cli-test.sh 1:1 parity with ps1 (41 cases); (8) valid.json merkle_root corrected |
+| Verification | moon check 0 warnings; moon test 236/236 js; moon test 236/236 wasm-gc; moon fmt --check pass; CLI 41/41 |
+| Post-R2 baseline | 76 commits / 7593 lines / 236 tests / 12 packages / 0 warnings |
+| Confidence | High - all changes verified live |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

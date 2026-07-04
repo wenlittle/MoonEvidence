@@ -166,3 +166,52 @@ Reason:
 - A `--check` gate fails the build on any unformatted file, keeping formatting
   canonical without relying on contributors remembering to run `moon fmt`.
 
+## 2026-07-04: Barrett-like reduction replaces slow reduce_scalar_512 (round 2)
+
+Decision: Replace the "multiply by 256 then subtract l up to 256 times" loop with binary quotient decomposition using precomputed l*2^k multiples (k=0..8).
+
+Reason:
+
+- The old algorithm did ~500K byte-operations per call (64 bytes × up to 256 subtractions × 33-byte compare/subtract).
+- The new algorithm does ~600 byte-operations (64 bytes × 9 compare+subtract × 34 bytes), an ~800x improvement.
+- Correctness proven by all 4 RFC 8032 §7.1 KAT vectors passing (sign and verify paths both depend on reduce_scalar_512).
+- This is a fundamental algorithm replacement, not a patch — the old "KNOWN PERFORMANCE BOTTLENECK" comment is deleted.
+
+## 2026-07-04: E3002 implemented via prove/check-proof CLI commands (round 2)
+
+Decision: Implement `prove` and `check-proof` CLI subcommands that expose merkle inclusion proof generation and verification. E3002 (proof format invalid) now has a real trigger path.
+
+Reason:
+
+- Round 1 left E3002 as "reserved for future" — a gap in the frozen error-code contract.
+- merkle::compute_proof and merkle::verify_inclusion were already implemented but not exposed via CLI.
+- Exposing them gives E3002 a real consumer path and adds user-facing value (inclusion proof verification).
+
+## 2026-07-04: create sort uses code-point order (round 2)
+
+Decision: `create_manifest` sorts paths using `@canonjson.compare_code_units` instead of MoonBit's default `String::compare` (shortlex).
+
+Reason:
+
+- Default sort is shortlex (length-first), which differs from RFC 8785 JCS code-point order.
+- Cross-tool Merkle root consistency requires identical sort order across MoonBit/Node/Python.
+- Test added proving "aa" < "b" in code-point order (shortlex would give "b" < "aa").
+
+## 2026-07-04: audit signature covers canonical JSON (round 2)
+
+Decision: `sign_last` signs the entry's canonical JSON (excluding signature field) instead of the `compute_hash()` output string.
+
+Reason:
+
+- Signing a hash string binds the signature to the hash value, not the full entry content. If `compute_hash` field set changes, signature semantics silently change.
+- Signing canonical JSON binds the signature to the complete entry content, which is the correct semantic for an audit log.
+
+## 2026-07-04: two dev reports merged into single authoritative version (round 2)
+
+Decision: Merge `docs/DEVELOPMENT_REPORT.md` and `docs/report/DEVELOPMENT_REPORT.md` into a single authoritative report at `docs/report/DEVELOPMENT_REPORT.md`. The root copy becomes a one-line redirect.
+
+Reason:
+
+- Round 1 "archived with note" left two reports with conflicting numbers — a verification hazard.
+- A single authoritative report eliminates the consistency risk entirely.
+

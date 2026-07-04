@@ -303,7 +303,7 @@ fn collect_pack_files(
   root : String,
   rel_dir : String,
   out : Array[String],
-  depth~ : Int = 0,
+  depth? : Int = 0,
 ) -> Unit {
   // Depth cap: terminate symlink-to-directory cycles.
   if depth >= max_pack_depth {

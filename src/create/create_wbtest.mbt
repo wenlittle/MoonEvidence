@@ -138,10 +138,7 @@ test "create_manifest sorts paths by code-point order, not shortlex" {
   // Paths chosen so shortlex and code-point order disagree:
   //   shortlex:     "b" < "aa"  (length 1 before length 2)
   //   code-point:   "aa" < "b"  ('a' < 'b')
-  let files : Map[String, Bytes] = {
-    "b": b"bravo",
-    "aa": b"alpha-alpha",
-  }
+  let files : Map[String, Bytes] = { "b": b"bravo", "aa": b"alpha-alpha" }
   let options : CreateOptions = {
     subject: { id: "sort-order-test", kind: "test" },
     algorithm: @digest.Sha256,
@@ -194,10 +191,7 @@ test "create_manifest merkle root matches code-point-order expectation" {
   //   sha256:96c3cb01779e37d47be046f625820ae7b215c06046768b27869949c3973f1730
   // Under shortlex ("b" before "aa") the root would be:
   //   sha256:315ab5f67f8327d4d7e1c36bd4080f8b3784cdd91cbf21f2a7f6694408ecdfc3
-  let files : Map[String, Bytes] = {
-    "b": b"bravo",
-    "aa": b"alpha-alpha",
-  }
+  let files : Map[String, Bytes] = { "b": b"bravo", "aa": b"alpha-alpha" }
   let options : CreateOptions = {
     subject: { id: "root-order-test", kind: "test" },
     algorithm: @digest.Sha256,
@@ -216,7 +210,6 @@ test "create_manifest merkle root matches code-point-order expectation" {
   }
   // Must match the code-point-order root, not the shortlex root.
   assert_eq(
-    root,
-    "sha256:96c3cb01779e37d47be046f625820ae7b215c06046768b27869949c3973f1730",
+    root, "sha256:96c3cb01779e37d47be046f625820ae7b215c06046768b27869949c3973f1730",
   )
 }

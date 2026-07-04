@@ -246,3 +246,89 @@ test "long chain: forked entries are rejected" {
   // hash) no longer equals e1's freshly computed hash, so the chain breaks.
   assert_false(log.verify_chain())
 }
+
+// ---------------------------------------------------------------------------
+// from_json round-trip tests. Before from_json existed, api.audit_append
+// and api.audit_verify discarded the input log and built an empty one,
+// making the JS API audit layer a no-op. These tests prove the round-trip
+// (to_json → from_json) preserves chain integrity and entry data.
+// ---------------------------------------------------------------------------
+
+///|
+test "from_json round-trip preserves chain integrity" {
+  let log = AuditLog::new()
+  log.append("2026-06-18T19:00:00Z", "alice", Created, "dataset-v1")
+  log.append("2026-06-18T20:00:00Z", "bob", Verified, "dataset-v1")
+  log.append("2026-06-18T21:00:00Z", "alice", Sealed, "dataset-v1")
+  let json_str = log.to_json()
+  let rebuilt = match AuditLog::from_json(json_str) {
+    Some(r) => r
+    None => fail("from_json returned None for valid log")
+  }
+  assert_eq(rebuilt.length(), 3)
+  assert_true(rebuilt.verify_chain())
+  // Entry data must match.
+  assert_eq(rebuilt.entries[0].actor, "alice")
+  assert_eq(rebuilt.entries[1].actor, "bob")
+  assert_true(rebuilt.entries[2].action == Sealed)
+}
+
+///|
+test "from_json round-trip with signatures" {
+  let sk = test_sk()
+  let pk = @crypto.ed25519_public_key(sk)
+  let log = AuditLog::new()
+  log.append("2026-06-18T19:00:00Z", "alice", Created, "dataset-v1")
+  log.sign_last(sk)
+  log.append("2026-06-18T20:00:00Z", "bob", Verified, "dataset-v1")
+  log.sign_last(sk)
+  let json_str = log.to_json()
+  let rebuilt = match AuditLog::from_json(json_str) {
+    Some(r) => r
+    None => fail("from_json returned None for signed log")
+  }
+  assert_eq(rebuilt.length(), 2)
+  assert_true(rebuilt.verify_chain())
+  assert_true(rebuilt.verify_signatures(pk))
+  // Signatures must survive the round-trip.
+  assert_true(rebuilt.entries[0].signature is Some(_))
+  assert_true(rebuilt.entries[1].signature is Some(_))
+}
+
+///|
+test "from_json returns None for invalid input" {
+  assert_true(AuditLog::from_json("not json") is None)
+  assert_true(AuditLog::from_json("{}") is None) // object, not array
+  assert_true(AuditLog::from_json("[42]") is None) // non-object element
+  // Missing required fields (actor only, no timestamp/hash/etc.)
+  assert_true(AuditLog::from_json("[{\"actor\":\"alice\"}]") is None)
+}
+
+///|
+test "from_json of empty log produces empty log" {
+  let log = AuditLog::new()
+  let json_str = log.to_json()
+  let rebuilt = match AuditLog::from_json(json_str) {
+    Some(r) => r
+    None => fail("from_json returned None for empty log")
+  }
+  assert_eq(rebuilt.length(), 0)
+  assert_true(rebuilt.verify_chain())
+}
+
+///|
+test "from_json of tampered log fails verify_chain" {
+  let log = AuditLog::new()
+  log.append("2026-06-18T19:00:00Z", "alice", Created, "dataset-v1")
+  log.append("2026-06-18T20:00:00Z", "bob", Verified, "dataset-v1")
+  // Tamper: change actor in the serialized JSON before from_json.
+  let json_str = log.to_json()
+  let tampered_json = json_str.replace(old="alice", new="eve")
+  let rebuilt = match AuditLog::from_json(tampered_json) {
+    Some(r) => r
+    None => fail("from_json returned None for tampered log")
+  }
+  // The hash field still reflects the original entry, but the actor changed,
+  // so verify_chain must fail (compute_hash won't match stored hash).
+  assert_false(rebuilt.verify_chain())
+}

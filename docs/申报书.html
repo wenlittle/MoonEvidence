@@ -77,9 +77,9 @@
 
 <h2>基本信息</h2>
 <table>
-  <tr><th>项目名称</th><td>MoonEvidence：可信证据包验证库</td></tr>
+  <tr><th>项目名称</th><td>MoonEvidence：可信证据包验证平台</td></tr>
   <tr><th>参赛者</th><td>陈俊文</td></tr>
-  <tr><th>联系方式</th><td>18718241181</td></tr>
+  <tr><th>联系方式</th><td>187****1181</td></tr>
   <tr><th>项目方向</th><td>工程基础设施与工具链 / 数据完整性验证</td></tr>
   <tr><th>是否移植</th><td>否（原创项目）</td></tr>
   <tr><th>许可证</th><td>Apache-2.0</td></tr>
@@ -89,7 +89,7 @@
 
 <h2>项目简介</h2>
 <p>
-MoonEvidence 是一个纯 MoonBit 实现的<strong>可信证据包验证库</strong>和 CLI 工具。给定一组文件及其元数据、SHA-256 摘要、Merkle 树证明和版本链记录，MoonEvidence 能验证这些内容是否<strong>完整且未被篡改</strong>。
+MoonEvidence 是一个纯 MoonBit 实现的<strong>可信证据包验证平台</strong>和 CLI 工具。给定一组文件及其元数据、SHA-256/SHA-512 摘要、Merkle 树证明、Ed25519 数字签名和版本链记录，MoonEvidence 能验证这些内容是否<strong>完整且未被篡改</strong>，并输出结构化诊断报告。项目还提供 Trust Workbench 交互式工作台，支持可视化 Merkle 树和篡改实验室。
 </p>
 <p>
 项目定位为<strong>链无关验证核心</strong>——不是区块链框架，而是可在区块链存证前校验、数据集归档、数字版权打包、AI 输出审计、学术成果发布等场景中复用的通用验证引擎。核心逻辑<strong>零 IO 依赖</strong>，同一套代码可运行于 CLI、CI 和浏览器。
@@ -98,32 +98,36 @@ MoonEvidence 是一个纯 MoonBit 实现的<strong>可信证据包验证库</str
 <h2>核心功能</h2>
 <ul>
   <li><strong>Canonical JSON 序列化</strong>：遵循 RFC 8785 规范，确保序列化结果字节级稳定，安全用于摘要计算</li>
-  <li><strong>纯 MoonBit SHA-256</strong>：通过 NIST 标准向量验证，吞吐量约 58 MiB/s（js 后端）</li>
-  <li><strong>Merkle 树验证</strong>：RFC 6962 风格域分离，支持根计算与证明验证</li>
+  <li><strong>多算法摘要</strong>：SHA-256 和 SHA-512 双算法，纯 MoonBit 实现，通过 NIST 标准向量验证，吞吐量约 58 MiB/s（js 后端）</li>
+  <li><strong>Merkle 树验证</strong>：RFC 6962 风格域分离，支持根计算、包含证明与验证，双算法，与独立 Node 参考实现交叉校验</li>
   <li><strong>证据清单模型</strong>：带验证的 manifest 解析，拒绝路径遍历攻击，文件级摘要比对</li>
   <li><strong>线性版本链验证</strong>：确保版本记录时间线性和哈希链完整性</li>
-  <li><strong>7 步验证流水线</strong>：从解析到诊断的完整管线，输出结构化 findings 报告（冻结错误码 E1xxx‑E4xxx）</li>
-  <li><strong>CLI 工具</strong>：<code>verify [--json]</code> / <code>explain</code>，冻结退出码（0/1/2）</li>
+  <li><strong>7 步验证流水线</strong>：从解析到诊断的完整管线，输出结构化 findings 报告（冻结错误码 E1xxx-E5xxx、W1xxx）</li>
+  <li><strong>Ed25519 数字签名</strong>：从 GF(2^255-19) 域运算到签名验签全自实现，通过 RFC 8032 §7.1 KAT，支持审计日志签名</li>
+  <li><strong>内容寻址存储</strong>：SHA-256 内容寻址对象存储，支持去重和证据包重建</li>
+  <li><strong>审计日志</strong>：追加式哈希链审计日志，支持 Ed25519 签名验证，篡改可检测</li>
+  <li><strong>CLI 工具</strong>：<code>verify [--json]</code> / <code>explain</code> / <code>create</code>，冻结退出码（0/1/2）</li>
   <li><strong>浏览器端验证</strong>：同一核心编译为 ESM 模块，纯客户端验证无需上传</li>
+  <li><strong>Trust Workbench</strong>：6 视图交互式工作台（验证/创建/证明/审计/签名 + 篡改实验室），支持 Merkle 树可视化和实时篡改对比</li>
 </ul>
 
 <h2>工程质量</h2>
 <div class="two-col">
   <div>
     <p><span class="tag">三后端</span> native / wasm-gc / js 全部通过</p>
-    <p><span class="tag">测试</span> 219 单元 + 22 黑盒 + 属性 + 变异测试</p>
+    <p><span class="tag">测试</span> 265 单元 + 41 黑盒 + 属性 + 变异测试 + 1000 节点链压测</p>
     <p><span class="tag">CI</span> GitHub Actions 三后端矩阵构建</p>
   </div>
   <div>
     <p><span class="tag">性能</span> 全流水线验证 ~26 µs/file</p>
-    <p><span class="tag">规模</span> 6891 有效代码行（实现 3590 + 测试 3301），76 个有效 commit</p>
-    <p><span class="tag">Demo</span> 含浏览器端验证页面</p>
+    <p><span class="tag">规模</span> 9884 有效代码行（实现 4866 + 测试 5018），88 个有效 commit，12 个包</p>
+    <p><span class="tag">Demo</span> Trust Workbench 6 视图交互式工作台</p>
   </div>
 </div>
 
 <h2>为什么值得做</h2>
 <div class="highlight">
-MoonBit 生态当前缺少数据完整性验证基础设施。MoonEvidence 填补了这一空白，提供了边界清晰、可复用、可发布为 Mooncakes 包的验证核心，同时通过三后端全绿和浏览器 Demo 展示了 MoonBit 的跨平台能力。项目对标 RFC 8785 / RFC 6962 等国际标准，测试覆盖充分，可作为其他 MoonBit 项目的可信数据基础层。
+MoonBit 生态当前缺少数据完整性验证基础设施。MoonEvidence 填补了这一空白，提供了边界清晰、可复用、可发布为 Mooncakes 包的验证核心，同时通过三后端全绿和 Trust Workbench 交互式工作台展示了 MoonBit 的跨平台能力。项目实现了 Mooncakes 生态中首个 RFC 8785 Canonical JSON 序列化，并通过可解释诊断（结构化错误码 + 人读 explain 输出）将"验证"从黑盒布尔结果提升为可审计的工程流程。
 </div>
 
 </body>

@@ -625,6 +625,38 @@ Three structural fixes that unblock the "Trust Workbench" UI upgrade and close t
 | `moon build --target js` | exit 0 (api.js exports verify_evidence + compute_merkle_tree) |
 | `moon build --target wasm-gc` | exit 0 |
 
+## 2026-07-05 Asia/Shanghai (round 3 health check: 5-round iteration, plan-only)
+
+### Round 3 Health Check: comprehensive 5-round iterative audit (no code changes)
+
+User asked for a fresh 5-round "how to make it good" health check, plan-only (no code edits). Emphasis on competitiveness, innovation-point truthfulness, and application-material issues. Built on round 1/2 outputs rather than redoing from scratch.
+
+| Field | Result |
+| --- | --- |
+| Source | Re-read round 1/round 2 plans + PROJECT_INDEX; baseline measured live (git rev-list, check-metrics.mjs, moon test); 3 parallel deep-audit agents (source/arch+innovation / tests+CI / docs+materials+competitiveness); direct file-read verification of every P0 |
+| Method | 5 rounds: (1) baseline + 3-way breadth scan; (2) targeted verification by reading source files; (3) root-cause clustering; (4) completeness + priority calibration vs competition 4 dimensions; (5) consolidation into phased plan |
+| Actual baseline | 88 commits / 9551 lines (impl 4719 + test 4832) / 254 tests pass (grep '^test ' counts 258 incl 4 bench wrappers) / 12 packages / moon.mod 0.4.0 == CHANGELOG 0.4.0 == tag v0.4.0 / moon check 0 warnings / wenlittle only in historical logs |
+| Drift detected | check-metrics.mjs 3 FAIL: DEVELOPMENT_REPORT.md + ACCEPTANCE_CHECKLIST.md still say 86 commits (drift 2). check-metrics tool works but is NOT wired into CI (ci.yml grep zero hits) — claimed "CI anti-drift gate" from round 2/3 is not actually enforced |
+| New P0 (5) | (1) SHA-512 multi-algo broken: verify.mbt:100 hardcodes sha256_hex ignoring manifest.algorithm, merkle.mbt:17 hardcodes Sha256Ctx, create.mbt:72 labels SHA-256 root with algorithm.label() — SHA-512 packs always fail E2003, all tests use SHA-256 so 254 green hides it; (2) JS API audit_append/audit_verify stubs: api.mbt:500-503/559-563 discard input log and build empty AuditLog, audit_verify always returns chain_valid:true — root cause audit_log.mbt has no from_json; (3) api.mbt 10 pub functions, 8 have zero test coverage (only verify_evidence + compute_merkle_tree tested); (4) 申报书.md/tex/html core numbers drift (219/22/76/6891 vs 254+41/88/9551) + missing 0.3+/0.4.0 features (Ed25519/store/audit/viz/Trust Workbench); (5) Trust Workbench 6-view workbench (demo/web/index.html:6) built but absent from ALL application materials |
+| New P1 (10) | (1) CI anti-drift gate not wired in (meta-issue); (2) SECURITY.md claims low-order/non-canonical rejection but point_decode lacks y>=p check + full low-order rejection; (3) CLI_VERSION=0.3.0 vs moon.mod 0.4.0; (4) CLI create non-recursive vs verify layout; (5) API field subject.kind vs manifest subject.type; (6) ed25519_keypair hardcoded predictable seed; (7) doc drift recurrence + check-metrics blind spot; (8) E3002 dead error code; (9) Mooncakes collision check 25 days stale + Mooncakes unpublished; (10) audit_verify_signatures silently passes unsigned entries |
+| New P2 (15) + P3 (7) | smoke-api only verify_evidence; bench continue-on-error; fuzz no-panic-only; E2004 unreachable via JS API; CLI create zero blackbox; proof JS adapter untested; Fe/Point internals exposed; canonjson cross-backend number formatting; error code range missing E5xxx in 3 places; STRUCTURE_TREE omissions; OSC2026_APPLICATION stale; Gitlink URL contradiction; DECISION_LOG wrong Trust Workbench path; CLI create hardcoded SHA-256; verify/incremental style inconsistency; + 7 P3 |
+| Root causes | α multi-algo is paper feature (interface done, impl not); β JS API layer shell-first meat-later; γ governance mechanism form-without-substance (tools built, gates not wired); δ application materials stuck at 0.2/0.3; ε security claims ahead of code |
+| Scores (4-dim) | source/arch 7.0 | tests+CI 6.5 | docs+governance 6.0 | competitiveness+display 5.5 | composite 6.3 |
+| Plan | docs/plans/2026-07-05-health-check-and-improvement-plan.md — 5 phases: (0) blocker seal (SHA-512贯通 + audit from_json + 申报材料刷新 + 手机号脱敏); (1) API layer meat (8 pub函数测试 + smoke扩展 + 字段名统一 + CSPRNG); (2) governance真接入CI (check-metrics/cross-verify/mutation-check入ci.yml + 断言扩展 + 文档同步); (3) security claims align code (point_decode补全 + CLI_VERSION + create/verify对称 + audit strict + E3002/E2004); (4) competitiveness收尾 (Mooncakes发布 + 碰撞重跑 + 双推 + 演示视频) |
+| Verification | moon check 0 warnings; moon test --target js 254/254 passed; node tools/check-metrics.mjs 3 FAIL (86 vs 88 in 2 files — confirms gate works but docs stale); every P0 verified by direct source read |
+| Confidence | High — every P0/P1 has file:line evidence; round 1/2 self-assessment of 9.0 was inflated because it was built on "all-green + 0 warnings + check-metrics tool exists" without catching that green = test blind spot, tool = not in CI |
+
+### Verification Run
+
+| Command | Result |
+| --- | --- |
+| `git rev-list --count HEAD` | 88 |
+| `node tools/check-metrics.mjs` | 16 pass / 3 FAIL (DEVELOPMENT_REPORT.md×2, ACCEPTANCE_CHECKLIST.md×1: 86≠88) |
+| `moon check` | exit 0, 0 warnings |
+| `moon test --target js` | 254/254 passed |
+| `grep check-metrics\|cross-verify\|mutation-check .github/workflows -r` | 0 hits — confirmed not in CI |
+| Direct reads | verify.mbt:100, merkle.mbt:17, create.mbt:72, api.mbt:500-503/559-563, ed25519.mbt:321/344, 申报书.md:9/24-31/36/39, SECURITY.md:18, demo/web/index.html:6 — all confirm findings |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

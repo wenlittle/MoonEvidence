@@ -389,14 +389,12 @@ fn tree_response_fields(response : String) -> Map[String, Json] raise {
 
 ///|
 fn tree_request(manifest : String) -> String {
-  make_request(manifest=manifest)
+  make_request(manifest~)
 }
 
 ///|
 test "compute_merkle_tree golden pack reports three levels and matching root" {
-  let response = compute_merkle_tree(
-    tree_request(golden_manifest),
-  )
+  let response = compute_merkle_tree(tree_request(golden_manifest))
   let fields = tree_response_fields(response) catch {
     err => fail("response not JSON: \{err}")
   }
@@ -407,8 +405,7 @@ test "compute_merkle_tree golden pack reports three levels and matching root" {
   guard fields.get("tree") is Some(Object(tree)) else {
     fail("response has no tree object: \{response}")
   }
-  guard tree.get("leaf_count") is Some(Number(lc, ..)) &&
-        lc.to_int() == 2 else {
+  guard tree.get("leaf_count") is Some(Number(lc, ..)) && lc.to_int() == 2 else {
     fail("leaf_count should be 2: \{response}")
   }
   guard tree.get("height") is Some(Number(h, ..)) && h.to_int() == 2 else {
@@ -502,13 +499,17 @@ test "compute_merkle_tree paths array covers the tree height" {
     fail("example_path should have 2 entries: \{response}")
   }
   guard path[0] is Object(first) &&
-        first.get("level") is Some(Number(fl, ..)) && fl.to_int() == 0 &&
-        first.get("node_index") is Some(Number(fi, ..)) && fi.to_int() == 0 else {
+    first.get("level") is Some(Number(fl, ..)) &&
+    fl.to_int() == 0 &&
+    first.get("node_index") is Some(Number(fi, ..)) &&
+    fi.to_int() == 0 else {
     fail("first spine entry should be level 0 index 0: \{response}")
   }
   guard path[1] is Object(last) &&
-        last.get("level") is Some(Number(ll, ..)) && ll.to_int() == 1 &&
-        last.get("node_index") is Some(Number(li, ..)) && li.to_int() == 0 else {
+    last.get("level") is Some(Number(ll, ..)) &&
+    ll.to_int() == 1 &&
+    last.get("node_index") is Some(Number(li, ..)) &&
+    li.to_int() == 0 else {
     fail("last spine entry should be level 1 index 0 (root): \{response}")
   }
 }

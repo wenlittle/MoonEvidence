@@ -259,10 +259,7 @@ test "compute_tree two leaves yields two levels of one node each" {
   assert_eq(level0.length(), 2)
   let level1 = tree.level(1)
   assert_eq(level1.length(), 1)
-  assert_eq(
-    level1[0],
-    node_hash(level0[0], level0[1]),
-  )
+  assert_eq(level1[0], node_hash(level0[0], level0[1]))
 }
 
 ///|

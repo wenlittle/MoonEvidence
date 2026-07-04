@@ -108,6 +108,7 @@ fn error_response(message : String) -> String {
 //     }
 //   }
 // On parse failure: `{ "ok": false, "error": "<reason>" }`.
+
 ///|
 pub fn compute_merkle_tree(request_json : String) -> String {
   let request = @json.parse(request_json) catch {
@@ -158,7 +159,8 @@ pub fn compute_merkle_tree(request_json : String) -> String {
   }
 
   // Materialize the tree (None for empty files[]).
-  let tree_value = match @merkle.compute_tree(leaves) {
+  let tree_value = match
+    @merkle.compute_tree(leaves, algorithm=manifest.algorithm) {
     None =>
       Json::object({
         "levels": Json::array([]),
@@ -186,10 +188,11 @@ pub fn compute_merkle_tree(request_json : String) -> String {
       let actual_str = "\{manifest.algorithm.label()}:\{actual_hex}"
       let (recorded_str, matches) = match manifest.merkle_root {
         None => (Json::null(), true)
-        Some(r) => (
-          Json::string(r.to_string()),
-          @digest.same_digest(actual_str, r.to_string()),
-        )
+        Some(r) =>
+          (
+            Json::string(r.to_string()),
+            @digest.same_digest(actual_str, r.to_string()),
+          )
       }
       let root_obj = Json::object({
         "recorded": recorded_str,
@@ -209,7 +212,7 @@ pub fn compute_merkle_tree(request_json : String) -> String {
   // Optionally compute the spine for leaf 0 — used by Tamper Lab's
   // "default focus" but kept here as a demonstrative smoke check.
   let spine : Array[Json] = []
-  match @merkle.compute_tree(leaves) {
+  match @merkle.compute_tree(leaves, algorithm=manifest.algorithm) {
     Some(tree) =>
       match tree.leaf_path(0) {
         Some(path) =>
@@ -263,6 +266,7 @@ fn canonical_file_entry_text(entry : @model.FileEntry) -> String {
 // Response (JSON):
 //   { "ok": true, "manifest": "<canonical manifest JSON>" }
 // or { "ok": false, "error": "..." }
+
 ///|
 pub fn create_evidence_pack(request_json : String) -> String {
   let request = @json.parse(request_json) catch {
@@ -311,7 +315,8 @@ pub fn create_evidence_pack(request_json : String) -> String {
   let algorithm = match fields.get("algorithm") {
     None | Some(Null) | Some(String("sha256")) => @digest.Sha256
     Some(String("sha512")) => @digest.Sha512
-    Some(_) => return error_response("\"algorithm\" must be \"sha256\" or \"sha512\"")
+    Some(_) =>
+      return error_response("\"algorithm\" must be \"sha256\" or \"sha512\"")
   }
 
   // version_id (required), version_parent (optional)
@@ -321,7 +326,8 @@ pub fn create_evidence_pack(request_json : String) -> String {
   let version_parent = match fields.get("version_parent") {
     None | Some(Null) => None
     Some(String(p)) => Some(p)
-    Some(_) => return error_response("\"version_parent\" must be a string or null")
+    Some(_) =>
+      return error_response("\"version_parent\" must be a string or null")
   }
 
   let manifest = @create.create_manifest(files, {
@@ -331,10 +337,7 @@ pub fn create_evidence_pack(request_json : String) -> String {
     version_parent,
   })
 
-  Json::object({
-    "ok": Json::boolean(true),
-    "manifest": Json::string(manifest),
-  }).stringify()
+  Json::object({ "ok": Json::boolean(true), "manifest": Json::string(manifest) }).stringify()
 }
 
 // ---------------------------------------------------------------------------
@@ -346,6 +349,7 @@ pub fn create_evidence_pack(request_json : String) -> String {
 // generate_proof response:
 //   { "ok": true, "proof": [ { "side": "left"|"right", "sibling": "<hex>" }, ... ],
 //     "leaf_hash": "<hex>", "root": "<hex>" }
+
 ///|
 pub fn generate_proof(request_json : String) -> String {
   let request = @json.parse(request_json) catch {
@@ -392,18 +396,24 @@ pub fn generate_proof(request_json : String) -> String {
     leaves.push(@digest.string_to_utf8_bytes(leaf_json))
   }
 
-  match @merkle.compute_proof(leaves, index) {
+  match @merkle.compute_proof(leaves, index, algorithm=manifest.algorithm) {
     None => error_response("index out of range or empty tree")
     Some(proof) => {
       let proof_json : Array[Json] = []
       for step in proof {
-        proof_json.push(Json::object({
-          "side": Json::string(step.side.to_string()),
-          "sibling": Json::string(@digest.bytes_to_lower_hex(step.sibling)),
-        }))
+        proof_json.push(
+          Json::object({
+            "side": Json::string(step.side.to_string()),
+            "sibling": Json::string(@digest.bytes_to_lower_hex(step.sibling)),
+          }),
+        )
       }
-      let leaf_hash = @merkle.leaf_hash(leaves[index])
-      let root = match @merkle.compute_root(leaves) {
+      let leaf_hash = @merkle.leaf_hash(
+        leaves[index],
+        algorithm=manifest.algorithm,
+      )
+      let root = match
+        @merkle.compute_root(leaves, algorithm=manifest.algorithm) {
         Some(r) => @digest.bytes_to_lower_hex(r)
         None => ""
       }
@@ -422,6 +432,7 @@ pub fn generate_proof(request_json : String) -> String {
 //     "root": "<hex>" }
 // verify_proof response:
 //   { "ok": true, "valid": <bool> }
+
 ///|
 pub fn verify_proof(request_json : String) -> String {
   let request = @json.parse(request_json) catch {
@@ -444,8 +455,8 @@ pub fn verify_proof(request_json : String) -> String {
     Some(Array(arr)) =>
       for item in arr {
         guard item is Object(p) &&
-              p.get("side") is Some(String(side)) &&
-              p.get("sibling") is Some(String(sib_hex)) else {
+          p.get("side") is Some(String(side)) &&
+          p.get("sibling") is Some(String(sib_hex)) else {
           return error_response("each proof step must have side and sibling")
         }
         guard @digest.hex_to_bytes(sib_hex) is Some(sib_bytes) else {
@@ -468,11 +479,29 @@ pub fn verify_proof(request_json : String) -> String {
     return error_response("\"root\" is not valid hex")
   }
 
-  let valid = @merkle.verify_inclusion(leaf_bytes, proof, root_bytes)
-  Json::object({
-    "ok": Json::boolean(true),
-    "valid": Json::boolean(valid),
-  }).stringify()
+  // algorithm (optional, defaults to sha256): determines the hash used for
+  // leaf_hash and node_hash during proof verification. Must match the
+  // algorithm the proof was generated under.
+  let algorithm = match fields.get("algorithm") {
+    None | Some(Null) => @digest.Sha256
+    Some(String(algo_str)) =>
+      match @digest.normalize_algorithm(algo_str) {
+        Some(a) => a
+        None =>
+          return error_response(
+            "\"algorithm\" must be \"sha256\" or \"sha512\"",
+          )
+      }
+    Some(_) => return error_response("\"algorithm\" must be a string")
+  }
+
+  let valid = @merkle.verify_inclusion(
+    leaf_bytes,
+    proof,
+    root_bytes,
+    algorithm~,
+  )
+  Json::object({ "ok": Json::boolean(true), "valid": Json::boolean(valid) }).stringify()
 }
 
 // ---------------------------------------------------------------------------
@@ -485,6 +514,7 @@ pub fn verify_proof(request_json : String) -> String {
 //     "timestamp": "..." | null }
 // audit_append response:
 //   { "ok": true, "log": "<updated log JSON>", "entry_hash": "..." }
+
 ///|
 pub fn audit_append(request_json : String) -> String {
   let request = @json.parse(request_json) catch {
@@ -497,10 +527,12 @@ pub fn audit_append(request_json : String) -> String {
   // Load existing log or start fresh
   let log = match fields.get("log") {
     None | Some(Null) | Some(String("")) => @audit.AuditLog::new()
-    Some(String(_log_json)) =>
-      // parsed from the JSON array. This is simpler than adding a
-      // from_json method to audit_log.mbt and keeps the API surface small.
-      @audit.AuditLog::new()
+    Some(String(log_json)) =>
+      match @audit.AuditLog::from_json(log_json) {
+        Some(rebuilt) => rebuilt
+        None =>
+          return error_response("\"log\" is not a valid audit log JSON array")
+      }
     Some(_) => return error_response("\"log\" must be a string")
   }
 
@@ -516,7 +548,8 @@ pub fn audit_append(request_json : String) -> String {
   let manifest_digest = match fields.get("manifest_digest") {
     None | Some(Null) => None
     Some(String(d)) => Some(d)
-    Some(_) => return error_response("\"manifest_digest\" must be a string or null")
+    Some(_) =>
+      return error_response("\"manifest_digest\" must be a string or null")
   }
   let timestamp = match fields.get("timestamp") {
     None | Some(Null) => "2026-07-04T00:00:00Z"
@@ -544,6 +577,7 @@ pub fn audit_append(request_json : String) -> String {
 
 // audit_verify request: { "log": "<log JSON>" }
 // audit_verify response: { "ok": true, "chain_valid": <bool>, "length": <int> }
+
 ///|
 pub fn audit_verify(request_json : String) -> String {
   let request = @json.parse(request_json) catch {
@@ -552,15 +586,14 @@ pub fn audit_verify(request_json : String) -> String {
   guard request is Object(fields) else {
     return error_response("request must be a JSON object")
   }
-  guard fields.get("log") is Some(String(_log_json)) else {
-    return error_response("\"log\" must be a string")
-  }
+  // Reconstruct the log from JSON, then verify its hash chain integrity.
   let log = match fields.get("log") {
-    Some(String(_)) =>
-      // AuditLog has no from_json; for verify we need the parsed entries.
-      // Since we can't reconstruct, return an error suggesting the caller
-      // maintain the log in memory.
-      @audit.AuditLog::new()
+    Some(String(log_json)) =>
+      match @audit.AuditLog::from_json(log_json) {
+        Some(rebuilt) => rebuilt
+        None =>
+          return error_response("\"log\" is not a valid audit log JSON array")
+      }
     _ => return error_response("\"log\" must be a string")
   }
   let chain_valid = log.verify_chain()
@@ -579,6 +612,7 @@ pub fn audit_verify(request_json : String) -> String {
 //   a deterministic seed is derived from a fixed constant — NOT for
 //   production use, but sufficient for the demo workbench).
 // ed25519_keypair response: { "ok": true, "public_key": "<hex>", "secret_key": "<hex>" }
+
 ///|
 pub fn ed25519_keypair(request_json : String) -> String {
   let request = @json.parse(request_json) catch {
@@ -593,8 +627,8 @@ pub fn ed25519_keypair(request_json : String) -> String {
     None | Some(Null) =>
       // Demo seed — NOT secure, just for workbench visualization.
       Bytes::from_array([
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
-        26, 27, 28, 29, 30, 31, 32,
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+        22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
       ])
     Some(String(hex)) =>
       match @digest.hex_to_bytes(hex) {
@@ -618,6 +652,7 @@ pub fn ed25519_keypair(request_json : String) -> String {
 
 // ed25519_sign request: { "secret_key": "<hex>", "message": "<hex>" }
 // ed25519_sign response: { "ok": true, "signature": "<hex>" }
+
 ///|
 pub fn ed25519_sign(request_json : String) -> String {
   let request = @json.parse(request_json) catch {
@@ -650,6 +685,7 @@ pub fn ed25519_sign(request_json : String) -> String {
 
 // ed25519_verify request: { "public_key": "<hex>", "message": "<hex>", "signature": "<hex>" }
 // ed25519_verify response: { "ok": true, "valid": <bool> }
+
 ///|
 pub fn ed25519_verify(request_json : String) -> String {
   let request = @json.parse(request_json) catch {
@@ -677,8 +713,5 @@ pub fn ed25519_verify(request_json : String) -> String {
     return error_response("\"signature\" is not valid hex")
   }
   let valid = @crypto.ed25519_verify(pk, msg, sig)
-  Json::object({
-    "ok": Json::boolean(true),
-    "valid": Json::boolean(valid),
-  }).stringify()
+  Json::object({ "ok": Json::boolean(true), "valid": Json::boolean(valid) }).stringify()
 }

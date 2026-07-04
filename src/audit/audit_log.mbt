@@ -224,3 +224,54 @@ pub fn AuditLog::to_json(self : AuditLog) -> String {
     _ => doc.stringify()
   }
 }
+
+///|
+/// Reconstructs an AuditLog from the JSON array produced by `to_json`.
+/// Returns `None` on any parse or shape error. The reconstructed log has
+/// the same entries, prev_hash links, and last_hash as the original, so
+/// `verify_chain` and `verify_signatures` work on the rebuilt log.
+///
+/// This closes the round-trip gap: before this method, `api.audit_append`
+/// and `api.audit_verify` discarded the input log and built an empty one,
+/// making the JS API audit layer a no-op.
+pub fn AuditLog::from_json(json_str : String) -> AuditLog? {
+  let parsed = @json.parse(json_str) catch { _ => return None }
+  guard parsed is Array(arr) else { return None }
+  let log = AuditLog::new()
+  for entry_json in arr {
+    guard entry_json is Object(obj) else { return None }
+    // Required string fields.
+    guard obj.get("timestamp") is Some(String(timestamp)) else { return None }
+    guard obj.get("actor") is Some(String(actor)) else { return None }
+    guard obj.get("action") is Some(String(action_str)) else { return None }
+    let action = AuditAction::parse(action_str)
+    guard obj.get("subject_id") is Some(String(subject_id)) else { return None }
+    guard obj.get("hash") is Some(String(hash)) else { return None }
+    // Optional string fields: Some(string) → Some(value), null/missing → None.
+    let manifest_digest : String? = match obj.get("manifest_digest") {
+      Some(String(s)) => Some(s)
+      _ => None
+    }
+    let prev_hash : String? = match obj.get("prev_hash") {
+      Some(String(s)) => Some(s)
+      _ => None
+    }
+    let signature : String? = match obj.get("signature") {
+      Some(String(s)) => Some(s)
+      _ => None
+    }
+    let entry : AuditEntry = {
+      timestamp,
+      actor,
+      action,
+      subject_id,
+      manifest_digest,
+      prev_hash,
+      hash,
+      signature,
+    }
+    log.entries.push(entry)
+    log.last_hash = Some(hash)
+  }
+  Some(log)
+}

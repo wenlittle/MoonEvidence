@@ -66,7 +66,8 @@ pub fn create_manifest(
     leaf_payloads.push(leaf_bytes)
   }
 
-  let merkle_root : Json = match @merkle.compute_root(leaf_payloads) {
+  let merkle_root : Json = match
+    @merkle.compute_root(leaf_payloads, algorithm=options.algorithm) {
     Some(root_bytes) => {
       let hex = @digest.bytes_to_lower_hex(root_bytes)
       Json::string("\{options.algorithm.label()}:\{hex}")

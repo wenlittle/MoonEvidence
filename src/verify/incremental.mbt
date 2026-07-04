@@ -149,7 +149,7 @@ pub fn verify_manifest_incremental(
   let mut merkle_checked = false
   match manifest.merkle_root {
     Some(expected_root) =>
-      match @merkle.compute_root(leaves) {
+      match @merkle.compute_root(leaves, algorithm=manifest.algorithm) {
         Some(root) => {
           let actual_hex = @digest.bytes_to_lower_hex(root)
           let actual_str = "\{manifest.algorithm.label()}:\{actual_hex}"

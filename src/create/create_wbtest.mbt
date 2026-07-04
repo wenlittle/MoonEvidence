@@ -213,3 +213,67 @@ test "create_manifest merkle root matches code-point-order expectation" {
     root, "sha256:96c3cb01779e37d47be046f625820ae7b215c06046768b27869949c3973f1730",
   )
 }
+
+///|
+/// SHA-512 end-to-end create→verify round-trip: before the multi-algo fix,
+/// verify.mbt hardcoded sha256_hex and merkle.mbt hardcoded Sha256Ctx, so
+/// any SHA-512 pack would fail E2003 (digest mismatch) and E3003 (merkle
+/// root mismatch). This test proves the full pipeline now respects
+/// manifest.algorithm.
+test "create → verify round-trip succeeds with SHA-512" {
+  let files : Map[String, Bytes] = {
+    "a.txt": b"alpha",
+    "b.txt": b"bravo",
+    "c.txt": b"charlie",
+  }
+  let options : CreateOptions = {
+    subject: { id: "sha512-roundtrip", kind: "archive" },
+    algorithm: @digest.Sha512,
+    version_id: "v1",
+    version_parent: None,
+  }
+  let manifest_json = create_manifest(files, options)
+  let report = @verify.verify_manifest(manifest_json, files)
+  assert_true(report.ok)
+  assert_eq(report.checked.files_total, 3)
+  assert_eq(report.checked.files_passed, 3)
+  assert_true(report.checked.merkle_checked)
+  assert_eq(report.findings.length(), 0)
+
+  // The manifest must declare sha512 and each digest must be sha512-prefixed.
+  let parsed = @json.parse(manifest_json) catch { _ => return }
+  guard parsed is Object(obj) else { return }
+  guard obj.get("hash_algorithm") is Some(String(algo)) else { return }
+  assert_eq(algo, "sha512")
+  guard obj.get("files") is Some(Array(arr)) else { return }
+  for entry in arr {
+    guard entry is Object(eo) else { return }
+    guard eo.get("digest") is Some(String(d)) else { return }
+    assert_true(d[:6] == "sha512")
+  }
+  // Merkle root must also be sha512-prefixed (not sha256).
+  guard obj.get("merkle_root") is Some(String(root)) else { return }
+  assert_true(root[:6] == "sha512")
+}
+
+///|
+/// SHA-512 tamper detection: a tampered file must still produce E2003 under
+/// SHA-512, proving the algorithm is actually used (not silently falling back
+/// to SHA-256).
+test "SHA-512 pack detects tampered file with E2003" {
+  let files : Map[String, Bytes] = { "a.txt": b"alpha", "b.txt": b"bravo" }
+  let options : CreateOptions = {
+    subject: { id: "sha512-tamper", kind: "test" },
+    algorithm: @digest.Sha512,
+    version_id: "v1",
+    version_parent: None,
+  }
+  let manifest_json = create_manifest(files, options)
+  let tampered : Map[String, Bytes] = {
+    "a.txt": b"ALPHA-TAMPERED",
+    "b.txt": b"bravo",
+  }
+  let report = @verify.verify_manifest(manifest_json, tampered)
+  assert_false(report.ok)
+  assert_true(report.findings.iter().any(fn(f) { f.code == "E2003" }))
+}

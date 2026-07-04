@@ -97,8 +97,8 @@ pub fn verify_manifest(
           ),
         )
       Some(content) => {
-        let actual = @digest.sha256_hex(content)
-        if actual == entry.digest.hex {
+        let actual = @digest.Digest::of_bytes(manifest.algorithm, content)
+        if actual == entry.digest {
           files_passed = files_passed + 1
         } else {
           findings.push(
@@ -106,7 +106,7 @@ pub fn verify_manifest(
               "E2003",
               Error,
               entry.path,
-              "digest mismatch, expected \{entry.digest.to_string()} got \{manifest.algorithm.label()}:\{actual}",
+              "digest mismatch, expected \{entry.digest.to_string()} got \{actual.to_string()}",
             ),
           )
         }
@@ -146,7 +146,7 @@ pub fn verify_manifest(
       let leaves = manifest.files.map(entry => {
         @digest.string_to_utf8_bytes(canonical_file_entry(entry))
       })
-      match @merkle.compute_root(leaves) {
+      match @merkle.compute_root(leaves, algorithm=manifest.algorithm) {
         None =>
           // merkle_root present but files[] empty: nothing it could attest.
           findings.push(

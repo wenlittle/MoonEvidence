@@ -12,22 +12,60 @@
 // ---------------------------------------------------------------------------
 
 ///|
-/// Hashes one leaf payload: `SHA256(0x00 || data)`.
-pub fn leaf_hash(data : Bytes) -> Bytes {
-  let ctx = @digest.Sha256Ctx::new()
-  ctx.update(b"\x00")
-  ctx.update(data)
-  ctx.finalize()
+/// Resolves an optional algorithm to Sha256 when absent, so existing callers
+/// that omit the parameter keep their SHA-256 behavior unchanged.
+fn resolve_algo(algorithm : @digest.HashAlgorithm?) -> @digest.HashAlgorithm {
+  match algorithm {
+    Some(a) => a
+    None => @digest.Sha256
+  }
 }
 
 ///|
-/// Hashes one interior node: `SHA256(0x01 || left || right)`.
-pub fn node_hash(left : Bytes, right : Bytes) -> Bytes {
-  let ctx = @digest.Sha256Ctx::new()
-  ctx.update(b"\x01")
-  ctx.update(left)
-  ctx.update(right)
-  ctx.finalize()
+/// Hashes one leaf payload: `<H>(0x00 || data)` where `H` is the algorithm
+/// (SHA-256 by default for backward compatibility, SHA-512 when requested).
+pub fn leaf_hash(data : Bytes, algorithm? : @digest.HashAlgorithm) -> Bytes {
+  let algo = resolve_algo(algorithm)
+  match algo {
+    @digest.Sha256 => {
+      let ctx = @digest.Sha256Ctx::new()
+      ctx.update(b"\x00")
+      ctx.update(data)
+      ctx.finalize()
+    }
+    @digest.Sha512 => {
+      let ctx = @digest.Sha512Ctx::new()
+      ctx.update(b"\x00")
+      ctx.update(data)
+      ctx.finalize()
+    }
+  }
+}
+
+///|
+/// Hashes one interior node: `<H>(0x01 || left || right)`.
+pub fn node_hash(
+  left : Bytes,
+  right : Bytes,
+  algorithm? : @digest.HashAlgorithm,
+) -> Bytes {
+  let algo = resolve_algo(algorithm)
+  match algo {
+    @digest.Sha256 => {
+      let ctx = @digest.Sha256Ctx::new()
+      ctx.update(b"\x01")
+      ctx.update(left)
+      ctx.update(right)
+      ctx.finalize()
+    }
+    @digest.Sha512 => {
+      let ctx = @digest.Sha512Ctx::new()
+      ctx.update(b"\x01")
+      ctx.update(left)
+      ctx.update(right)
+      ctx.finalize()
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -39,16 +77,22 @@ pub fn node_hash(left : Bytes, right : Bytes) -> Bytes {
 /// order). Returns `None` for the empty input: the spec defines no valid
 /// empty-tree root. A single leaf is its own root (`leaf_hash`, no node
 /// hash applied).
-pub fn compute_root(leaves : Array[Bytes]) -> Bytes? {
+pub fn compute_root(
+  leaves : Array[Bytes],
+  algorithm? : @digest.HashAlgorithm,
+) -> Bytes? {
   if leaves.length() == 0 {
     return None
   }
-  let mut level : Array[Bytes] = leaves.map(leaf_hash)
+  let algo = resolve_algo(algorithm)
+  let mut level : Array[Bytes] = leaves.map(fn(data) {
+    leaf_hash(data, algorithm=algo)
+  })
   while level.length() > 1 {
     let next : Array[Bytes] = []
     let mut index = 0
     while index + 1 < level.length() {
-      next.push(node_hash(level[index], level[index + 1]))
+      next.push(node_hash(level[index], level[index + 1], algorithm=algo))
       index = index + 2
     }
     if index < level.length() {
@@ -127,19 +171,25 @@ pub fn MerkleTree::level(self : MerkleTree, level : Int) -> Array[Bytes] {
 /// the same logical node, not a fresh child, to avoid misleading the viewer
 /// into thinking self-pairing happened. `leaf_path` below encodes the
 /// promotion structure faithfully.
-pub fn compute_tree(leaves : Array[Bytes]) -> MerkleTree? {
+pub fn compute_tree(
+  leaves : Array[Bytes],
+  algorithm? : @digest.HashAlgorithm,
+) -> MerkleTree? {
   if leaves.length() == 0 {
     return None
   }
+  let algo = resolve_algo(algorithm)
   let levels : Array[Array[Bytes]] = []
   // Level 0: leaf hashes.
-  let mut current : Array[Bytes] = leaves.map(leaf_hash)
+  let mut current : Array[Bytes] = leaves.map(fn(data) {
+    leaf_hash(data, algorithm=algo)
+  })
   levels.push(current)
   while current.length() > 1 {
     let next : Array[Bytes] = []
     let mut index = 0
     while index + 1 < current.length() {
-      next.push(node_hash(current[index], current[index + 1]))
+      next.push(node_hash(current[index], current[index + 1], algorithm=algo))
       index = index + 2
     }
     if index < current.length() {
@@ -184,7 +234,10 @@ pub impl Show for PathStep with fn output(self, logger) {
 /// ends at `(height-1, 0)` and contains exactly one step per level
 /// (the level where the spine's node lives), so `leaf_path(i).length()
 /// == tree.height()`.
-pub fn MerkleTree::leaf_path(self : MerkleTree, index : Int) -> Array[PathStep]? {
+pub fn MerkleTree::leaf_path(
+  self : MerkleTree,
+  index : Int,
+) -> Array[PathStep]? {
   if self.levels.length() == 0 || index < 0 || index >= self.leaf_count() {
     return None
   }
@@ -252,12 +305,19 @@ pub impl Show for ProofStep with fn output(self, logger) {
 /// Builds the inclusion proof for `leaves[index]`, bottom-up. Returns `None`
 /// when the index is out of range (which includes the empty tree). The proof
 /// for a single-leaf tree is empty: the leaf hash already equals the root.
-pub fn compute_proof(leaves : Array[Bytes], index : Int) -> Array[ProofStep]? {
+pub fn compute_proof(
+  leaves : Array[Bytes],
+  index : Int,
+  algorithm? : @digest.HashAlgorithm,
+) -> Array[ProofStep]? {
   if index < 0 || index >= leaves.length() {
     return None
   }
+  let algo = resolve_algo(algorithm)
   let proof : Array[ProofStep] = []
-  let mut level : Array[Bytes] = leaves.map(leaf_hash)
+  let mut level : Array[Bytes] = leaves.map(fn(data) {
+    leaf_hash(data, algorithm=algo)
+  })
   let mut position = index
   while level.length() > 1 {
     let next : Array[Bytes] = []
@@ -270,7 +330,7 @@ pub fn compute_proof(leaves : Array[Bytes], index : Int) -> Array[ProofStep]? {
         proof.push({ sibling: level[cursor], side: Left })
         position = next.length()
       }
-      next.push(node_hash(level[cursor], level[cursor + 1]))
+      next.push(node_hash(level[cursor], level[cursor + 1], algorithm=algo))
       cursor = cursor + 2
     }
     if cursor < level.length() {
@@ -292,12 +352,14 @@ pub fn verify_inclusion(
   leaf : Bytes,
   proof : Array[ProofStep],
   root : Bytes,
+  algorithm? : @digest.HashAlgorithm,
 ) -> Bool {
-  let mut current = leaf_hash(leaf)
+  let algo = resolve_algo(algorithm)
+  let mut current = leaf_hash(leaf, algorithm=algo)
   for step in proof {
     current = match step.side {
-      Left => node_hash(step.sibling, current)
-      Right => node_hash(current, step.sibling)
+      Left => node_hash(step.sibling, current, algorithm=algo)
+      Right => node_hash(current, step.sibling, algorithm=algo)
     }
   }
   current == root

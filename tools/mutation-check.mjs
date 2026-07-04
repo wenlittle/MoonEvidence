@@ -36,9 +36,9 @@ const mutations = [
     id: "merkle-leaf-prefix",
     label: "merkle leaf domain separator 0x00 -> 0x01",
     file: join(repoRoot, "src", "merkle", "merkle.mbt"),
-    find: 'ctx.update(b"\\x00")\n  ctx.update(data)',
-    replace: 'ctx.update(b"\\x01")\n  ctx.update(data)',
-    // Flips the RFC 6962 leaf prefix. The property test
+    find: 'Sha256Ctx::new()\n      ctx.update(b"\\x00")\n      ctx.update(data)',
+    replace: 'Sha256Ctx::new()\n      ctx.update(b"\\x01")\n      ctx.update(data)',
+    // Flips the RFC 6962 leaf prefix in the Sha256 branch. The property test
     // "leaf hash uses 0x00 domain separator, node hash uses 0x01"
     // recomputes the expected leaf independently and must fail.
     expectHint: "0x00 domain separator",
@@ -47,10 +47,11 @@ const mutations = [
     id: "merkle-node-prefix",
     label: "merkle node domain separator 0x01 -> 0x00",
     file: join(repoRoot, "src", "merkle", "merkle.mbt"),
-    find: 'ctx.update(b"\\x01")\n  ctx.update(left)',
-    replace: 'ctx.update(b"\\x00")\n  ctx.update(left)',
-    // Collapses leaf and node domains - the same property test also
-    // pins the node prefix to 0x01, so this mutation must be caught.
+    find: 'Sha256Ctx::new()\n      ctx.update(b"\\x01")\n      ctx.update(left)',
+    replace: 'Sha256Ctx::new()\n      ctx.update(b"\\x00")\n      ctx.update(left)',
+    // Collapses leaf and node domains in the Sha256 branch - the same
+    // property test also pins the node prefix to 0x01, so this mutation
+    // must be caught.
     expectHint: "0x01 domain separator",
   },
   {

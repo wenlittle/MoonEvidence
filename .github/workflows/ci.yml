@@ -14,6 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history needed for check-metrics (git rev-list --count HEAD)
+          fetch-depth: 0
 
       - name: Install MoonBit CLI
         run: |
@@ -23,10 +26,24 @@ jobs:
       - name: Show toolchain versions
         run: moon version --all
 
+      # Metric drift guard: asserts that quantified numbers in docs (test
+      # count, line count, commit count, package count) match the actual
+      # repository state. Prevents "docs claim 265 tests, repo has 277"
+      # drift. Exit 1 on mismatch.
+      - name: Metric drift guard (check-metrics)
+        run: node tools/check-metrics.mjs
+
       - name: Fixture rot guard (regenerate, must be byte-identical)
         run: |
           node tools/gen-fixtures.mjs
           git diff --exit-code tests/fixtures/packs
+
+      # Cross-verification: re-computes digests and Merkle roots for all
+      # golden fixture packs using Node.js crypto (independent of MoonBit),
+      # then asserts they match the manifest's recorded values. Catches
+      # digest/Merkle implementation drift between MoonBit and the reference.
+      - name: Cross-verify golden packs (Node crypto vs MoonBit)
+        run: node tools/cross-verify.mjs
 
       - name: Type check
         run: moon check
@@ -69,11 +86,16 @@ jobs:
       - name: Browser adapter smoke (node over js artifact)
         run: node tools/smoke-api.mjs
 
-  # Informational benchmark job: tracks SHA-256 throughput and end-to-end
-  # verify cost (RESULTS_LOG step 8 task 4). Non-blocking by design - benchmark
-  # timing is inherently noisy on shared runners, so a regression here must
-  # not break the main CI flow. `moon bench` exists and was run locally on the
-  # js target; if a future toolchain removes it, this job simply fails soft.
+      # Mutation testing: rewrites one source byte at a time, runs the test
+      # suite, and confirms at least one test went red. If a mutation slips
+      # through (tests stay green), the test suite has a blind spot. This is
+      # a blocking gate — mutation escapes are real test-quality bugs.
+      - name: Mutation testing (mutation-check)
+        run: node tools/mutation-check.mjs
+
+  # Informational benchmark job (P2-2: explicitly non-blocking). Benchmark
+  # timing is inherently noisy on shared runners, so regressions here must
+  # not break the main CI flow. See RESULTS_LOG for local benchmark results.
   bench:
     needs: check-test-build
     runs-on: ubuntu-latest

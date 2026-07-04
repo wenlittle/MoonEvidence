@@ -213,6 +213,14 @@ const formatDigestResult = (r) => {
       actual:   ${r.actual}`;
 };
 
+// A pack is "negative" when its name declares an intentional defect.
+// These packs MUST fail verification — their failure is the expected
+// outcome and counts as a PASS for the cross-verify gate.
+const isNegativePack = (name) =>
+  name.startsWith("bad-") ||
+  name.startsWith("tampered-") ||
+  name.startsWith("missing-");
+
 const printReport = (report) => {
   const label = report.pack ?? report.manifest;
   const verdict = report.ok ? "PASS" : "FAIL";
@@ -289,8 +297,16 @@ const main = (argv) => {
       target.kind === "pack"
         ? verifyPackDir(target.path)
         : verifyManifestFile(target.path);
+    // For negative packs (intentionally broken), a verification failure
+    // is the expected outcome — invert the pass/fail semantics.
+    const packName = report.pack ?? report.manifest;
+    const expectedFail = target.kind === "pack" && isNegativePack(packName);
+    const passed = expectedFail ? !report.ok : report.ok;
     printReport(report);
-    if (!report.ok) failures += 1;
+    if (expectedFail) {
+      console.log(`    (negative pack: ${passed ? "correctly rejected" : "WRONGLY accepted"})`);
+    }
+    if (!passed) failures += 1;
   }
 
   console.log("");

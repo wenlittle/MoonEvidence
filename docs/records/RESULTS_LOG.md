@@ -693,6 +693,27 @@ User said "那就继续改吧" — execute the 5-phase plan from the round-3 hea
 | `node tools/cross-verify.mjs` | 10/10 passed |
 | `node tools/mutation-check.mjs` | 3 caught / 0 slipped / 0 errored |
 
+## 2026-07-05 Asia/Shanghai (round 4 health check: 5-round iteration, plan-only)
+
+### Round 4 Health Check: competitiveness + usability + UI deep audit (no code changes)
+
+User asked for a fresh 5-round "competitiveness / innovation / usability / testing / UI" health check, plan-only. Emphasis: "从根本出发，不搞表面". 3 parallel deep-audit agents covered (1) competitiveness+innovation truthfulness, (2) usability+test quality, (3) UI+Trust Workbench.
+
+| Field | Result |
+| --- | --- |
+| Source | 3 parallel Explore agents reading src/ + demo/web/ + docs/ + tools/; each finding has file:line evidence |
+| Method | 5 rounds: baseline snapshot → 3-way parallel deep audit → root-cause clustering → priority calibration → plan consolidation |
+| Baseline | 94 commits / 10438 lines (impl 4896 + test 5542) / 275 tests pass js+wasm-gc / check-metrics 19/19 / cross-verify 10/10 / mutation 3/3 / smoke 24/24 |
+| New root causes (5) | α 纸面功能（代码存在但用户够不到）：incremental verify + audit signatures + Tamper Lab 内嵌 + Ed25519碰撞检查缺口；β create半成品（不递归+零黑盒+路径不一致）；γ demo主流程损坏（Verify拖目录坏+示例404+DEMO_SCRIPT矛盾）；δ 安全演示降级（无CSPRNG+mutation只覆盖Merkle+SHA-512缺长向量）；ε 声称夸大（store"类Git"+包名大写+Barrett命名+README链接失效） |
+| P0 (8) | R4-γ1 Verify拖目录逻辑坏；R4-γ2 tamper-lab示例404；R4-γ3 DEMO_SCRIPT三处矛盾；R4-α3 Tamper Lab空壳；R4-α1 增量验证不可达；R4-α2 审计签名不可达；R4-β1 create静默丢子目录；R4-δ1 demo每次相同密钥 |
+| P1 (9) | R4-α4 Ed25519碰撞检查缺口；R4-β2 create零黑盒；R4-β3 路径不一致；R4-γ4 Verify结果裸JSON；R4-δ2 mutation只覆盖Merkle；R4-ε1 store"类Git"夸大；R4-ε2 包名大写；+ R4-γ5 alert() + R4-γ6 无禁用态 |
+| P2 (5) | R4-β4 create无symlink防护；R4-δ3 SHA-512缺长向量；R4-ε3 Barrett命名；R4-ε4 README链接失效；R4-ε5 check-metrics 41硬编码 |
+| Verified true | RFC 8785 JCS (Appendix B 23 vectors, UTF-16 code unit sort), Merkle RFC 6962 style, SHA-256 FIPS 180-4 full vectors, Ed25519 RFC 8032 KAT + anti-malleability, 41 CLI black-box cases real, front-end calls real MoonBit artifact (no mock), crypto pure MoonBit no FFI, Tamper Lab SVG visualization is killer feature |
+| Scores (4-dim) | competitiveness+innovation 6.0 | usability+testing 6.0 | UI+demo 4.5 | docs+governance 7.5 | composite 6.0 |
+| Plan | docs/plans/2026-07-05-round4-health-check-and-improvement-plan.md — 5 phases: (0) demo阻断修复; (1) 功能可达性; (2) create补完; (3) 安全测试加固; (4) 声称诚实+竞争力收尾 |
+| Why score dropped | Round 3 focused on "engineering core" (SHA-512/API/CI/security), score rose to 6.3. Round 4 focused on "user/judge actual experience", found demo main flow broken + create half-done + features unreachable — invisible in engineering-core view, blocking in user-experience view. Project is "strong core, unpolished surface" |
+| Confidence | High — every P0/P1 has file:line evidence from direct source read |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

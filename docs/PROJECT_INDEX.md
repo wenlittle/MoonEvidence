@@ -24,8 +24,8 @@ Build a reusable MoonBit library and CLI for trusted evidence pack verification:
 | `docs/GUIDE.md` | User guide with three real scenarios |
 | `docs/DEMO_SCRIPT.md` | 5-minute presentation demo script |
 | `docs/ARCHITECTURE.md` | Layered package structure and frozen public API |
-| `docs/DEVELOPMENT_REPORT.md` | Development report (early feature-list version; authoritative acceptance report in `docs/report/`) |
-| `docs/report/DEVELOPMENT_REPORT.md` | Competition acceptance development report (authoritative) |
+| `docs/DEVELOPMENT_REPORT.md` | Redirect to the authoritative report (single line) |
+| `docs/report/DEVELOPMENT_REPORT.md` | Authoritative development report (merged: feature list + AI collaboration + engineering quality) |
 | `docs/spec/EVIDENCE_PACK_SPEC.md` | Minimal evidence pack schema and verification semantics |
 | `docs/ENVIRONMENT.md` | Toolchain prerequisites and current environment state |
 | `docs/CODE_GUIDELINES.md` | Code style, comments, tests, and public API rules |

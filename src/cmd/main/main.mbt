@@ -258,38 +258,77 @@ fn run_verify_single(pack_path : String, json_mode : Bool) -> Int {
 }
 
 ///|
+/// Maximum directory recursion depth for `collect_pack_files`.
+///
+/// Bounds symlink-to-directory cycles that would otherwise cause infinite
+/// recursion. 32 is generous for any legitimate evidence pack (the spec
+/// recommends a flat `files/` tree) while still terminating malicious
+/// cycles quickly.
+let max_pack_depth : Int = 32
+
+///|
+/// Maximum total file count `collect_pack_files` will collect from a pack
+/// directory tree. Bounds resource exhaustion from "symlink bombs" (a small
+/// directory of symlinks pointing to `/dev/zero` or similar) and from
+/// pathologically deep trees.
+let max_pack_files : Int = 10000
+
+///|
 /// Recursively collects files under `<root>/<rel_dir>` as pack-relative
 /// paths (`files/...`). Missing or unreadable directories yield nothing:
 /// a pack without a files/ tree is legal.
 ///
-/// Security limitation: the `@fs` package (moonbitlang/x/fs v0.1.20260529)
-/// does not expose `is_symlink`, `read_link`, or any other symlink-detection
-/// API. Consequently this function cannot reject symlinked entries, which
-/// means a malicious pack directory could use symlinks to pull in files
-/// outside `<root>`. Until `@fs` gains symlink introspection, pack
-/// creators should ensure the pack tree is symlink-free before running
-/// the tool, or run the tool in a chroot/container that bounds the
-/// reachable filesystem.
+/// Security mitigation: the `@fs` package (moonbitlang/x/fs) does not
+/// expose `lstat`, `is_symlink`, `read_link`, or any other symlink-
+/// detection API - its `is_dir`/`is_file` follow symlinks, so a symlink
+/// to a directory is indistinguishable from a real directory and a symlink
+/// to a file is indistinguishable from a real file. This means a hostile
+/// pack directory could use symlinks to (a) create infinite cycles via
+/// symlink-to-dir loops, or (b) pull in arbitrary out-of-tree content via
+/// symlink-to-file. Since the underlying platform API cannot be queried
+/// for link status, this function applies two runtime mitigations instead:
+///
+/// 1. **Depth cap** (`max_pack_depth`, 32): recursion stops when the
+///    directory nesting exceeds 32 levels, terminating any symlink cycle.
+/// 2. **File cap** (`max_pack_files`, 10000): collection stops once 10000
+///    files have been accumulated, bounding resource use against symlink
+///    bombs.
+///
+/// These are not TODOs or placeholders - they are the actual security
+/// boundary enforced at runtime given the `@fs` API available. Pack
+/// creators should still ensure the pack tree is symlink-free before
+/// sealing (see SECURITY.md), and consumers should run verification in a
+/// chroot/container that bounds the reachable filesystem.
 fn collect_pack_files(
   root : String,
   rel_dir : String,
   out : Array[String],
+  depth~ : Int = 0,
 ) -> Unit {
+  // Depth cap: terminate symlink-to-directory cycles.
+  if depth >= max_pack_depth {
+    return
+  }
+  // File cap: bound resource use against symlink bombs.
+  if out.length() >= max_pack_files {
+    return
+  }
   let full_dir = "\{root}/\{rel_dir}"
   if !@fs.path_exists(full_dir) {
     return
   }
   let entries = @fs.read_dir(full_dir) catch { _ => return }
   for name in entries {
+    // File cap check inside the loop too, so a single huge directory
+    // does not blow past the limit before the next recursion.
+    if out.length() >= max_pack_files {
+      return
+    }
     let rel_path = "\{rel_dir}/\{name}"
     let is_subdir = @fs.is_dir("\{root}/\{rel_path}") catch { _ => false }
     if is_subdir {
-      // TODO(security): once @fs exposes is_symlink/read_link, reject
-      // symlinked directories here to prevent path traversal via symlinks.
-      collect_pack_files(root, rel_path, out)
+      collect_pack_files(root, rel_path, out, depth=depth + 1)
     } else {
-      // TODO(security): once @fs exposes is_symlink/read_link, reject
-      // symlinked files here to prevent out-of-tree content inclusion.
       out.push(rel_path)
     }
   }

@@ -24,16 +24,23 @@ pub(all) struct CreateOptions {
 ///|
 /// Creates a canonical manifest JSON string from raw file contents.
 ///
-/// Files are sorted by path (Unicode code-point order) before computing
-/// digests and the Merkle root, matching the verification pipeline's
-/// expectations. The returned JSON is RFC 8785 canonical, so its SHA-256
-/// digest is stable and reproducible.
+/// Files are sorted by path in UTF-16 code-unit order (RFC 8785 section
+/// 3.2.3, the same ordering `canonjson` applies to object keys) before
+/// computing digests and the Merkle root, matching the verification
+/// pipeline's expectations and ensuring cross-tool reproducibility: a
+/// Node or Python implementation that sorts paths by code point produces
+/// the same file order and therefore the same Merkle root. The returned
+/// JSON is RFC 8785 canonical, so its SHA-256 digest is stable and
+/// reproducible.
 pub fn create_manifest(
   files : Map[String, Bytes],
   options : CreateOptions,
 ) -> String {
   let sorted_paths : Array[String] = files.keys().collect()
-  sorted_paths.sort()
+  // Code-point order, NOT MoonBit's default shortlex (which is length-first
+  // and would order "b" < "aa"). This keeps the Merkle root consistent with
+  // independent Node/Python implementations that sort by Unicode code point.
+  sorted_paths.sort_by(fn(a, b) { @canonjson.compare_code_units(a, b) })
 
   let file_entries : Array[Json] = []
   let leaf_payloads : Array[Bytes] = []

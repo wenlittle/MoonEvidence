@@ -152,3 +152,34 @@ labeled parameter `~expected_manifest_digest?` (manifest-digest assertion,
 E2004) and its return type is spelled `@diag.VerifyReport` to match the
 actual code.
 
+## 0.3.1 Root-Cause Hardening Notes (2026-07-04)
+
+The 2026-07-04 second-round root-cause fix tightened the crypto and
+verify/create paths without changing any frozen v2 signature. The notes
+below record the behavioural changes; see `CHANGELOG.md` 0.3.1 and
+`DECISION_LOG.md` for the full rationale.
+
+### Crypto hardening (Ed25519)
+
+- `ed25519_verify` now performs Barrett reduction for the scalar modulus
+  step (replacing the previous subtractive loop) and `point_decode` rejects
+  low-order points and non-canonical encodings (cofactor / small-subgroup
+  defence). These are internal changes; the three public `crypto` signatures
+  above are unchanged.
+- Audit-log signatures (`audit.sign_last` / `verify_signatures`) now sign the
+  RFC 8785 canonical JSON form of the entry, so the signed byte sequence is
+  stable and unambiguous. Again the v2 signatures are unchanged.
+
+### E3002 error-code contract
+
+E3002 (proof format invalid) is reserved in the error-code contract. The
+MVP CLI ships no `proofs/` consumer, so no test fires E3002; the incremental
+path was corrected to surface E3003 (root mismatch), not E3002. The final
+disposition of E3002 (implement an inclusion-proof CLI exposing
+`prove` / `check-proof`, or remove the reserved code) is recorded in the
+latest `DECISION_LOG.md` entry. If the decision is "implement", the merkle
+inclusion-proof API (`@merkle.verify_inclusion` already exists in the v1
+freeze) will be surfaced as CLI subcommands; if "remove", the error-code
+table in `docs/spec/EVIDENCE_PACK_SPEC.md` will drop E3002. Either way the
+frozen v2 signatures above are not loosened.
+

@@ -91,7 +91,7 @@ CLI, in CI's three-backend matrix, and in the browser.
 - [Architecture](docs/ARCHITECTURE.md)
 - [Evidence Pack Specification](docs/spec/EVIDENCE_PACK_SPEC.md)
 - [Roadmap](docs/ROADMAP.md)
-- [Development Report](docs/DEVELOPMENT_REPORT.md)
+- [Development Report](docs/report/DEVELOPMENT_REPORT.md)
 
 ### Engineering & Quality
 - [Project Index](docs/PROJECT_INDEX.md)

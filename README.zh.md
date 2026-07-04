@@ -210,7 +210,7 @@ node tools/smoke-api.mjs
 - [架构说明](docs/ARCHITECTURE.md)
 - [证据包规范](docs/spec/EVIDENCE_PACK_SPEC.md)
 - [开发路线图](docs/ROADMAP.md)
-- [开发报告](docs/DEVELOPMENT_REPORT.md)
+- [开发报告](docs/report/DEVELOPMENT_REPORT.md)
 
 ### 工程与质量
 - [项目索引](docs/PROJECT_INDEX.md)

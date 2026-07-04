@@ -128,7 +128,13 @@ fn render(value : Json, out : StringBuilder) -> Unit raise CanonError {
 /// shortlex (length first), which would order `"b" < "aa"` and violate
 /// RFC 8785. Surrogate halves are compared as raw code units, exactly as
 /// the spec requires.
-fn compare_code_units(left : String, right : String) -> Int {
+///
+/// Exposed as `pub` so that other packages (notably `create`) can reuse
+/// the exact same code-point ordering for their own sorted collections
+/// (file paths, etc.), guaranteeing cross-tool interoperability: a
+/// Node/Python reimplementation that sorts by UTF-16 code units will
+/// produce the same order as MoonBit.
+pub fn compare_code_units(left : String, right : String) -> Int {
   let left_length = left.length()
   let right_length = right.length()
   let shared = if left_length < right_length {

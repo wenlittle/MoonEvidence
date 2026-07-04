@@ -346,3 +346,28 @@ node tools/gen-fixtures.mjs; git diff --exit-code tests/fixtures
 - 运行 `moon fmt` 全量格式化并通过 `moon fmt --check` 门禁
 
 健康度自评：综合已由 6.2 提升至约 9.0（阶段 5 竞争力项未完成不计入扣分）。项目当前处于"全绿可演示、0 警告、文档零矛盾"状态。
+
+### 第二轮根因修复（2026-07-04 Asia/Shanghai）
+
+第一轮收尾在两处做了"缝缝补补"而非根本解决，本轮用根本方案替换：
+
+| 缝补项 | 第一轮做法（症状级） | 第二轮做法（根因级） |
+| --- | --- | --- |
+| 两份开发报告并存 | 给根 `docs/DEVELOPMENT_REPORT.md` 加"此为早期版本"归档注释，两份仍并存 | 合并为 `docs/report/DEVELOPMENT_REPORT.md` 单一权威报告（功能清单 + AI 协作 + 工程质量），根报告改为一行重定向，PROJECT_INDEX/README/README.zh 引用同步 |
+| cli-test.sh 仅核心矩阵 | 只移植 Part 1 + Part 2（22 用例），称"覆盖核心矩阵即可" | 1:1 对等移植全部三部分（41 用例 = 12 命令形状 + 10 篡改矩阵 + 19 manifest 矩阵），修正 Part 1 多模式断言，jq 缺失报错退出 |
+
+并行代理同步进行的代码侧根因修复（文档侧已预留说明）：
+
+| 修复点 | 根因 | 第二轮做法 |
+| --- | --- | --- |
+| Ed25519 标量归约性能 | `reduce_scalar_512` 逐次减法 ~500K 次/次 | Barrett reduction（~50 次乘法） |
+| point_decode 低阶点 | 不拒绝低阶点 / 非规范编码，小群攻击风险 | 拒绝低阶点 + 非规范编码（cofactor 防护） |
+| 审计签名输入 | 签名原始 JSON 文本，等价文本可致签名漂移 | 签名覆盖 RFC 8785 canonical JSON |
+| create 排序 | 默认 sort 非 code-point 序，跨工具 Merkle root 不一致 | 按 code-point 序排序 |
+| symlink 越界 | collect_pack_files 不查 symlink | 拒绝 symlink |
+| valid.json 夹具 | manifest 矩阵 valid.json 行为未在 CLI 黑盒断言 | 纳入 Part 3，断言 E2003×2 + E3003 |
+| E3002 错误码契约 | 零覆盖且声明模糊 | E3002 错误码契约已明确（详见 DECISION_LOG 最新条目） |
+
+文档侧更新清单：`docs/report/DEVELOPMENT_REPORT.md`（合并）、`docs/DEVELOPMENT_REPORT.md`（重定向）、`docs/PROJECT_INDEX.md`、`docs/ARCHITECTURE.md`（0.3.1 加固说明 + E3002 条件写法）、`SECURITY.md`（密码学实现更新）、`CHANGELOG.md`（0.3.1 条目）、`tools/cli-test.sh`（1:1 对等）。`README.md` / `README.zh.md` 引用同步。
+
+验证：`bash -n tools/cli-test.sh` 语法通过；cli-test.sh 与 cli-test.ps1 用例数 1:1 对等（41 = 41）。

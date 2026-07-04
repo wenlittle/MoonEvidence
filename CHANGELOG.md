@@ -2,6 +2,21 @@
 
 本文件记录 MoonEvidence 的版本演进。版本号遵循语义化版本（SemVer）。
 
+## [0.4.0] - 2026-07-04
+
+可视化公开：把 Merkle 树从内部数据结构暴露为可观察、可验证的运行时对象。
+
+### Added
+
+- **Merkle 完整树物化**：`src/merkle` 新增 `compute_tree(leaves)`（→ `MerkleTree`）、`tree.root()`、`tree.level(i)`、`tree.height()`、`tree.leaf_count()`、`tree.leaf_path(index)` API。树高度 = 内部层数；奇数叶节点被无损提升到上一层（字节相等的复制，不重新哈希）。
+- **Merkle 路径节点**：`PathStep { level, node_index }` 描述从叶到根的完整爬升路径，含边界检查与索引校验。
+- **`compute_merkle_tree` 浏览器适配**：JS 字符串接口新增 `compute_merkle_tree(request)`，输出 `{ok, tree:{leaf_count, height, levels, root:{recorded, actual, matches}, leaves_meta, example_path}, error?}`，便于可视化 audit 视图直接消费。
+
+### Tests
+
+- `src/merkle/merkle_wbtest.mbt` +8 树形与路径覆盖（含 1/2/3/4/5/7/8/16 形状、根一致性、空树、边界索引）。
+- `src/api/api_wbtest.mbt` +4 compute_merkle_tree 白盒（金色包、空 files、坏请求、根不匹配、path 长度）。总数 246 → 251。
+
 ## [0.3.1] - 2026-07-04
 
 第二轮根因修复：消除第一轮"归档加注释 / 核心矩阵移植"式的缝补，改用根本方案。本条目仅记录文档与测试脚本侧的根因修复；crypto 与 verify/create 代码侧的根因修复由并行代理同步进行。

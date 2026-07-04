@@ -374,3 +374,141 @@ test "dynamically built single-file pack verifies end to end" {
   assert_true(response_ok(response))
   assert_eq(report_codes(response).length(), 0)
 }
+
+// ---------------------------------------------------------------------------
+// compute_merkle_tree visualization adapter
+// ---------------------------------------------------------------------------
+
+///|
+fn tree_response_fields(response : String) -> Map[String, Json] raise {
+  guard @json.parse(response) is Object(fields) else {
+    fail("compute_merkle_tree response is not a JSON object: \{response}")
+  }
+  fields
+}
+
+///|
+fn tree_request(manifest : String) -> String {
+  make_request(manifest=manifest)
+}
+
+///|
+test "compute_merkle_tree golden pack reports three levels and matching root" {
+  let response = compute_merkle_tree(
+    tree_request(golden_manifest),
+  )
+  let fields = tree_response_fields(response) catch {
+    err => fail("response not JSON: \{err}")
+  }
+  guard fields.get("ok") is Some(True) else {
+    fail("compute_merkle_tree golden: not ok: \{response}")
+  }
+  // Two files -> one promoted-leaf -> two levels, two leaves at level 0.
+  guard fields.get("tree") is Some(Object(tree)) else {
+    fail("response has no tree object: \{response}")
+  }
+  guard tree.get("leaf_count") is Some(Number(lc, ..)) &&
+        lc.to_int() == 2 else {
+    fail("leaf_count should be 2: \{response}")
+  }
+  guard tree.get("height") is Some(Number(h, ..)) && h.to_int() == 2 else {
+    fail("height should be 2: \{response}")
+  }
+  guard tree.get("levels") is Some(Array(levels)) && levels.length() == 2 else {
+    fail("levels length should be 2: \{response}")
+  }
+  // Level 0: two leaf hashes.
+  guard levels[0] is Array(leaves) && leaves.length() == 2 else {
+    fail("level 0 should have 2 nodes: \{response}")
+  }
+  // Root comparison reports a match.
+  guard tree.get("root") is Some(Object(root)) else {
+    fail("root object missing: \{response}")
+  }
+  guard root.get("matches") is Some(True) else {
+    fail("root.matches should be true for golden pack: \{response}")
+  }
+  guard root.get("recorded") is Some(String(recorded)) else {
+    fail("root.recorded missing: \{response}")
+  }
+  // Same as the manifest's recorded merkle_root.
+  assert_true(recorded.has_prefix("sha256:"))
+}
+
+///|
+test "compute_merkle_tree empty files returns null tree" {
+  let response = compute_merkle_tree(tree_request(empty_manifest))
+  let fields = tree_response_fields(response) catch {
+    err => fail("response not JSON: \{err}")
+  }
+  guard fields.get("ok") is Some(True) else {
+    fail("empty manifest should still be ok: \{response}")
+  }
+  guard fields.get("tree") is Some(Object(tree)) else {
+    fail("response has no tree object: \{response}")
+  }
+  guard tree.get("leaf_count") is Some(Number(lc, ..)) && lc.to_int() == 0 else {
+    fail("empty manifest leaf_count should be 0: \{response}")
+  }
+  guard tree.get("root") is Some(Null) else {
+    fail("empty manifest root should be null: \{response}")
+  }
+}
+
+///|
+test "compute_merkle_tree bad request rejects with ok=false" {
+  let response = compute_merkle_tree("{ not json")
+  let fields = tree_response_fields(response) catch {
+    err => fail("response not JSON: \{err}")
+  }
+  guard fields.get("ok") is Some(False) else {
+    fail("bad request should be ok=false: \{response}")
+  }
+  guard fields.get("error") is Some(String(_)) else {
+    fail("bad request should carry an error field: \{response}")
+  }
+}
+
+///|
+test "compute_merkle_tree tampered manifest root mismatches recorded" {
+  // Replace a.txt digest with the wrong digest: recorded root no longer matches.
+  let tampered = "{\n  \"schema\": \"moon-evidence/v0\",\n  \"subject\": { \"id\": \"golden-pack\", \"type\": \"dataset\" },\n  \"hash_algorithm\": \"sha256\",\n  \"files\": [\n    {\n      \"path\": \"files/a.txt\",\n      \"size\": 12,\n      \"digest\": \"sha256:0000000000000000000000000000000000000000000000000000000000000000\"\n    },\n    {\n      \"path\": \"files/b.bin\",\n      \"size\": 0,\n      \"digest\": \"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"\n    }\n  ],\n  \"merkle_root\": \"sha256:07a4f4bf0c83169b056f07acbf3483a5e418e58e09e942a3f06421f9cca316a5\",\n  \"version\": { \"id\": \"v1\" }\n}"
+  let response = compute_merkle_tree(tree_request(tampered))
+  let fields = tree_response_fields(response) catch {
+    err => fail("response not JSON: \{err}")
+  }
+  guard fields.get("ok") is Some(True) else {
+    fail("compute_merkle_tree does not fail: \{response}")
+  }
+  guard fields.get("tree") is Some(Object(tree)) else {
+    fail("response has no tree: \{response}")
+  }
+  guard tree.get("root") is Some(Object(root)) else {
+    fail("root missing: \{response}")
+  }
+  guard root.get("matches") is Some(False) else {
+    fail("tampered digest should make root.matches=false: \{response}")
+  }
+}
+
+///|
+test "compute_merkle_tree paths array covers the tree height" {
+  let response = compute_merkle_tree(tree_request(golden_manifest))
+  let fields = tree_response_fields(response) catch {
+    err => fail("response not JSON: \{err}")
+  }
+  // example_path is the spine for leaf 0 (2 levels -> 2 entries).
+  guard fields.get("example_path") is Some(Array(path)) && path.length() == 2 else {
+    fail("example_path should have 2 entries: \{response}")
+  }
+  guard path[0] is Object(first) &&
+        first.get("level") is Some(Number(fl, ..)) && fl.to_int() == 0 &&
+        first.get("node_index") is Some(Number(fi, ..)) && fi.to_int() == 0 else {
+    fail("first spine entry should be level 0 index 0: \{response}")
+  }
+  guard path[1] is Object(last) &&
+        last.get("level") is Some(Number(ll, ..)) && ll.to_int() == 1 &&
+        last.get("node_index") is Some(Number(li, ..)) && li.to_int() == 0 else {
+    fail("last spine entry should be level 1 index 0 (root): \{response}")
+  }
+}

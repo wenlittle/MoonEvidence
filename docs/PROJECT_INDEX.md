@@ -37,7 +37,8 @@ Build a reusable MoonBit library and CLI for trusted evidence pack verification:
 | `docs/records/ACCEPTANCE_CHECKLIST.md` | Acceptance requirements self-check |
 | `docs/research/MOONCAKES_COLLISION_CHECK.md` | Mooncakes keyword search and collision-risk record |
 | `docs/plans/2026-06-10-competition-master-plan.md` | Competition master plan: innovation points, step-by-step roadmap, and delivery checklist |
-| `docs/plans/2026-07-04-health-check-and-improvement-plan.md` | 2026-07-04 health check and improvement plan |
+| `docs/plans/2026-07-04-health-check-and-improvement-plan.md` | 2026-07-04 第 1 轮健康体检与改进计划（阶段 0-4 已执行） |
+| `docs/plans/2026-07-04-health-check-round2-and-improvement-plan.md` | 2026-07-04 第 2 轮健康体检与改进计划（5 轮扫描，仅计划不改代码） |
 | `tools/env-check.ps1` | Read-only local environment check script |
 
 ## Source Traceability Rule

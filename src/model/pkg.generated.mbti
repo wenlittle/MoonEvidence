@@ -1,0 +1,61 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "starlittle/MoonEvidence/src/model"
+
+import {
+  "moonbitlang/core/debug",
+  "starlittle/MoonEvidence/src/digest",
+}
+
+// Values
+pub fn parse_version_chain(String) -> Array[VersionNode] raise ModelError
+
+// Errors
+pub(all) suberror ModelError {
+  ParseFailed(String)
+  MissingField(String)
+  InvalidField(String, String)
+  UnsupportedSchema(String, String)
+  UnsupportedAlgorithm(String, String)
+  InvalidDigest(String, String)
+} derive(Eq, @debug.Debug)
+pub fn ModelError::detail(Self) -> String
+pub fn ModelError::error_code(Self) -> String
+pub fn ModelError::field_path(Self) -> String
+pub impl Show for ModelError
+
+// Types and methods
+pub(all) struct FileEntry {
+  path : String
+  size : Int64
+  digest : @digest.Digest
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Manifest {
+  schema : String
+  subject : Subject
+  algorithm : @digest.HashAlgorithm
+  files : Array[FileEntry]
+  merkle_root : @digest.Digest?
+  version : VersionRef
+} derive(Eq, @debug.Debug)
+pub fn Manifest::parse(String) -> Self raise ModelError
+
+pub(all) struct Subject {
+  id : String
+  kind : String
+} derive(Eq, @debug.Debug)
+
+pub(all) struct VersionNode {
+  id : String
+  parent : String?
+} derive(Eq, @debug.Debug)
+
+pub(all) struct VersionRef {
+  id : String
+  parent : String?
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
+

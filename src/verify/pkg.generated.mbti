@@ -1,0 +1,37 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "starlittle/MoonEvidence/src/verify"
+
+import {
+  "moonbitlang/core/debug",
+  "starlittle/MoonEvidence/src/diag",
+  "starlittle/MoonEvidence/src/model",
+}
+
+// Values
+pub fn verify_chain_text(String, path~ : String) -> Array[@diag.Finding]
+
+pub fn verify_manifest(String, Map[String, Bytes], expected_manifest_digest? : String) -> @diag.VerifyReport
+
+pub fn verify_manifest_incremental(String, Map[String, Bytes], Map[String, String]) -> IncrementalReport
+
+pub fn verify_version_chain(Array[@model.VersionNode]) -> ChainReport
+
+// Errors
+
+// Types and methods
+pub(all) struct ChainReport {
+  ok : Bool
+  ordered_ids : Array[String]
+  findings : Array[@diag.Finding]
+} derive(Eq, @debug.Debug)
+
+pub(all) struct IncrementalReport {
+  report : @diag.VerifyReport
+  files_rehashed : Int
+  files_skipped : Int
+}
+
+// Type aliases
+
+// Traits
+

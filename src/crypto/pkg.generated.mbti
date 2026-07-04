@@ -1,0 +1,51 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "starlittle/MoonEvidence/src/crypto"
+
+// Values
+pub fn ed25519_public_key(Bytes) -> Bytes
+
+pub fn ed25519_sign(Bytes, Bytes) -> Bytes
+
+pub fn ed25519_verify(Bytes, Bytes, Bytes) -> Bool
+
+pub fn point_decode(Bytes) -> Point?
+
+// Errors
+
+// Types and methods
+pub struct Fe {
+  limbs : FixedArray[UInt64]
+}
+pub fn Fe::add(Self, Self) -> Self
+pub fn Fe::eq(Self, Self) -> Bool
+pub fn Fe::from_bytes(Bytes) -> Self
+pub fn Fe::from_small(UInt64) -> Self
+pub fn Fe::invert(Self) -> Self
+pub fn Fe::mul(Self, Self) -> Self
+pub fn Fe::one() -> Self
+pub fn Fe::pow2(Self, Int) -> Self
+pub fn Fe::square(Self) -> Self
+pub fn Fe::sub(Self, Self) -> Self
+pub fn Fe::to_bytes(Self) -> Bytes
+pub fn Fe::zero() -> Self
+
+pub struct Point {
+  x : Fe
+  y : Fe
+  z : Fe
+  t : Fe
+}
+pub fn Point::add(Self, Self) -> Self
+pub fn Point::base_point() -> Self
+pub fn Point::double(Self) -> Self
+pub fn Point::encode(Self) -> Bytes
+pub fn Point::eq(Self, Self) -> Bool
+pub fn Point::from_affine(Fe, Fe) -> Self
+pub fn Point::identity() -> Self
+pub fn Point::is_identity(Self) -> Bool
+pub fn Point::scalar_mul(Self, Bytes) -> Self
+
+// Type aliases
+
+// Traits
+

@@ -1,0 +1,35 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "starlittle/MoonEvidence/src/store"
+
+// Values
+pub fn deduplicate(Map[String, Bytes]) -> DeduplicateResult
+
+// Errors
+
+// Types and methods
+pub(all) struct DeduplicateResult {
+  index : Map[String, String]
+  store : ObjectStore
+  total_files : Int
+  unique_objects : Int
+  bytes_saved : Int64
+}
+pub fn DeduplicateResult::reconstruct(Self) -> Map[String, Bytes]
+pub fn DeduplicateResult::to_json(Self) -> String
+pub fn DeduplicateResult::verify_integrity(Self) -> Bool
+
+pub struct ObjectStore {
+  objects : Map[String, Bytes]
+}
+pub fn ObjectStore::count(Self) -> Int
+pub fn ObjectStore::get(Self, String) -> Bytes?
+pub fn ObjectStore::has(Self, String) -> Bool
+pub fn ObjectStore::list_hashes(Self) -> Array[String]
+pub fn ObjectStore::new() -> Self
+pub fn ObjectStore::put(Self, Bytes) -> String
+pub fn ObjectStore::remove(Self, String) -> Bool
+
+// Type aliases
+
+// Traits
+

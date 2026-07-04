@@ -1,0 +1,47 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "starlittle/MoonEvidence/src/diag"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn explain(VerifyReport) -> String
+
+pub fn to_json(VerifyReport) -> String
+
+// Errors
+
+// Types and methods
+pub(all) struct CheckStats {
+  files_total : Int
+  files_passed : Int
+  merkle_checked : Bool
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Finding {
+  code : String
+  severity : Severity
+  path : String
+  message : String
+} derive(Eq, @debug.Debug)
+pub impl Show for Finding
+
+pub(all) enum Severity {
+  Error
+  Warning
+} derive(Eq, @debug.Debug)
+pub impl Show for Severity
+
+pub(all) struct VerifyReport {
+  ok : Bool
+  findings : Array[Finding]
+  checked : CheckStats
+} derive(Eq, @debug.Debug)
+pub fn VerifyReport::error_count(Self) -> Int
+pub fn VerifyReport::warning_count(Self) -> Int
+
+// Type aliases
+
+// Traits
+

@@ -1,0 +1,29 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "starlittle/MoonEvidence/src/create"
+
+import {
+  "starlittle/MoonEvidence/src/digest",
+}
+
+// Values
+pub fn create_manifest(Map[String, Bytes], CreateOptions) -> String
+
+// Errors
+
+// Types and methods
+pub(all) struct CreateOptions {
+  subject : SubjectInfo
+  algorithm : @digest.HashAlgorithm
+  version_id : String
+  version_parent : String?
+}
+
+pub(all) struct SubjectInfo {
+  id : String
+  kind : String
+}
+
+// Type aliases
+
+// Traits
+

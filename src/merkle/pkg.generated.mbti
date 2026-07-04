@@ -1,0 +1,54 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "starlittle/MoonEvidence/src/merkle"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn compute_proof(Array[Bytes], Int) -> Array[ProofStep]?
+
+pub fn compute_root(Array[Bytes]) -> Bytes?
+
+pub fn compute_tree(Array[Bytes]) -> MerkleTree?
+
+pub fn leaf_hash(Bytes) -> Bytes
+
+pub fn node_hash(Bytes, Bytes) -> Bytes
+
+pub fn verify_inclusion(Bytes, Array[ProofStep], Bytes) -> Bool
+
+// Errors
+
+// Types and methods
+pub(all) struct MerkleTree {
+  levels : Array[Array[Bytes]]
+} derive(Eq)
+pub fn MerkleTree::height(Self) -> Int
+pub fn MerkleTree::leaf_count(Self) -> Int
+pub fn MerkleTree::leaf_path(Self, Int) -> Array[PathStep]?
+pub fn MerkleTree::level(Self, Int) -> Array[Bytes]
+pub fn MerkleTree::root(Self) -> Bytes?
+
+pub(all) struct PathStep {
+  level : Int
+  node_index : Int
+} derive(Eq, @debug.Debug)
+pub impl Show for PathStep
+
+pub(all) struct ProofStep {
+  sibling : Bytes
+  side : Side
+} derive(Eq, @debug.Debug)
+pub impl Show for ProofStep
+
+pub(all) enum Side {
+  Left
+  Right
+} derive(Eq, @debug.Debug)
+pub impl Show for Side
+
+// Type aliases
+
+// Traits
+

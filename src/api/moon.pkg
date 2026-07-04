@@ -3,13 +3,15 @@ import {
   "starlittle/MoonEvidence/src/verify",
   "starlittle/MoonEvidence/src/diag",
   "starlittle/MoonEvidence/src/digest",
+  "starlittle/MoonEvidence/src/model",
+  "starlittle/MoonEvidence/src/merkle",
+  "starlittle/MoonEvidence/src/canonjson",
 }
 
 import {
   "moonbitlang/core/debug",
-  "starlittle/MoonEvidence/src/merkle",
 } for "wbtest"
 
 options(
-  link: { "js": { "exports": [ "verify_evidence" ], "format": "esm" } },
+  link: { "js": { "exports": [ "verify_evidence", "compute_merkle_tree" ], "format": "esm" } },
 )

@@ -1,0 +1,78 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "starlittle/MoonEvidence/src/digest"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn bytes_to_lower_hex(Bytes) -> String
+
+pub fn hex_to_bytes(String) -> Bytes?
+
+pub fn hmac_sha256(Bytes, Bytes) -> Bytes
+
+pub fn hmac_sha256_hex(Bytes, Bytes) -> String
+
+pub fn is_hex(String) -> Bool
+
+pub fn is_supported_algorithm(String) -> Bool
+
+pub fn normalize_algorithm(String) -> HashAlgorithm?
+
+pub fn normalize_hex(String) -> String?
+
+pub fn parse_digest(String) -> Digest?
+
+pub fn same_digest(String, String) -> Bool
+
+pub fn sha256(Bytes) -> Bytes
+
+pub fn sha256_hex(Bytes) -> String
+
+pub fn sha512_hex(Bytes) -> String
+
+pub fn string_to_utf8_bytes(String) -> Bytes
+
+// Errors
+
+// Types and methods
+pub(all) struct Digest {
+  algorithm : HashAlgorithm
+  hex : String
+} derive(Eq, @debug.Debug)
+pub fn Digest::of_bytes(HashAlgorithm, Bytes) -> Self
+pub fn Digest::to_string(Self) -> String
+pub impl Show for Digest
+
+pub(all) enum HashAlgorithm {
+  Sha256
+  Sha512
+} derive(Eq, @debug.Debug)
+pub fn HashAlgorithm::label(Self) -> String
+pub impl Show for HashAlgorithm
+
+pub struct Sha256Ctx {
+  state : FixedArray[UInt]
+  buffer : FixedArray[Byte]
+  mut buffered : Int
+  mut total_bytes : UInt64
+}
+pub fn Sha256Ctx::finalize(Self) -> Bytes
+pub fn Sha256Ctx::new() -> Self
+pub fn Sha256Ctx::update(Self, Bytes) -> Unit
+
+pub struct Sha512Ctx {
+  state : FixedArray[UInt64]
+  buffer : FixedArray[Byte]
+  mut buffered : Int
+  mut total_bytes : UInt64
+}
+pub fn Sha512Ctx::finalize(Self) -> Bytes
+pub fn Sha512Ctx::new() -> Self
+pub fn Sha512Ctx::update(Self, Bytes) -> Unit
+
+// Type aliases
+
+// Traits
+

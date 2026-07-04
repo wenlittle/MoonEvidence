@@ -205,3 +205,146 @@ test "leaf hash used as node input cannot replay as proof step" {
   }
   assert_false(verify_inclusion(Bytes::from_array(payload), [], root))
 }
+
+// ---------------------------------------------------------------------------
+// Full tree materialization (compute_tree / MerkleTree)
+// ---------------------------------------------------------------------------
+
+///|
+fn must_tree(leaves : Array[Bytes]) -> MerkleTree raise {
+  match compute_tree(leaves) {
+    Some(tree) => tree
+    None => fail("expected a tree for \{leaves.length()} leaves")
+  }
+}
+
+///|
+test "compute_tree on empty input returns None" {
+  assert_true(compute_tree([]) is None)
+}
+
+///|
+test "compute_tree root equals compute_root for every shape" {
+  for count in [1, 2, 3, 4, 5, 7, 8, 16] {
+    let leaves = make_leaves(count)
+    let tree = must_tree(leaves)
+    let tree_root = match tree.root() {
+      Some(r) => r
+      None => fail("tree should have a root")
+    }
+    let compute_root_value = match compute_root(leaves) {
+      Some(r) => r
+      None => fail("compute_root should agree")
+    }
+    assert_eq(tree_root, compute_root_value)
+  }
+}
+
+///|
+test "compute_tree single leaf yields one level of one node" {
+  let tree = must_tree(make_leaves(1))
+  assert_eq(tree.height(), 1)
+  assert_eq(tree.leaf_count(), 1)
+  let top = tree.level(0)
+  assert_eq(top.length(), 1)
+  assert_eq(top[0], leaf_hash(@digest.string_to_utf8_bytes("leaf-0")))
+}
+
+///|
+test "compute_tree two leaves yields two levels of one node each" {
+  let tree = must_tree(make_leaves(2))
+  assert_eq(tree.height(), 2)
+  assert_eq(tree.leaf_count(), 2)
+  let level0 = tree.level(0)
+  assert_eq(level0.length(), 2)
+  let level1 = tree.level(1)
+  assert_eq(level1.length(), 1)
+  assert_eq(
+    level1[0],
+    node_hash(level0[0], level0[1]),
+  )
+}
+
+///|
+test "compute_tree three leaves promotes the odd leaf without changing its hash" {
+  let tree = must_tree(make_leaves(3))
+  assert_eq(tree.height(), 3)
+  let level0 = tree.level(0)
+  let level1 = tree.level(1)
+  let level2 = tree.level(2)
+  // Level 0: three leaf hashes.
+  assert_eq(level0.length(), 3)
+  // Level 1: node(h0,h1) then h2 (promoted).
+  assert_eq(level1.length(), 2)
+  assert_eq(level1[1], level0[2])
+  // Level 2: root = node(level1[0], level1[1]).
+  assert_eq(level2.length(), 1)
+  assert_eq(level2[0], node_hash(level1[0], level1[1]))
+}
+
+///|
+test "compute_tree out-of-bounds level returns empty array" {
+  let tree = must_tree(make_leaves(4))
+  assert_eq(tree.level(-1).length(), 0)
+  assert_eq(tree.level(tree.height()).length(), 0)
+  assert_eq(tree.level(99).length(), 0)
+}
+
+///|
+test "compute_tree five leaves height is four with promoted leaf twice" {
+  // 5 leaves -> level 0 (5), level 1 (3: 2 pairs + promote), level 2
+  // (2: 1 pair + promote), level 3 (1: node of prev two).
+  let tree = must_tree(make_leaves(5))
+  assert_eq(tree.height(), 4)
+  assert_eq(tree.leaf_count(), 5)
+  assert_eq(tree.level(0).length(), 5)
+  assert_eq(tree.level(1).length(), 3)
+  assert_eq(tree.level(2).length(), 2)
+  assert_eq(tree.level(3).length(), 1)
+  // The promoted leaf appears unchanged on level 1 as well.
+  assert_eq(tree.level(1)[2], tree.level(0)[4])
+}
+
+///|
+test "leaf_path covers one step per level and ends at root" {
+  for count in [1, 2, 3, 4, 5, 8] {
+    let tree = must_tree(make_leaves(count))
+    for index in 0..<count {
+      let path = match tree.leaf_path(index) {
+        Some(p) => p
+        None => fail("expected a path for index \{index}")
+      }
+      assert_eq(path.length(), tree.height())
+      // First step is the leaf on level 0 at the given index.
+      assert_eq(path[0], { level: 0, node_index: index })
+      // Last step is the root.
+      let last = path[path.length() - 1]
+      assert_eq(last.level, tree.height() - 1)
+      assert_eq(last.node_index, 0)
+      // Last step hash equals the tree root.
+      let last_hash = tree.level(last.level)[last.node_index]
+      let root_hash = match tree.root() {
+        Some(r) => r
+        None => fail("root expected")
+      }
+      assert_eq(last_hash, root_hash)
+    }
+  }
+}
+
+///|
+test "leaf_path on empty tree returns None" {
+  let tree = match compute_tree([]) {
+    Some(t) => t
+    None => return
+  }
+  // Force failure if compute_tree ever stops returning None on empty.
+  assert_true(tree.leaf_path(0) is None)
+}
+
+///|
+test "leaf_path with out-of-range index returns None" {
+  let tree = must_tree(make_leaves(3))
+  assert_true(tree.leaf_path(-1) is None)
+  assert_true(tree.leaf_path(3) is None)
+}

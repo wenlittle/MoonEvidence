@@ -1,0 +1,52 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "starlittle/MoonEvidence/src/audit"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub(all) enum AuditAction {
+  Created
+  Verified
+  Sealed
+  Signed
+  Shared
+  Custom(String)
+} derive(Eq, @debug.Debug)
+pub fn AuditAction::parse(String) -> Self
+pub fn AuditAction::to_string(Self) -> String
+
+pub(all) struct AuditEntry {
+  timestamp : String
+  actor : String
+  action : AuditAction
+  subject_id : String
+  manifest_digest : String?
+  prev_hash : String?
+  hash : String
+  signature : String?
+} derive(Eq, @debug.Debug)
+pub fn AuditEntry::compute_hash(Self) -> String
+pub fn AuditEntry::to_json(Self) -> String
+
+pub struct AuditLog {
+  entries : Array[AuditEntry]
+  mut last_hash : String?
+}
+pub fn AuditLog::append(Self, String, String, AuditAction, String, manifest_digest? : String) -> Unit
+pub fn AuditLog::length(Self) -> Int
+pub fn AuditLog::new() -> Self
+pub fn AuditLog::sign_last(Self, Bytes) -> Unit
+pub fn AuditLog::to_json(Self) -> String
+pub fn AuditLog::verify_chain(Self) -> Bool
+pub fn AuditLog::verify_signatures(Self, Bytes) -> Bool
+
+// Type aliases
+
+// Traits
+

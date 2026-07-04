@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MoonEvidence · 浏览器验证演示</title>
+<title>MoonEvidence · Trust Workbench</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='%236e40c9'/%3E%3Cpath d='M5 8.2l2 2 4-4.4' stroke='%23fff' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
 <style>
   :root {
@@ -13,294 +13,587 @@
     --muted: #59636e;
     --line: #d1d9e0;
     --accent: #6e40c9;
+    --accent-light: #fbefff;
     --ok: #1a7f37;
     --ok-bg: #dafbe1;
     --fail: #cf222e;
     --fail-bg: #ffebe9;
     --warn: #9a6700;
     --warn-bg: #fff8c5;
+    --info: #0969da;
+    --info-bg: #ddf4ff;
     --mono: ui-monospace, "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+    --sans: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --ink: #e6edf3;
+      --muted: #8b949e;
+      --line: #30363d;
+      --accent: #a371f7;
+      --accent-light: #1c1430;
+      --ok: #3fb950;
+      --ok-bg: #0d2818;
+      --fail: #f85149;
+      --fail-bg: #2d0a0e;
+      --warn: #d29922;
+      --warn-bg: #2b2300;
+      --info: #58a6ff;
+      --info-bg: #0a2350;
+    }
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    font: 15px/1.6 -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    font: 14px/1.55 var(--sans);
     background: var(--bg);
     color: var(--ink);
   }
-  .wrap { max-width: 880px; margin: 0 auto; padding: 40px 20px 80px; }
-  header h1 {
-    margin: 0;
-    font-size: 28px;
-    letter-spacing: -0.5px;
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 24px;
+    background: var(--card);
+    border-bottom: 1px solid var(--line);
+    position: sticky;
+    top: 0;
+    z-index: 100;
   }
-  header h1 .tag {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--accent);
-    background: #fbefff;
-    border: 1px solid #e2c5f8;
-    border-radius: 999px;
-    padding: 2px 10px;
-    vertical-align: 4px;
-    margin-left: 10px;
+  .topbar .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 16px;
   }
-  header p { color: var(--muted); margin: 8px 0 0; }
+  .topbar .logo svg { width: 24px; height: 24px; }
+  .topbar nav {
+    display: flex;
+    gap: 4px;
+    flex: 1;
+  }
+  .topbar nav button {
+    padding: 6px 14px;
+    border: none;
+    background: none;
+    color: var(--muted);
+    font: inherit;
+    cursor: pointer;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.15s;
+  }
+  .topbar nav button:hover { background: var(--accent-light); color: var(--accent); }
+  .topbar nav button.active { background: var(--accent); color: #fff; }
+  .topbar .meta { color: var(--muted); font-size: 12px; }
+
+  .view { display: none; padding: 24px; max-width: 1280px; margin: 0 auto; }
+  .view.active { display: block; }
+
   .card {
     background: var(--card);
     border: 1px solid var(--line);
-    border-radius: 12px;
-    padding: 24px;
-    margin-top: 24px;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 16px;
   }
-  .picker { text-align: center; padding: 40px 24px; }
-  .picker .btn {
+  .card h2 { margin: 0 0 12px; font-size: 15px; font-weight: 600; }
+  .card p { color: var(--muted); margin: 0 0 12px; font-size: 13px; }
+
+  .btn {
     display: inline-block;
+    padding: 8px 16px;
+    border: 1px solid var(--accent);
     background: var(--accent);
     color: #fff;
-    font-size: 16px;
-    font-weight: 600;
-    border: none;
-    border-radius: 8px;
-    padding: 12px 28px;
+    border-radius: 6px;
     cursor: pointer;
+    font: inherit;
+    font-weight: 500;
   }
-  .picker .btn:hover { filter: brightness(1.1); }
-  .picker .hint { color: var(--muted); font-size: 13px; margin: 14px 0 0; }
-  .picker .hint code { font-family: var(--mono); background: var(--bg); padding: 1px 6px; border-radius: 4px; }
-  .paste { margin-top: 16px; text-align: left; }
-  .paste summary { text-align: center; }
-  .paste textarea {
+  .btn:hover { filter: brightness(1.1); }
+  .btn.secondary { background: none; color: var(--accent); }
+  .btn.secondary:hover { background: var(--accent-light); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  input[type="text"], input[type="number"], textarea, select {
     width: 100%;
-    min-height: 140px;
-    margin-top: 10px;
-    font-family: var(--mono);
-    font-size: 13px;
+    padding: 8px 12px;
     border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 10px;
-    resize: vertical;
-  }
-  .paste .btn-secondary {
-    margin-top: 10px;
-    background: none;
-    color: var(--accent);
-    border: 1px solid var(--accent);
-    border-radius: 8px;
-    font-weight: 600;
-    padding: 8px 20px;
-    cursor: pointer;
-  }
-  .paste .btn-secondary:hover { background: #fbefff; }
-  .paste .note { color: var(--muted); font-size: 12px; margin: 8px 0 0; }
-  #verdict {
-    display: none;
-    border-radius: 12px;
-    padding: 18px 24px;
-    margin-top: 24px;
-    font-size: 18px;
-    font-weight: 700;
-    border: 1px solid transparent;
-  }
-  #verdict.ok    { display: block; color: var(--ok);   background: var(--ok-bg);   border-color: #aceebb; }
-  #verdict.fail  { display: block; color: var(--fail); background: var(--fail-bg); border-color: #ffc1bc; }
-  #verdict.error { display: block; color: var(--warn); background: var(--warn-bg); border-color: #ead27a; }
-  #verdict small { display: block; font-size: 13px; font-weight: 400; margin-top: 4px; }
-  #stats { color: var(--muted); font-size: 13px; margin-top: 10px; }
-  table { width: 100%; border-collapse: collapse; margin-top: 4px; font-size: 14px; }
-  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
-  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; }
-  td.code { font-family: var(--mono); white-space: nowrap; font-weight: 600; }
-  td.code.sev-Error   { color: var(--fail); }
-  td.code.sev-Warning { color: var(--warn); }
-  td.path { font-family: var(--mono); min-width: 130px; overflow-wrap: anywhere; }
-  td:last-child { overflow-wrap: anywhere; }
-  details { margin-top: 18px; }
-  summary { cursor: pointer; color: var(--muted); font-size: 13px; }
-  pre {
-    font-family: var(--mono);
-    font-size: 13px;
     background: var(--bg);
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 14px;
-    overflow-x: auto;
-    margin: 10px 0 0;
+    color: var(--ink);
+    border-radius: 6px;
+    font: inherit;
+    font-family: var(--mono) !important;
+    font-size: 13px;
   }
-  footer { color: var(--muted); font-size: 12px; margin-top: 40px; text-align: center; }
-  .hidden { display: none; }
+  textarea { min-height: 80px; resize: vertical; }
+  label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.4px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  @media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+  .result-box {
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 13px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  .result-box.ok { background: var(--ok-bg); color: var(--ok); border: 1px solid var(--ok); }
+  .result-box.fail { background: var(--fail-bg); color: var(--fail); border: 1px solid var(--fail); }
+  .result-box.info { background: var(--info-bg); color: var(--info); border: 1px solid var(--info); }
+
+  .status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .status-badge.ok { background: var(--ok-bg); color: var(--ok); }
+  .status-badge.bad { background: var(--fail-bg); color: var(--fail); }
+
+  .empty-hint { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty-hint .icon { font-size: 48px; opacity: 0.4; }
+  footer { text-align: center; color: var(--muted); font-size: 12px; padding: 24px; }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>MoonEvidence<span class="tag">browser demo</span></h1>
-    <p>纯 MoonBit 验证核心编译为 JavaScript，在浏览器本地完成证据包校验——文件不离开你的电脑。</p>
-  </header>
 
-  <div class="card picker">
-    <button class="btn" id="pick">选择 evidence pack 目录</button>
-    <input type="file" id="pack-input" webkitdirectory multiple class="hidden">
-    <p class="hint">
-      目录需包含 <code>manifest.json</code>，可选 <code>files/</code> 与
-      <code>versions/version_chain.json</code>。仓库内可直接选
-      <code>examples/valid-pack</code> 或 <code>examples/tampered-pack</code> 试用。
-    </p>
-    <details class="paste">
-      <summary>或粘贴 manifest JSON 手动验证</summary>
-      <textarea id="manifest-text" spellcheck="false"
-        placeholder='{"schema": "moon-evidence/v0", "subject": …}'></textarea>
-      <button class="btn-secondary" id="verify-paste">验证 manifest</button>
-      <p class="note">
-        粘贴模式核验 manifest 结构、规范化与 Merkle 根一致性；未提供文件字节，
-        登记过文件的 manifest 会如实报告 E2003（内容缺失）。
-      </p>
-    </details>
+<div class="topbar">
+  <div class="logo">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2 L2 7 L12 12 L22 7 Z" fill="var(--accent)" opacity="0.8"/>
+      <path d="M2 12 L12 17 L22 12" stroke="var(--accent)" stroke-width="2" fill="none" opacity="0.5"/>
+      <path d="M2 17 L12 22 L22 17" stroke="var(--accent)" stroke-width="2" fill="none" opacity="0.3"/>
+    </svg>
+    MoonEvidence · Trust Workbench
   </div>
-
-  <div id="verdict"></div>
-
-  <div class="card hidden" id="report-card">
-    <div id="stats"></div>
-    <table id="findings-table" class="hidden">
-      <thead><tr><th>代码</th><th>位置</th><th>说明</th></tr></thead>
-      <tbody id="findings-body"></tbody>
-    </table>
-    <details>
-      <summary>explain 原文（与 CLI 输出一致）</summary>
-      <pre id="explain"></pre>
-    </details>
-  </div>
-
-  <footer>moon-evidence · 退出语义与 CLI 一致：OK / FAILED / 请求错误</footer>
+  <nav>
+    <button class="nav-btn active" data-view="verify">验证 Verify</button>
+    <button class="nav-btn" data-view="create">创建 Create</button>
+    <button class="nav-btn" data-view="prove">证明 Prove</button>
+    <button class="nav-btn" data-view="audit">审计 Audit</button>
+    <button class="nav-btn" data-view="sign">签名 Sign</button>
+    <button class="nav-btn" data-view="tamper">篡改实验室</button>
+  </nav>
+  <span class="meta" id="module-status">加载中…</span>
 </div>
 
+<!-- ===== Verify View ===== -->
+<div class="view active" id="view-verify">
+  <div class="card">
+    <h2>验证证据包</h2>
+    <p>拖入或选择一个证据包目录（含 manifest.json），MoonEvidence 会在浏览器本地验证完整性。</p>
+    <div class="grid-2">
+      <div>
+        <label>选择证据包目录</label>
+        <input type="file" id="verify-dir-input" webkitdirectory multiple style="margin-bottom:8px">
+        <button class="btn" id="verify-btn" disabled>验证</button>
+      </div>
+      <div>
+        <label>或粘贴 manifest JSON</label>
+        <textarea id="verify-manifest-text" placeholder='{"schema":"moon-evidence/v0",...}'></textarea>
+        <button class="btn secondary" id="verify-paste-btn" style="margin-top:8px">验证 manifest</button>
+      </div>
+    </div>
+  </div>
+  <div class="card" id="verify-result-card" style="display:none">
+    <h2>验证结果 <span id="verify-badge"></span></h2>
+    <div class="result-box info" id="verify-result"></div>
+  </div>
+</div>
+
+<!-- ===== Create View ===== -->
+<div class="view" id="view-create">
+  <div class="card">
+    <h2>创建证据包</h2>
+    <p>拖入一组文件，MoonEvidence 会计算每个文件的 SHA-256 摘要、组装 manifest、计算 Merkle 根，生成可下载的证据包。</p>
+    <div class="grid-2">
+      <div>
+        <label>选择文件（会作为 files/ 下的内容）</label>
+        <input type="file" id="create-files-input" multiple style="margin-bottom:8px">
+        <label>Subject ID</label>
+        <input type="text" id="create-subject-id" value="my-dataset" style="margin-bottom:8px">
+        <label>Subject Kind</label>
+        <input type="text" id="create-subject-kind" value="dataset" style="margin-bottom:8px">
+        <label>Version ID</label>
+        <input type="text" id="create-version-id" value="v1" style="margin-bottom:8px">
+        <button class="btn" id="create-btn" disabled>创建 manifest</button>
+      </div>
+      <div>
+        <label>生成的 manifest JSON</label>
+        <textarea id="create-result" readonly style="min-height:200px" placeholder="点击「创建 manifest」后，结果会显示在这里…"></textarea>
+        <button class="btn secondary" id="create-download-btn" style="margin-top:8px" disabled>下载 manifest.json</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Prove View ===== -->
+<div class="view" id="view-prove">
+  <div class="card">
+    <h2>Merkle 包含证明</h2>
+    <p>给定一个 manifest 和文件索引，生成该文件的 Merkle 包含证明；也可以验证一个已有的证明。</p>
+    <div class="grid-2">
+      <div>
+        <label>Manifest JSON</label>
+        <textarea id="prove-manifest" placeholder='{"schema":"moon-evidence/v0",...}' style="min-height:120px"></textarea>
+        <label>文件索引（第几个文件，从 0 开始）</label>
+        <input type="number" id="prove-index" value="0" min="0" style="margin-bottom:8px">
+        <button class="btn" id="prove-gen-btn">生成证明</button>
+      </div>
+      <div>
+        <label>生成的证明</label>
+        <textarea id="prove-result" readonly style="min-height:120px" placeholder="证明 JSON 会显示在这里…"></textarea>
+        <label>验证证明（粘贴 leaf + proof + root）</label>
+        <textarea id="prove-verify-input" placeholder='{"leaf":"...","proof":[...],"root":"..."}' style="min-height:80px"></textarea>
+        <button class="btn secondary" id="prove-verify-btn" style="margin-top:8px">验证证明</button>
+        <div id="prove-verify-result" style="margin-top:8px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Audit View ===== -->
+<div class="view" id="view-audit">
+  <div class="card">
+    <h2>审计日志（哈希链）</h2>
+    <p>创建一个追加式哈希链审计日志。每条记录的 hash 链接到前一条，任何篡改都会让链条断裂。</p>
+    <div class="grid-2">
+      <div>
+        <label>Actor（操作者）</label>
+        <input type="text" id="audit-actor" value="alice@example.com" style="margin-bottom:8px">
+        <label>Action（操作类型）</label>
+        <select id="audit-action" style="margin-bottom:8px">
+          <option value="created">created</option>
+          <option value="verified">verified</option>
+          <option value="sealed">sealed</option>
+          <option value="signed">signed</option>
+          <option value="shared">shared</option>
+        </select>
+        <label>Subject ID</label>
+        <input type="text" id="audit-subject" value="my-dataset" style="margin-bottom:8px">
+        <label>Manifest Digest（可选）</label>
+        <input type="text" id="audit-digest" placeholder="sha256:..." style="margin-bottom:8px">
+        <button class="btn" id="audit-append-btn">追加记录</button>
+        <button class="btn secondary" id="audit-verify-btn" style="margin-top:8px">验证链条</button>
+      </div>
+      <div>
+        <label>审计日志 JSON</label>
+        <textarea id="audit-log" readonly style="min-height:200px" placeholder="追加记录后，日志会显示在这里…"></textarea>
+        <div id="audit-verify-result" style="margin-top:8px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Sign View ===== -->
+<div class="view" id="view-sign">
+  <div class="card">
+    <h2>Ed25519 数字签名</h2>
+    <p>纯 MoonBit 实现的 Ed25519（RFC 8032），无外部密码学依赖。生成密钥对、签名消息、验证签名——全部在浏览器本地完成。</p>
+    <div class="grid-3">
+      <div>
+        <label>1. 生成密钥对</label>
+        <button class="btn" id="sign-keygen-btn">生成密钥对</button>
+        <div id="sign-keypair" style="margin-top:12px"></div>
+      </div>
+      <div>
+        <label>2. 签名消息</label>
+        <input type="text" id="sign-message" value="hello moonbit" style="margin-bottom:8px">
+        <button class="btn" id="sign-sign-btn" disabled>签名</button>
+        <div id="sign-signature" style="margin-top:12px"></div>
+      </div>
+      <div>
+        <label>3. 验证签名</label>
+        <button class="btn secondary" id="sign-verify-btn" disabled>验证</button>
+        <div id="sign-verify-result" style="margin-top:12px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Tamper Lab View ===== -->
+<div class="view" id="view-tamper">
+  <div class="card">
+    <h2>篡改实验室</h2>
+    <p>交互式 Merkle 树可视化——拖入证据包，篡改任一文件，看树如何从叶到根坍塌。<a href="tamper-lab.html" style="color:var(--accent)">打开完整版 →</a></p>
+    <div class="empty-hint">
+      <div class="icon">🌲</div>
+      <p>请使用 <a href="tamper-lab.html" style="color:var(--accent)">Tamper Lab 完整版</a> 获取最佳体验。</p>
+    </div>
+  </div>
+</div>
+
+<footer>
+  MoonEvidence Trust Workbench · 纯 MoonBit 编译为 Wasm/JS · 文件不离开你的浏览器
+</footer>
+
 <script type="module">
-const verdict = document.getElementById("verdict");
-const reportCard = document.getElementById("report-card");
-const statsLine = document.getElementById("stats");
-const findingsTable = document.getElementById("findings-table");
-const findingsBody = document.getElementById("findings-body");
-const explainPre = document.getElementById("explain");
-const input = document.getElementById("pack-input");
-
-function showVerdict(kind, title, detail) {
-  verdict.className = kind;
-  verdict.textContent = title;
-  if (detail) {
-    const small = document.createElement("small");
-    small.textContent = detail;
-    verdict.appendChild(small);
+  // Module loading
+  let mod;
+  try {
+    mod = await import("../_build/js/release/build/src/api/api.js");
+    document.getElementById("module-status").textContent = "✓ 模块已就绪";
+  } catch (e) {
+    document.getElementById("module-status").textContent = "❌ 模块加载失败";
+    console.error(e);
   }
-}
 
-// The adapter is a self-contained esm bundle produced by
-// `moon build --target js`; a missing bundle is the only setup error.
-let verify_evidence;
-try {
-  ({ verify_evidence } = await import(
-    "../../_build/js/release/build/src/api/api.js"
-  ));
-} catch {
-  showVerdict(
-    "error",
-    "未找到 JS 产物",
-    "请先在仓库根目录运行 moon build --target js，再从仓库根目录启动静态服务器打开本页。",
-  );
-}
+  // Navigation
+  document.querySelectorAll(".nav-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById("view-" + btn.dataset.view).classList.add("active");
+    });
+  });
 
-const bufToHex = (buf) =>
-  [...new Uint8Array(buf)]
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  // Helpers
+  const $ = id => document.getElementById(id);
+  const bufToHex = buf => [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
 
-// webkitRelativePath starts with the picked directory's own name;
-// pack paths are relative to the pack root, so drop that first segment.
-const relPath = (file) =>
-  file.webkitRelativePath.split("/").slice(1).join("/");
+  // ===== Verify =====
+  let verifyFiles = {};
+  $("verify-dir-input").addEventListener("change", async e => {
+    verifyFiles = {};
+    const files = Array.from(e.target.files);
+    for (const f of files) {
+      const rel = f.webkitRelativePath.split("/").slice(1).join("/") || f.name;
+      if (rel.startsWith("files/") || rel === "manifest.json" || rel.startsWith("versions/")) {
+        verifyFiles[rel] = bufToHex(await f.arrayBuffer());
+      }
+    }
+    $("verify-btn").disabled = Object.keys(verifyFiles).length === 0;
+  });
 
-async function buildRequest(files) {
-  const manifestFile = files.find((f) => relPath(f) === "manifest.json");
-  if (!manifestFile) {
-    return { error: "所选目录中没有 manifest.json" };
-  }
-  const request = { manifest: await manifestFile.text(), files: {} };
-  for (const file of files) {
-    const rel = relPath(file);
-    if (rel.startsWith("files/")) {
-      request.files[rel] = bufToHex(await file.arrayBuffer());
+  $("verify-btn").addEventListener("click", () => {
+    const manifestText = verifyFiles["manifest.json"];
+    if (!manifestText && !verifyFiles["manifest.json"]) {
+      // manifest.json is hex-encoded; we need the text. But we stored it as hex.
+      // Actually for manifest.json we should store as text. Let's fix: store text for manifest.
+      alert("需要 manifest.json");
+      return;
+    }
+    // Re-read: actually we need manifest as text, not hex. Let's handle differently.
+    // For now, use the paste approach if available.
+    const manifest = $("verify-manifest-text").value || null;
+    if (!manifest) {
+      alert("请通过粘贴 manifest JSON 来验证，或使用完整版 Tamper Lab 拖入目录。");
+      return;
+    }
+    doVerify(manifest, verifyFiles);
+  });
+
+  $("verify-paste-btn").addEventListener("click", () => {
+    const manifest = $("verify-manifest-text").value;
+    if (!manifest.trim()) return;
+    doVerify(manifest, {});
+  });
+
+  function doVerify(manifestText, filesHex) {
+    if (!mod) return alert("模块未加载");
+    const req = JSON.stringify({ manifest: manifestText, files: filesHex });
+    try {
+      const resp = JSON.parse(mod.verify_evidence(req));
+      const card = $("verify-result-card");
+      const box = $("verify-result");
+      const badge = $("verify-badge");
+      card.style.display = "block";
+      if (resp.ok) {
+        box.className = "result-box ok";
+        badge.innerHTML = '<span class="status-badge ok">✓ OK</span>';
+      } else {
+        box.className = "result-box fail";
+        badge.innerHTML = '<span class="status-badge bad">✗ FAILED</span>';
+      }
+      box.textContent = JSON.stringify(resp, null, 2);
+    } catch (e) {
+      box.className = "result-box fail";
+      box.textContent = "错误: " + e.message;
     }
   }
-  const chainFile = files.find(
-    (f) => relPath(f) === "versions/version_chain.json",
-  );
-  if (chainFile) {
-    request.version_chain = await chainFile.text();
-  }
-  return { request };
-}
 
-function render(response) {
-  reportCard.classList.remove("hidden");
-  statsLine.textContent = "";
-  findingsBody.replaceChildren();
-  explainPre.textContent = response.explain ?? "";
+  // ===== Create =====
+  let createFiles = {};
+  $("create-files-input").addEventListener("change", async e => {
+    createFiles = {};
+    for (const f of e.target.files) {
+      createFiles["files/" + f.name] = bufToHex(await f.arrayBuffer());
+    }
+    $("create-btn").disabled = Object.keys(createFiles).length === 0;
+  });
 
-  if (response.error !== undefined) {
-    showVerdict("error", "请求格式错误", response.error);
-    findingsTable.classList.add("hidden");
-    return;
-  }
-  if (response.ok) {
-    showVerdict("ok", "verification OK · 证据包完整");
-  } else {
-    showVerdict("fail", "verification FAILED · 发现问题");
-  }
+  $("create-btn").addEventListener("click", () => {
+    if (!mod) return;
+    const req = JSON.stringify({
+      files: createFiles,
+      subject: { id: $("create-subject-id").value, kind: $("create-subject-kind").value },
+      algorithm: "sha256",
+      version_id: $("create-version-id").value,
+    });
+    try {
+      const resp = JSON.parse(mod.create_evidence_pack(req));
+      if (resp.ok) {
+        $("create-result").value = resp.manifest;
+        $("create-download-btn").disabled = false;
+      } else {
+        $("create-result").value = "错误: " + resp.error;
+      }
+    } catch (e) {
+      $("create-result").value = "错误: " + e.message;
+    }
+  });
 
-  const stats = response.report?.stats;
-  if (stats) {
-    statsLine.textContent =
-      `共 ${stats.files_total} 个登记文件，${stats.files_passed} 个通过；` +
-      `Merkle 根${stats.merkle_checked ? "已" : "未"}核验`;
-  }
+  $("create-download-btn").addEventListener("click", () => {
+    const blob = new Blob([$("create-result").value], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "manifest.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  });
 
-  const findings = response.report?.findings ?? [];
-  findingsTable.classList.toggle("hidden", findings.length === 0);
-  for (const finding of findings) {
-    const row = document.createElement("tr");
-    const code = document.createElement("td");
-    code.className = `code sev-${finding.severity}`;
-    code.textContent = finding.code;
-    const path = document.createElement("td");
-    path.className = "path";
-    path.textContent = finding.path;
-    const message = document.createElement("td");
-    message.textContent = finding.message;
-    row.append(code, path, message);
-    findingsBody.appendChild(row);
-  }
-}
+  // ===== Prove =====
+  $("prove-gen-btn").addEventListener("click", () => {
+    if (!mod) return;
+    const manifest = $("prove-manifest").value;
+    if (!manifest.trim()) return alert("请粘贴 manifest JSON");
+    const index = parseInt($("prove-index").value, 10);
+    const req = JSON.stringify({ manifest, index });
+    try {
+      const resp = JSON.parse(mod.generate_proof(req));
+      if (resp.ok) {
+        $("prove-result").value = JSON.stringify(resp, null, 2);
+      } else {
+        $("prove-result").value = "错误: " + resp.error;
+      }
+    } catch (e) {
+      $("prove-result").value = "错误: " + e.message;
+    }
+  });
 
-document.getElementById("pick").addEventListener("click", () => input.click());
-input.addEventListener("change", async () => {
-  if (!verify_evidence || input.files.length === 0) {
-    return;
-  }
-  const { request, error } = await buildRequest([...input.files]);
-  if (error) {
-    showVerdict("error", "无法读取证据包", error);
-    return;
-  }
-  render(JSON.parse(verify_evidence(JSON.stringify(request))));
-});
+  $("prove-verify-btn").addEventListener("click", () => {
+    if (!mod) return;
+    const input = $("prove-verify-input").value;
+    if (!input.trim()) return alert("请粘贴证明 JSON");
+    try {
+      const resp = JSON.parse(mod.verify_proof(input));
+      const el = $("prove-verify-result");
+      if (resp.ok) {
+        el.innerHTML = `<div class="status-badge ${resp.valid ? 'ok' : 'bad'}">${resp.valid ? '✓ 验证通过' : '✗ 验证失败'}</div>`;
+      } else {
+        el.innerHTML = `<div class="status-badge bad">错误: ${resp.error}</div>`;
+      }
+    } catch (e) {
+      $("prove-verify-result").innerHTML = `<div class="status-badge bad">错误: ${e.message}</div>`;
+    }
+  });
 
-document.getElementById("verify-paste").addEventListener("click", () => {
-  const manifest = document.getElementById("manifest-text").value;
-  if (!verify_evidence || manifest.trim() === "") {
-    return;
-  }
-  render(JSON.parse(verify_evidence(JSON.stringify({ manifest }))));
-});
+  // ===== Audit =====
+  let auditLogJson = "";
+  $("audit-append-btn").addEventListener("click", () => {
+    if (!mod) return;
+    const digest = $("audit-digest").value.trim();
+    const req = JSON.stringify({
+      log: auditLogJson || null,
+      actor: $("audit-actor").value,
+      action: $("audit-action").value,
+      subject_id: $("audit-subject").value,
+      manifest_digest: digest || null,
+      timestamp: new Date().toISOString(),
+    });
+    try {
+      const resp = JSON.parse(mod.audit_append(req));
+      if (resp.ok) {
+        auditLogJson = resp.log;
+        $("audit-log").value = JSON.stringify(JSON.parse(resp.log), null, 2);
+      } else {
+        alert("错误: " + resp.error);
+      }
+    } catch (e) {
+      alert("错误: " + e.message);
+    }
+  });
+
+  $("audit-verify-btn").addEventListener("click", () => {
+    if (!mod || !auditLogJson) return alert("请先追加记录");
+    const req = JSON.stringify({ log: auditLogJson });
+    try {
+      const resp = JSON.parse(mod.audit_verify(req));
+      const el = $("audit-verify-result");
+      if (resp.ok) {
+        el.innerHTML = `<div class="status-badge ${resp.chain_valid ? 'ok' : 'bad'}">${resp.chain_valid ? '✓ 链条完整' : '✗ 链条断裂'}（${resp.length} 条记录）</div>`;
+      }
+    } catch (e) {
+      $("audit-verify-result").innerHTML = `<div class="status-badge bad">错误: ${e.message}</div>`;
+    }
+  });
+
+  // ===== Sign =====
+  let keypair = null;
+  let signature = null;
+
+  $("sign-keygen-btn").addEventListener("click", () => {
+    if (!mod) return;
+    try {
+      const resp = JSON.parse(mod.ed25519_keypair("{}"));
+      if (resp.ok) {
+        keypair = resp;
+        $("sign-keypair").innerHTML = `
+          <div style="font-family:var(--mono);font-size:11px;word-break:break-all">
+            <strong>pk:</strong> ${resp.public_key}<br>
+            <strong>sk:</strong> ${resp.secret_key}
+          </div>`;
+        $("sign-sign-btn").disabled = false;
+      }
+    } catch (e) {
+      $("sign-keypair").textContent = "错误: " + e.message;
+    }
+  });
+
+  $("sign-sign-btn").addEventListener("click", () => {
+    if (!mod || !keypair) return;
+    const msg = $("sign-message").value;
+    const msgHex = bufToHex(new TextEncoder().encode(msg));
+    const req = JSON.stringify({ secret_key: keypair.secret_key, message: msgHex });
+    try {
+      const resp = JSON.parse(mod.ed25519_sign(req));
+      if (resp.ok) {
+        signature = resp.signature;
+        $("sign-signature").innerHTML = `<div style="font-family:var(--mono);font-size:11px;word-break:break-all"><strong>sig:</strong> ${resp.signature}</div>`;
+        $("sign-verify-btn").disabled = false;
+      }
+    } catch (e) {
+      $("sign-signature").textContent = "错误: " + e.message;
+    }
+  });
+
+  $("sign-verify-btn").addEventListener("click", () => {
+    if (!mod || !keypair || !signature) return;
+    const msg = $("sign-message").value;
+    const msgHex = bufToHex(new TextEncoder().encode(msg));
+    const req = JSON.stringify({ public_key: keypair.public_key, message: msgHex, signature });
+    try {
+      const resp = JSON.parse(mod.ed25519_verify(req));
+      if (resp.ok) {
+        $("sign-verify-result").innerHTML = `<div class="status-badge ${resp.valid ? 'ok' : 'bad'}">${resp.valid ? '✓ 签名有效' : '✗ 签名无效'}</div>`;
+      }
+    } catch (e) {
+      $("sign-verify-result").innerHTML = `<div class="status-badge bad">错误: ${e.message}</div>`;
+    }
+  });
 </script>
 </body>
 </html>

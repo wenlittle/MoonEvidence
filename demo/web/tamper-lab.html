@@ -1,0 +1,774 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MoonEvidence · Tamper Lab（篡改实验台）</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='%23cf222e'/%3E%3Cpath d='M5 8.2l2 2 4-4.4' stroke='%23fff' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #f6f8fa;
+    --card: #ffffff;
+    --ink: #1f2328;
+    --muted: #59636e;
+    --line: #d1d9e0;
+    --accent: #6e40c9;
+    --ok: #1a7f37;
+    --ok-bg: #dafbe1;
+    --fail: #cf222e;
+    --fail-bg: #ffebe9;
+    --warn: #9a6700;
+    --warn-bg: #fff8c5;
+    --node: #ffffff;
+    --node-border: #d1d9e0;
+    --node-tampered: #cf222e;
+    --node-ancestor: #f59f00;
+    --node-untouched: #f6f8fa;
+    --node-added: #1a7f37;
+    --mono: ui-monospace, "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+    --sans: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 14px/1.55 var(--sans);
+    background: var(--bg);
+    color: var(--ink);
+  }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 24px 20px 80px; }
+  header h1 {
+    margin: 0;
+    font-size: 24px;
+    letter-spacing: -0.3px;
+  }
+  header h1 .tag {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    background: #fbefff;
+    border: 1px solid #e2c5f8;
+    border-radius: 999px;
+    padding: 2px 10px;
+    vertical-align: 4px;
+    margin-left: 8px;
+  }
+  header p { color: var(--muted); margin: 6px 0 0; font-size: 13px; }
+  .toolbar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 20px;
+  }
+  .toolbar label.file-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    user-select: none;
+  }
+  .toolbar label.file-btn input { display: none; }
+  .toolbar select, .toolbar button {
+    padding: 6px 12px;
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 6px;
+    font: inherit;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .toolbar button.primary {
+    background: var(--fail);
+    color: #fff;
+    border-color: var(--fail);
+  }
+  .toolbar button.primary:disabled {
+    background: #c0c0c0;
+    border-color: #c0c0c0;
+    cursor: not-allowed;
+  }
+  .toolbar button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .toolbar .spacer { flex: 1; }
+  .toolbar .status {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  /* Three-panel grid */
+  .grid {
+    display: grid;
+    grid-template-columns: 280px 1fr 340px;
+    gap: 16px;
+    margin-top: 20px;
+  }
+  @media (max-width: 1000px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .panel h2 {
+    margin: 0;
+    padding: 12px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: #fafbfc;
+    border-bottom: 1px solid var(--line);
+  }
+  .panel .body { padding: 14px 16px; max-height: 600px; overflow-y: auto; }
+
+  /* Left: file list */
+  .file-list .item {
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    background: #fff;
+  }
+  .file-list .item .path {
+    font-weight: 600;
+    word-break: break-all;
+  }
+  .file-list .item .meta {
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 4px;
+  }
+  .file-list .item .meta code {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink);
+    word-break: break-all;
+  }
+  .file-list .item.tampered {
+    border-color: var(--fail);
+    background: var(--fail-bg);
+  }
+  .file-list .item .badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    margin-top: 4px;
+  }
+  .file-list .item.tampered .badge {
+    background: var(--fail);
+    color: #fff;
+  }
+  .file-list .item .badge.ok {
+    background: var(--ok-bg);
+    color: var(--ok);
+  }
+
+  /* Center: tree canvas */
+  .tree-canvas {
+    padding: 24px;
+    overflow-x: auto;
+    min-height: 480px;
+  }
+  .tree-canvas svg { display: block; margin: 0 auto; }
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--line);
+  }
+  .legend .swatch {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    margin-right: 5px;
+    vertical-align: -1px;
+  }
+  .legend .swatch.untouched { background: var(--node-untouched); border: 1px solid var(--node-border); }
+  .legend .swatch.tampered { background: var(--fail); }
+  .legend .swatch.ancestor { background: var(--node-ancestor); }
+  .legend .swatch.added { background: var(--node-added); }
+
+  /* Right: diagnostics */
+  .diag .finding {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    font-size: 13px;
+  }
+  .diag .finding.error {
+    border-color: var(--fail);
+    background: var(--fail-bg);
+  }
+  .diag .finding.warning {
+    border-color: var(--warn);
+    background: var(--warn-bg);
+  }
+  .diag .finding .code {
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 12px;
+  }
+  .diag .finding .path {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    margin-left: 6px;
+  }
+  .diag .finding .message {
+    margin-top: 4px;
+    font-size: 13px;
+  }
+  .diag .ok-banner {
+    background: var(--ok-bg);
+    border: 1px solid var(--ok);
+    color: var(--ok);
+    padding: 12px 14px;
+    border-radius: 6px;
+    text-align: center;
+    font-weight: 600;
+  }
+  .diag .empty {
+    color: var(--muted);
+    text-align: center;
+    padding: 40px 12px;
+    font-size: 13px;
+  }
+
+  /* Idle state */
+  .empty-state {
+    text-align: center;
+    padding: 100px 20px;
+    color: var(--muted);
+  }
+  .empty-state .icon { font-size: 48px; opacity: 0.4; }
+  .empty-state h3 { font-size: 16px; margin: 16px 0 6px; color: var(--ink); }
+  .empty-state p { margin: 0; }
+
+  /* Root mismatch badge */
+  .root-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-left: 8px;
+  }
+  .root-badge.ok { background: var(--ok-bg); color: var(--ok); }
+  .root-badge.bad { background: var(--fail-bg); color: var(--fail); }
+
+  .short {
+    font-family: var(--mono);
+    color: var(--muted);
+    font-size: 11px;
+  }
+  footer {
+    margin-top: 32px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>MoonEvidence · Tamper Lab <span class="tag">v0.3.x</span></h1>
+    <p>拖入一个 manifest + 任意一组文件，让 MoonEvidence 计算 Merkle 树；然后随便改其中一个文件，看错误码、变红的节点、失效的根哈希是怎么一步步连起来的。</p>
+  </header>
+
+  <div class="toolbar">
+    <label class="file-btn">
+      📂 加载 manifest.json
+      <input type="file" id="manifest-input" accept=".json,application/json">
+    </label>
+    <label class="file-btn" style="background:var(--line);color:var(--ink)">
+      📎 加载文件包
+      <input type="file" id="files-input" multiple webkitdirectory directory>
+    </label>
+    <button id="load-sample-btn" type="button">装入示例（valid-pack）</button>
+    <button id="tamper-btn" class="primary" type="button" disabled>🎲 随机篡改一个文件</button>
+    <button id="reset-btn" type="button" disabled>↻ 重置</button>
+    <span class="spacer"></span>
+    <span class="status" id="status">尚未加载</span>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>文件清单</h2>
+      <div class="body file-list" id="file-list">
+        <div class="empty-state">
+          <div class="icon">📁</div>
+          <p>先加载 manifest.json，然后选对应的文件目录。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>
+        Merkle 树
+        <span id="root-badge"></span>
+      </h2>
+      <div class="tree-canvas" id="tree-canvas">
+        <div class="empty-state">
+          <div class="icon">🌲</div>
+          <h3>暂无树</h3>
+          <p>加载一个 manifest 后，这里会展示完整的 Merkle 树。篡改文件后，被改节点变红，所有祖先节点变橙色，根不匹配时根节点闪红。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>诊断报告</h2>
+      <div class="body diag" id="diag-body">
+        <div class="empty">尚未验证</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    MoonEvidence Tamper Lab · <a href="https://github.com/moonbitlang/moon-evidence" target="_blank">view source</a>
+  </footer>
+</div>
+
+<script type="module">
+  // ---------------------------------------------------------------------------
+  // State
+  // ---------------------------------------------------------------------------
+  let state = {
+    manifestText: null,
+    manifest: null,
+    files: {},           // path -> { bytes: Uint8Array, hex: string, originalHex: string, tampered: bool }
+    packDirName: null,
+    lastReport: null,
+    module: null,
+  };
+
+  // ---------------------------------------------------------------------------
+  // DOM
+  // ---------------------------------------------------------------------------
+  const $ = id => document.getElementById(id);
+  const manifestInput = $("manifest-input");
+  const filesInput = $("files-input");
+  const loadSampleBtn = $("load-sample-btn");
+  const tamperBtn = $("tamper-btn");
+  const resetBtn = $("reset-btn");
+  const statusEl = $("status");
+  const fileListEl = $("file-list");
+  const treeCanvasEl = $("tree-canvas");
+  const diagBodyEl = $("diag-body");
+  const rootBadgeEl = $("root-badge");
+
+  // ---------------------------------------------------------------------------
+  // MoonBit module loading
+  // ---------------------------------------------------------------------------
+  async function loadModule() {
+    if (state.module) return state.module;
+    setStatus("加载 MoonEvidence JS 模块…");
+    try {
+      const mod = await import("../../_build/js/release/build/src/api/api.js");
+      state.module = mod;
+      setStatus("MoonEvidence 模块已就绪");
+      return mod;
+    } catch (e) {
+      setStatus("❌ 模块加载失败：" + e.message);
+      throw e;
+    }
+  }
+
+  function setStatus(text) {
+    statusEl.textContent = text;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Manifest + file loading
+  // ---------------------------------------------------------------------------
+  manifestInput.addEventListener("change", async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const text = await file.text();
+    state.manifestText = text;
+    setStatus(`✓ manifest 已加载：${file.name}`);
+  });
+
+  filesInput.addEventListener("change", async e => {
+    if (!state.manifestText) {
+      setStatus("⚠️ 请先加载 manifest.json");
+      return;
+    }
+    const files = Array.from(e.target.files);
+    state.files = {};
+    state.packDirName = files[0]?.webkitRelativePath?.split("/")[0] || "pack";
+    for (const f of files) {
+      const rel = f.webkitRelativePath.split("/").slice(1).join("/");
+      if (!rel) continue;
+      const buf = new Uint8Array(await f.arrayBuffer());
+      state.files[rel] = {
+        bytes: buf,
+        hex: bytesToHex(buf),
+        originalHex: bytesToHex(buf),
+        tampered: false,
+      };
+    }
+    setStatus(`✓ 加载 ${Object.keys(state.files).length} 个文件（来自 ${state.packDirName}）`);
+    refreshButtonStates();
+    rebuild();
+  });
+
+  loadSampleBtn.addEventListener("click", async () => {
+    setStatus("装入示例 valid-pack…");
+    try {
+      const manifestResp = await fetch("../examples/valid-pack/manifest.json");
+      if (!manifestResp.ok) throw new Error("manifest.json not found");
+      state.manifestText = await manifestResp.text();
+      state.files = {};
+      state.packDirName = "valid-pack";
+      // 自动加载示例中的两个文件
+      for (const name of ["files/a.txt", "files/b.bin"]) {
+        const r = await fetch("../examples/valid-pack/" + name);
+        if (!r.ok) continue;
+        const buf = new Uint8Array(await r.arrayBuffer());
+        state.files[name] = {
+          bytes: buf,
+          hex: bytesToHex(buf),
+          originalHex: bytesToHex(buf),
+          tampered: false,
+        };
+      }
+      setStatus(`✓ 示例已加载（${Object.keys(state.files).length} 文件）`);
+      refreshButtonStates();
+      rebuild();
+    } catch (e) {
+      setStatus("❌ 示例加载失败：" + e.message);
+    }
+  });
+
+  tamperBtn.addEventListener("click", () => {
+    const paths = Object.keys(state.files);
+    if (paths.length === 0) return;
+    const target = paths[Math.floor(Math.random() * paths.length)];
+    const file = state.files[target];
+    // 翻一个 byte：保证改动，且大概率让 hash 失配
+    const mutated = new Uint8Array(file.bytes);
+    mutated[0] = (mutated[0] ^ 0x01) & 0xff;
+    file.bytes = mutated;
+    file.hex = bytesToHex(mutated);
+    file.tampered = true;
+    setStatus(`🎲 已篡改 ${target}`);
+    rebuild();
+  });
+
+  resetBtn.addEventListener("click", () => {
+    for (const path in state.files) {
+      const file = state.files[path];
+      file.bytes = hexToBytes(file.originalHex);
+      file.hex = file.originalHex;
+      file.tampered = false;
+    }
+    setStatus("↻ 已重置");
+    rebuild();
+  });
+
+  function refreshButtonStates() {
+    const hasFiles = Object.keys(state.files).length > 0;
+    tamperBtn.disabled = !hasFiles;
+    resetBtn.disabled = !hasFiles;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Hex helpers
+  // ---------------------------------------------------------------------------
+  function bytesToHex(buf) {
+    return Array.from(buf).map(b => b.toString(16).padStart(2, "0")).join("");
+  }
+  function hexToBytes(hex) {
+    const out = new Uint8Array(hex.length / 2);
+    for (let i = 0; i < out.length; i++) {
+      out[i] = parseInt(hex.substr(i * 2, 2), 16);
+    }
+    return out;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Rebuild: call compute_merkle_tree + verify_evidence, render
+  // ---------------------------------------------------------------------------
+  async function rebuild() {
+    if (!state.manifestText) return;
+    let mod;
+    try {
+      mod = await loadModule();
+    } catch { return; }
+
+    // Build the request envelope
+    const filesHex = {};
+    for (const p in state.files) filesHex[p] = state.files[p].hex;
+    const request = JSON.stringify({
+      manifest: state.manifestText,
+      files: filesHex,
+    });
+
+    let treeResp, verifyResp;
+    try {
+      treeResp = JSON.parse(mod.compute_merkle_tree(request));
+      verifyResp = JSON.parse(mod.verify_evidence(request));
+    } catch (e) {
+      setStatus("❌ 验证调用失败：" + e.message);
+      return;
+    }
+
+    state.lastReport = verifyResp;
+    render();
+    return verifyResp;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Rendering
+  // ---------------------------------------------------------------------------
+  function render() {
+    renderFileList();
+    renderTree();
+    renderDiag();
+  }
+
+  function renderFileList() {
+    const paths = Object.keys(state.files);
+    if (paths.length === 0) {
+      fileListEl.innerHTML = `<div class="empty-state"><div class="icon">📁</div><p>暂无文件</p></div>`;
+      return;
+    }
+    // Sort: tampered first
+    paths.sort((a, b) => {
+      const ta = state.files[a].tampered ? 0 : 1;
+      const tb = state.files[b].tampered ? 0 : 1;
+      return ta - tb || a.localeCompare(b);
+    });
+    let html = "";
+    for (const p of paths) {
+      const f = state.files[p];
+      const cls = f.tampered ? "item tampered" : "item";
+      const badge = f.tampered
+        ? `<span class="badge">已篡改</span>`
+        : `<span class="badge ok">未改动</span>`;
+      html += `<div class="${cls}">
+        <div class="path">${escape(p)}</div>
+        <div class="meta">${f.bytes.length} bytes</div>
+        <div class="meta"><code>${shortHex(f.hex)}</code></div>
+        ${badge}
+      </div>`;
+    }
+    fileListEl.innerHTML = html;
+  }
+
+  function renderTree() {
+    if (!state.lastReport) return;
+    const r = state.lastReport;
+    if (!r.ok || !r.tree) {
+      treeCanvasEl.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><h3>无法构建树</h3><p>${escape(r.error || "未知错误")}</p></div>`;
+      rootBadgeEl.innerHTML = "";
+      return;
+    }
+    const t = r.tree;
+    const levels = t.levels;
+    const height = t.height;
+    const matches = t.root && t.root.matches;
+    rootBadgeEl.innerHTML = `<span class="root-badge ${matches ? "ok" : "bad"}">${
+      matches ? "✓ 根匹配" : "✗ 根失配"
+    }</span>`;
+
+    if (height === 0 || levels.length === 0) {
+      treeCanvasEl.innerHTML = `<div class="empty-state"><div class="icon">🌲</div><h3>空树</h3><p>manifest 没有文件</p></div>`;
+      return;
+    }
+
+    // Compute ancestor highlighting: for each tampered file, walk up the spine
+    const tamperedIndices = [];
+    const leavesMeta = t.leaves_meta || [];
+    for (let i = 0; i < leavesMeta.length; i++) {
+      const lm = leavesMeta[i];
+      if (state.files[lm.path] && state.files[lm.path].tampered) {
+        tamperedIndices.push(i);
+      }
+    }
+    const ancestorSet = new Set();   // "level:idx"
+    const tamperedSet = new Set();   // "0:idx" (leaf indices)
+    for (const i of tamperedIndices) {
+      tamperedSet.add(`0:${i}`);
+      // Walk spine: leaf i at level 0, parent = i/2 at level 1, etc.
+      let idx = i;
+      for (let level = 0; level < height - 1; level++) {
+        idx = Math.floor(idx / 2);
+        ancestorSet.add(`${level + 1}:${idx}`);
+      }
+    }
+
+    // SVG layout: each level gets its own row, nodes spaced horizontally
+    const nodeW = 110;
+    const nodeH = 36;
+    const rowH = 56;
+    const widestLevel = levels[levels.length - 1].length;
+    const totalW = Math.max(640, widestLevel * (nodeW + 18));
+    const totalH = height * rowH + 8;
+
+    let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalW} ${totalH + 30}" style="min-width:${totalW}px">`;
+
+    // Position maps per level: node center x for each idx at that level
+    const xPos = [];
+    for (let level = 0; level < height; level++) {
+      const n = levels[level].length;
+      const slot = totalW / n;
+      const row = [];
+      for (let i = 0; i < n; i++) row.push(slot * i + slot / 2);
+      xPos.push(row);
+    }
+
+    // Edges first (so they sit below nodes)
+    for (let level = 0; level < height - 1; level++) {
+      const parents = levels[level + 1].length;
+      for (let i = 0; i < parents; i++) {
+        const leftChild = i * 2;
+        const rightChild = i * 2 + 1;
+        const px = xPos[level + 1][i];
+        const py = (level + 1) * rowH + nodeH / 2;
+        // 左孩子
+        if (leftChild < levels[level].length) {
+          const cx = xPos[level][leftChild];
+          const cy = level * rowH + nodeH / 2;
+          svg += `<line x1="${cx}" y1="${cy}" x2="${px}" y2="${py}" stroke="#d1d9e0" stroke-width="1.4"/>`;
+        }
+        // 右孩子 (虚线表示不存在 / 提升)
+        if (rightChild < levels[level].length) {
+          const cx = xPos[level][rightChild];
+          const cy = level * rowH + nodeH / 2;
+          svg += `<line x1="${cx}" y1="${cy}" x2="${px}" y2="${py}" stroke="#d1d9e0" stroke-width="1.4" stroke-dasharray="3,3"/>`;
+        } else {
+          // 自身提升：虚线指向自己
+          svg += `<line x1="${px}" y1="${py}" x2="${px}" y2="${py}" stroke="#d1d9e0" stroke-width="1.4" stroke-dasharray="2,2"/>`;
+        }
+      }
+    }
+
+    // Nodes
+    for (let level = 0; level < height; level++) {
+      const levelRow = levels[level];
+      const labelRows = level === 0 ? leavesMeta : null;
+      for (let i = 0; i < levelRow.length; i++) {
+        const x = xPos[level][i] - nodeW / 2;
+        const y = level * rowH;
+        const key = `${level}:${i}`;
+        const isRoot = level === height - 1;
+        let fill = "#fff";
+        let stroke = "#d1d9e0";
+        let textColor = "#1f2328";
+        if (level === 0 && tamperedSet.has(key)) {
+          fill = "#cf222e";
+          stroke = "#cf222e";
+          textColor = "#fff";
+        } else if (ancestorSet.has(key)) {
+          fill = "#f59f00";
+          stroke = "#f59f00";
+          textColor = "#fff";
+        } else if (isRoot && !matches) {
+          fill = "#cf222e";
+          stroke = "#cf222e";
+          textColor = "#fff";
+        }
+        svg += `<g>
+          <rect x="${x}" y="${y}" width="${nodeW}" height="${nodeH}" rx="5" ry="5" fill="${fill}" stroke="${stroke}" stroke-width="1.6"/>
+          <text x="${xPos[level][i]}" y="${y + 14}" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" font-weight="600" fill="#59636e">L${level}.${i}</text>
+          <text x="${xPos[level][i]}" y="${y + 28}" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" font-weight="700" fill="${textColor}">${shortHex(levelRow[i])}</text>
+        </g>`;
+        // 第一层额外显示 path
+        if (level === 0 && labelRows && labelRows[i]) {
+          const label = labelRows[i].path || "";
+          svg += `<text x="${xPos[level][i]}" y="${y + nodeH + 14}" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#1f2328">${escape(shortPath(label))}</text>`;
+        }
+      }
+    }
+
+    // Root annotation: recorded vs actual
+    const root = t.root;
+    if (root && root.recorded) {
+      const y = (height - 1) * rowH + nodeH + 6;
+      svg += `<text x="${totalW / 2}" y="${y + 18}" text-anchor="middle" font-size="11" fill="#59636e">recorded: <tspan font-family="ui-monospace,monospace" fill="#1f2328">${escape(shortHex(root.recorded, 18))}</tspan></text>`;
+      svg += `<text x="${totalW / 2}" y="${y + 32}" text-anchor="middle" font-size="11" fill="#59636e">actual:   <tspan font-family="ui-monospace,monospace" fill="${matches ? "#1a7f37" : "#cf222e"}" font-weight="700">${escape(shortHex(root.actual, 18))}</tspan></text>`;
+    }
+
+    svg += `</svg>`;
+    svg += `<div class="legend">
+      <span><span class="swatch tampered"></span>被篡改的叶子</span>
+      <span><span class="swatch ancestor"></span>祖先节点（受牵连）</span>
+      <span><span class="swatch untouched"></span>未触动的节点</span>
+      <span><span class="swatch added"></span>根匹配 ✓</span>
+    </div>`;
+    treeCanvasEl.innerHTML = svg;
+  }
+
+  function renderDiag() {
+    if (!state.lastReport) return;
+    const r = state.lastReport;
+    if (r.ok && r.report && r.report.ok) {
+      diagBodyEl.innerHTML = `<div class="ok-banner">✓ 验证通过</div><div class="short" style="margin-top:10px;text-align:center">${escape(r.explain || "")}</div>`;
+      return;
+    }
+    const findings = (r.report && r.report.findings) || [];
+    if (findings.length === 0) {
+      diagBodyEl.innerHTML = `<div class="empty">无 finding</div>`;
+      return;
+    }
+    let html = "";
+    for (const f of findings) {
+      const cls = f.severity === "Error" ? "finding error" : "finding warning";
+      html += `<div class="${cls}">
+        <span class="code">${escape(f.code)}</span>
+        <span class="path">${escape(f.path)}</span>
+        <div class="message">${escape(f.message)}</div>
+      </div>`;
+    }
+    html += `<div class="short" style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)">${escape(r.explain || "")}</div>`;
+    diagBodyEl.innerHTML = html;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------------
+  function shortHex(s, n = 8) {
+    if (!s) return "";
+    // strip "sha256:" prefix
+    const bare = s.includes(":") ? s.split(":").pop() : s;
+    if (bare.length <= n * 2) return bare;
+    return bare.substr(0, n) + "…" + bare.substr(-n);
+  }
+  function shortPath(p) {
+    if (p.length <= 24) return p;
+    return "…" + p.substr(-22);
+  }
+  function escape(s) {
+    if (s == null) return "";
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  // Boot
+  loadModule().catch(() => {});
+</script>
+</body>
+</html>

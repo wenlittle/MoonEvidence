@@ -218,7 +218,7 @@ All 12 packages are implemented and fully tested across three backends.
 - **Browser** (`src/api`): esm bundle for client-side verification
 
 ### Test Coverage
-- **234 unit tests** passing on native / wasm-gc / js
+- **258 unit tests** passing on native / wasm-gc / js
 - **41-case black-box CLI suite**: 12 example packs + 10-pack tamper matrix + 19 error-code fixtures
 - **Property tests**: canonicalization idempotence, Merkle proof soundness (mutation-verified)
 - **CI three-backend matrix**: native / wasm-gc / js build + test + browser smoke test
@@ -232,5 +232,5 @@ node tools/smoke-api.mjs
 moon bench --target js
 ```
 
-All commands pass locally as of 2026-07-04 Asia/Shanghai. Codebase is 7593
-effective MoonBit lines (implementation 3700 + tests 3893), well within the 4-10k competition range.
+All commands pass locally as of 2026-07-04 Asia/Shanghai. Codebase is 9068
+effective MoonBit lines (implementation 4379 + tests 4689), well within the 4-10k competition range.

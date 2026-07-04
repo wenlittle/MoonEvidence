@@ -19,10 +19,16 @@ pub(all) struct IncrementalReport {
 /// The caller still supplies all file bytes; the optimization is that we
 /// only call SHA-256/512 on files that are new or changed. Merkle root
 /// verification always runs in full.
+///
+/// `expected_manifest_digest`, when given, is the externally recorded
+/// canonical digest that the manifest must equal (E2004) — identical to
+/// `verify_manifest`'s step 3. Without this the incremental path would be
+/// a silently weakened verification (missing the manifest-tamper check).
 pub fn verify_manifest_incremental(
   manifest_json : String,
   files : Map[String, Bytes],
   previous : Map[String, String],
+  expected_manifest_digest~ : String?,
 ) -> IncrementalReport {
   let findings : Array[@diag.Finding] = []
 
@@ -46,10 +52,42 @@ pub fn verify_manifest_incremental(
     }
   }
 
-  let canonical_json = @canonjson.canonicalize(manifest_json) catch {
-    _ => manifest_json
+  // Step 2: canonicalize (E1004 on failure) — same as the main pipeline.
+  let canonical_json : String? = try
+    @canonjson.canonicalize(manifest_json)
+  catch {
+    error => {
+      findings.push({
+        code: "E1004",
+        severity: Error,
+        path: "manifest",
+        message: "canonicalization failed: \{error}",
+      })
+      None
+    }
+  } noraise {
+    value => Some(value)
   }
-  ignore(canonical_json)
+
+  // Step 3: manifest canonical digest vs externally recorded value (E2004).
+  // This is the check that was previously missing — the old code computed
+  // canonical_json then `ignore`d it, making the incremental path a silently
+  // weakened verification. Now it mirrors verify_manifest step 3 exactly.
+  if expected_manifest_digest is Some(expected) &&
+    canonical_json is Some(canonical) {
+    let actual = @digest.Digest::of_bytes(
+      manifest.algorithm,
+      @digest.string_to_utf8_bytes(canonical),
+    ).to_string()
+    if actual != expected {
+      findings.push({
+        code: "E2004",
+        severity: Error,
+        path: "manifest",
+        message: "canonical digest mismatch, expected \{expected} got \{actual}",
+      })
+    }
+  }
 
   let mut files_passed = 0
   let mut rehashed = 0

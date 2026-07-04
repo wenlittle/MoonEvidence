@@ -600,6 +600,31 @@ Round 1 left 8 "patches" (comments saying "known issue", TODOs, archived-not-mer
 | Post-R2 baseline | 76 commits / 7593 lines / 236 tests / 12 packages / 0 warnings |
 | Confidence | High - all changes verified live |
 
+## 2026-07-04 Asia/Shanghai (round 3: visualization + E2004 + anti-drift)
+
+### Round 3: Trust Workbench foundation + incremental E2004 fix + CI anti-drift gate
+
+Three structural fixes that unblock the "Trust Workbench" UI upgrade and close the round-2 gaps.
+
+| Field | Result |
+| --- | --- |
+| Source | Round-2 health check (docs/plans/2026-07-04-health-check-round2-and-improvement-plan.md) + comprehensive upgrade plan (docs/plans/2026-07-04-comprehensive-upgrade-and-ui-redesign-plan.md) |
+| Changes | (1) `compute_tree(leaves) -> MerkleTree?` + `MerkleTree::root/height/leaf_count/level/leaf_path` — full tree materialization for visualization, pure additive, `compute_root` unchanged; (2) `compute_merkle_tree` JSON API in `src/api` — exposes full tree + leaves_meta + root comparison + example spine to JS; (3) `demo/web/tamper-lab.html` — interactive Merkle tree visualization with byte-level tamper, ancestor highlighting, root mismatch badge; (4) `verify_manifest_incremental` gains `expected_manifest_digest~` and now asserts E2004 — closes the silently-weakened-verification gap from round 2; (5) `tools/check-metrics.mjs` — CI anti-drift gate, 19 assertions, Node.js fs APIs (Windows-compatible); (6) All docs synced to actuals: 82 commits / 9116 lines / 258 tests / 12 packages; (7) git tag v0.4.0; (8) moon.mod bumped 0.3.0 -> 0.4.0 |
+| Verification | moon check 0 warnings; moon test 254/254 wasm-gc; moon test 254/254 js; node tools/check-metrics.mjs 19/19 pass |
+| Post-R3 baseline | 83 commits / 9116 lines (impl 4284 + test 4832) / 258 tests / 12 packages / 0 warnings / v0.4.0 |
+| Confidence | High — all changes verified live, anti-drift gate prevents recurrence |
+
+### Verification Run
+
+| Command | Result |
+| --- | --- |
+| `moon check` | exit 0, **0 warnings**, 0 errors |
+| `moon test --target wasm-gc` | **254/254 passed** |
+| `moon test --target js` | **254/254 passed** |
+| `node tools/check-metrics.mjs` | **19/19 assertions pass** |
+| `moon build --target js` | exit 0 (api.js exports verify_evidence + compute_merkle_tree) |
+| `moon build --target wasm-gc` | exit 0 |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

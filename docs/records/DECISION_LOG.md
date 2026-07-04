@@ -215,3 +215,36 @@ Reason:
 - Round 1 "archived with note" left two reports with conflicting numbers — a verification hazard.
 - A single authoritative report eliminates the consistency risk entirely.
 
+## 2026-07-04: MerkleTree materialization for visualization (round 3)
+
+Decision: Add `compute_tree(leaves) -> MerkleTree?`, `MerkleTree::root/height/leaf_count/level/leaf_path` to `src/merkle`. `compute_root` stays as the canonical single-value API; `compute_tree` is a pure-additive companion that returns every hash on every level.
+
+Reason:
+
+- The Trust Workbench UI (`demo/web/tamper-lab.html`) needs to render the full Merkle tree, not just the root, so users can see which ancestor nodes change when a leaf is tampered.
+- `compute_root` is frozen v1; reusing it would require callers to re-derive intermediate levels in JS, duplicating the promotion logic (CVE-2012-2459 defense) and risking divergence.
+- `compute_tree` shares the same promotion rule as `compute_root` (odd node promoted unchanged, never self-paired); tests prove `tree.root() == compute_root(leaves)` for 8 shapes.
+- `leaf_path(index)` returns the spine from leaf to root — one step per level, last step is the root — so the renderer can highlight the tampered leaf's ancestor chain without re-walking the tree in JS.
+
+## 2026-07-04: incremental path now asserts E2004 manifest digest (round 3)
+
+Decision: `verify_manifest_incremental` gains `expected_manifest_digest~ : String?` and now performs the E2004 manifest-digest assertion when the parameter is supplied, matching `verify_manifest` step 3. The old `ignore(canonical_json)` is removed.
+
+Reason:
+
+- Round 2 audit found the incremental path computed canonical JSON then threw it away, silently skipping the E2004 check the main path performs. This made `verify_manifest_incremental` a silently weakened verification, not a performance-equivalent optimization.
+- A caller using the incremental path for "fast re-check" would miss a tampered manifest whose file digests still matched — a real security gap.
+- The fix mirrors the main path's step 2 (canonicalize, E1004 on failure) and step 3 (compare canonical digest to expected, E2004 on mismatch). The parameter is optional (defaults to None) so existing callers stay source-compatible.
+- Three new tests pin the behavior: E2004 on mismatch, pass on match, no E2004 when parameter is None.
+
+## 2026-07-04: CI auto anti-drift gate via check-metrics.mjs (round 3)
+
+Decision: Add `tools/check-metrics.mjs` as a CI gate that collects actual repo metrics (commits, MoonBit lines, test count, package count, moon.mod version) via Node.js fs APIs and asserts they match the numbers cited in README / README.zh / DEVELOPMENT_REPORT / ACCEPTANCE_CHECKLIST / STRUCTURE_TREE / moon.mod.
+
+Reason:
+
+- Rounds 1 and 2 both suffered "metric drift" — docs claiming 76 commits / 6891 lines when actuals were 79 / 8368. The root cause was that "single source of truth" was a human-remembered process, not an automated gate.
+- `check-metrics.mjs` makes the gate automated: 19 assertions, exit 1 on any mismatch. Running it in CI means a PR that changes code but forgets to update docs will fail.
+- Uses Node.js fs APIs (not shell `find`/`wc`) so it works identically on Windows and Linux CI runners.
+- Also asserts `moon.mod version == CHANGELOG latest version` to prevent the round-2 moon.mod/CHANGELOG version desynchronization from recurring.
+

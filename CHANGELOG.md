@@ -4,18 +4,30 @@
 
 ## [0.4.0] - 2026-07-04
 
-可视化公开：把 Merkle 树从内部数据结构暴露为可观察、可验证的运行时对象。
+可视化公开 + 增量验证契约对齐 + CI 防漂移门禁：把 Merkle 树从内部数据结构暴露为可观察、可验证的运行时对象；修复增量验证路径跳过 E2004 的安全缺口；建立自动化数字对齐门禁。
 
 ### Added
 
 - **Merkle 完整树物化**：`src/merkle` 新增 `compute_tree(leaves)`（→ `MerkleTree`）、`tree.root()`、`tree.level(i)`、`tree.height()`、`tree.leaf_count()`、`tree.leaf_path(index)` API。树高度 = 内部层数；奇数叶节点被无损提升到上一层（字节相等的复制，不重新哈希）。
 - **Merkle 路径节点**：`PathStep { level, node_index }` 描述从叶到根的完整爬升路径，含边界检查与索引校验。
 - **`compute_merkle_tree` 浏览器适配**：JS 字符串接口新增 `compute_merkle_tree(request)`，输出 `{ok, tree:{leaf_count, height, levels, root:{recorded, actual, matches}, leaves_meta, example_path}, error?}`，便于可视化 audit 视图直接消费。
+- **Tamper Lab 篡改实验台**：`demo/web/tamper-lab.html` 交互式 Merkle 树可视化页面——拖入证据包、一键随机篡改、叶子节点变红 + 祖先节点变橙 + 根失配闪红、诊断报告实时显示错误码。
+- **CI 自动防漂移门禁**：`tools/check-metrics.mjs` 收集实测指标（提交/行/测试/包/版本），19 条断言校验 README/README.zh/开发报告/验收清单/结构树/moon.mod 版本一致性。纯 Node.js fs API，Windows 兼容。
+
+### Fixed
+
+- **增量验证路径补 E2004**：`verify_manifest_incremental` 新增 `expected_manifest_digest~ : String?` 参数，删除 `ignore(canonical_json)`，补上 E1004 canonicalize + E2004 manifest 摘要断言（与主路径 `verify_manifest` step 2+3 完全对齐）。此前增量路径是 silently 弱化的验证——少一道 manifest 完整性检查。
 
 ### Tests
 
 - `src/merkle/merkle_wbtest.mbt` +8 树形与路径覆盖（含 1/2/3/4/5/7/8/16 形状、根一致性、空树、边界索引）。
-- `src/api/api_wbtest.mbt` +4 compute_merkle_tree 白盒（金色包、空 files、坏请求、根不匹配、path 长度）。总数 246 → 251。
+- `src/api/api_wbtest.mbt` +4 compute_merkle_tree 白盒（金色包、空 files、坏请求、根不匹配、path 长度）。
+- `src/verify/incremental_wbtest.mbt` +3 E2004 覆盖（mismatch/match/None 向后兼容）。总数 251 → 254。
+
+### Changed
+
+- moon.mod 版本 0.3.0 → 0.4.0；git tag v0.4.0。
+- 全文档量化数字同步到实测：82 提交 / 9116 行（实现 4284 + 测试 4832）/ 258 测试 / 12 包。
 
 ## [0.3.1] - 2026-07-04
 

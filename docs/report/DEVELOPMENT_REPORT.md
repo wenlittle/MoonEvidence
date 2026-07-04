@@ -38,7 +38,7 @@
 ```text
 src/canonjson  -> 确定性 JSON 序列化 (RFC 8785)
 src/digest     -> 摘要类型、算法枚举、hex/base64 辅助、SHA-256/SHA-512/HMAC
-src/merkle     -> Merkle 根与包含性证明验证 (RFC 6962 风格)
+src/merkle     -> Merkle 根计算、包含性证明验证与完整树物化 (RFC 6962 风格)；compute_tree 返回每层所有哈希，leaf_path 从叶子到根脊线，为可视化提供遍历能力
 src/model      -> manifest、文件条目、证明、版本节点模型
 src/verify     -> 包/文件/manifest/版本验证编排（七步流水线）
 src/diag       -> 结构化诊断与 explain 输出
@@ -74,7 +74,7 @@ tests/         -> 夹具与黑盒回归测试
 | --- | --- |
 | Canonical JSON | RFC 8785 规范化序列化 |
 | SHA-256 | 纯 MoonBit 实现，NIST 向量验证 |
-| Merkle 树 | RFC 6962 风格，根计算+证明验证 |
+| Merkle 树 | RFC 6962 风格，根计算+证明验证；`compute_tree` 物化每层所有哈希，`leaf_path` 返回叶子到根的脊线，供可视化层零成本遍历 |
 | 证据清单模型 | 带验证的 manifest 解析 |
 | 版本链验证 | 时间线性+哈希链完整性 |
 | 7 步验证流水线 | 解析到诊断的完整管线 |

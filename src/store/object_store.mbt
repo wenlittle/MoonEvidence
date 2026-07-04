@@ -1,9 +1,9 @@
-// Content-addressable object store, similar to Git's object model.
+// In-memory deduplication store keyed by SHA-256 digest.
 // Files are stored by their SHA-256 digest; duplicate content is stored once.
 // The store is a pure in-memory data structure with no IO dependency.
 
 ///|
-/// In-memory content-addressable store keyed by SHA-256 digest.
+/// In-memory deduplication map: content is stored once per unique SHA-256 digest.
 pub struct ObjectStore {
   objects : Map[String, Bytes]
 }

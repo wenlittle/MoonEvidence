@@ -4,12 +4,13 @@
 //
 //   node tools/smoke-api.mjs
 //
-// Covers all 10 exported pub API functions in closed loops:
+// Covers all 11 exported pub API functions in closed loops:
 //   1. verify_evidence (golden + tampered + malformed)
 //   2. create_evidence_pack → verify_evidence round-trip
 //   3. generate_proof → verify_proof round-trip
 //   4. audit_append → audit_verify round-trip
 //   5. ed25519_keypair → ed25519_sign → ed25519_verify round-trip
+//   6. audit_sign → audit_verify with signatures
 //
 // Exit code 0 on pass, 1 on any unexpected verdict.
 import {
@@ -19,6 +20,7 @@ import {
   verify_proof,
   audit_append,
   audit_verify,
+  audit_sign,
   ed25519_keypair,
   ed25519_sign,
   ed25519_verify,
@@ -238,6 +240,51 @@ if (kpResp.ok) {
 // Demo seed warning
 const demoKp = call(ed25519_keypair, {});
 check("demo keypair has warning", typeof demoKp.warning === "string", JSON.stringify(demoKp));
+
+// ---------------------------------------------------------------------------
+// 6. audit_sign → audit_verify with signatures
+// ---------------------------------------------------------------------------
+console.log("6. audit_sign → audit_verify with signatures");
+
+if (kpResp.ok) {
+  // Create a fresh audit log for signing.
+  const signAuditResp = call(audit_append, {
+    log: "[]",
+    timestamp: "2026-07-05T12:00:00Z",
+    actor: "audit-signer",
+    action: "sealed",
+    subject_id: "smoke-ds-v1",
+  });
+  check("audit_append for signing succeeds", signAuditResp.ok === true, JSON.stringify(signAuditResp));
+
+  if (signAuditResp.ok) {
+    // Sign the last entry with the keypair from section 5.
+    const signResp = call(audit_sign, {
+      log: signAuditResp.log,
+      secret_key: kpResp.secret_key,
+    });
+    check("audit_sign succeeds", signResp.ok === true, JSON.stringify(signResp));
+
+    if (signResp.ok) {
+      // Verify with valid signatures.
+      const sigVerifyResp = call(audit_verify, {
+        log: signResp.log,
+        verify_signatures: true,
+        public_key: kpResp.public_key,
+      });
+      check("audit_verify signatures_valid is true", sigVerifyResp.signatures_valid === true, JSON.stringify(sigVerifyResp));
+
+      // Tamper: prepend "zz" to the signature hex (invalid hex chars).
+      const tamperedLog = signResp.log.replace(/("signature":")([0-9a-f])/, '$1zz$2');
+      const tamperedSigResp = call(audit_verify, {
+        log: tamperedLog,
+        verify_signatures: true,
+        public_key: kpResp.public_key,
+      });
+      check("audit_verify detects tampered signature", tamperedSigResp.signatures_valid === false, JSON.stringify(tamperedSigResp));
+    }
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Summary

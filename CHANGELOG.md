@@ -49,7 +49,7 @@
 
 ### Added
 
-- **内容寻址存储**（`src/store`）：类 Git object store，SHA-256 去重，含 `put`/`get`/`has`/`deduplicate`/`reconstruct` 与完整性校验。
+- **内存去重 Map**（`src/store`）：SHA-256 键去重，含 `put`/`get`/`has`/`deduplicate`/`reconstruct` 与完整性校验。
 - **审计日志**（`src/audit`）：哈希链串联的追加式操作记录，`append`/`verify_chain`/`to_json`，可选 Ed25519 签名（`sign_last`/`verify_signatures`）。
 - **Ed25519 数字签名**（`src/crypto`）：纯 MoonBit 实现，从 GF(2^255-19) 有限域（16-limb TweetNaCl 风格）→ Curve25519 扩展坐标点运算（HWCD08）→ RFC 8032 签名/验签，约 800 行，零外部密码学依赖。
 - **审计日志 + 签名集成**：审计记录可选 Ed25519 签名验证。

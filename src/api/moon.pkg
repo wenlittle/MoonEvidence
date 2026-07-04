@@ -26,6 +26,7 @@ options(
         "verify_proof",
         "audit_append",
         "audit_verify",
+        "audit_sign",
         "ed25519_keypair",
         "ed25519_sign",
         "ed25519_verify",

@@ -43,7 +43,7 @@ src/model      -> manifest、文件条目、证明、版本节点模型
 src/verify     -> 包/文件/manifest/版本验证编排（七步流水线）
 src/diag       -> 结构化诊断与 explain 输出
 src/create     -> 从原始文件构建证据包
-src/store      -> 内容寻址对象存储（类 Git）
+src/store      -> 内存去重 Map（SHA-256 键）
 src/audit      -> 哈希链追加式审计日志
 src/crypto     -> Ed25519 数字签名（纯 MoonBit）
 src/cmd/main   -> native CLI 适配器
@@ -90,7 +90,7 @@ tests/         -> 夹具与黑盒回归测试
 | SHA-512 | 多算法支持 |
 | 增量验证 | 摘要缓存，跳过未改动文件 |
 | 批量 CLI | 一次验证多个包 |
-| 内容寻址存储 | 类 Git object store，SHA-256 去重 |
+| 内存去重 Map | SHA-256 键去重，支持完整性验证 |
 
 ### 第三阶段：进阶探索（已完成核心）
 
@@ -120,7 +120,7 @@ tests/         -> 夹具与黑盒回归测试
 | 包 | 功能 |
 | --- | --- |
 | `create` | `create_manifest` API + CLI create；从原始文件字节构建证据包，文件按 code-point 序排序保证跨工具 Merkle root 一致 |
-| `store` | 内容寻址对象存储（类 Git）；`put`/`get`/`has`/`deduplicate`/`reconstruct` + 完整性校验；Int64 字节数防溢出 |
+| `store` | 内存去重 Map（SHA-256 键）；`put`/`get`/`has`/`deduplicate`/`reconstruct` + 完整性校验；Int64 字节数防溢出 |
 | `audit` | 哈希链追加式审计日志；`append`/`verify_chain`/`to_json`，可选 Ed25519 签名（`sign_last`/`verify_signatures`）；`verify_chain` 校验 hash 字段防篡改 |
 | `crypto` | 纯 MoonBit Ed25519（RFC 8032）；从 `field25519` → `point25519` → `ed25519` 自底向上实现，约 800 行，零外部密码学依赖 |
 

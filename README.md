@@ -29,7 +29,7 @@ MoonEvidence is not a blockchain application or smart contract framework. It is 
 - **Evidence pack creation**: `create` CLI command + `create_manifest` API.
 - **Incremental verification**: digest caching, skip unchanged files.
 - **Batch CLI mode**: verify multiple packs at once, summarize results.
-- **Content-addressed storage**: Git-like object store with SHA-256 deduplication.
+- **In-memory deduplication store**: content stored once per unique SHA-256 digest.
 
 ### Advanced Capabilities
 - **Audit log**: hash-chained append-only operation records.
@@ -209,7 +209,7 @@ All 12 packages are implemented and fully tested across three backends.
 
 ### Extension Packages
 - `create` — evidence pack creation from raw files
-- `store` — content-addressed object storage (Git-like)
+- `store` — in-memory deduplication map (SHA-256 keyed)
 - `audit` — hash-chained append-only audit log
 - `crypto` — Ed25519 digital signatures (pure MoonBit, from GF(2^255-19) up)
 

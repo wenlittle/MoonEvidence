@@ -46,3 +46,28 @@ test "digest of bytes round trips through text form" {
   assert_eq(digest, reparsed)
   assert_true(same_digest(digest.to_string(), reparsed.to_string()))
 }
+
+///|
+test "digest of bytes wraps the sha512 fips 180-4 one block vector" {
+  // FIPS 180-4 one-block message example: the 3-byte ASCII string "abc".
+  let digest = Digest::of_bytes(Sha512, b"abc")
+  assert_eq(digest.algorithm, Sha512)
+  inspect(
+    digest.hex,
+    content=
+      "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f",
+  )
+}
+
+///|
+test "digest of bytes wraps the sha512 fips 180-4 one million a vector" {
+  // FIPS 180-4 long-message example: 1,000,000 repetitions of 'a'.
+  let data = Bytes::makei(1000000, _ => b'a')
+  let digest = Digest::of_bytes(Sha512, data)
+  assert_eq(digest.algorithm, Sha512)
+  inspect(
+    digest.hex,
+    content=
+      "e718483d0ce769644e2e42c7bc15b4638e1f98b13b2044285632a803afa973ebde0ff244877ea60a4cb0432ce577c31beb009c5c2c49aa2e4eadb217ad8cc09b",
+  )
+}

@@ -65,6 +65,58 @@ const mutations = [
     // self-pairing c would change that root.
     expectHint: "unpaired nodes are promoted",
   },
+  {
+    id: "ed25519-canonical-s",
+    label: "ed25519 canonical S check inverted (!scalar_lt_l -> scalar_lt_l)",
+    file: join(repoRoot, "src", "crypto", "ed25519.mbt"),
+    find: "  if !scalar_lt_l(s_enc) {\n    return false\n  }",
+    replace: "  if scalar_lt_l(s_enc) {\n    return false\n  }",
+    // Flips the RFC 8032 §8.4 S < l check: valid signatures (S < l) are
+    // now rejected, while malleable ones (S >= l) slip through. Both
+    // the RFC KAT tests and the malleability tests must go red.
+    expectHint: "S < l canonical encoding check",
+  },
+  {
+    id: "ed25519-identity-reject",
+    label: "ed25519 identity public key rejection removed",
+    file: join(repoRoot, "src", "crypto", "ed25519.mbt"),
+    find: "  if a_point.is_identity() {\n    return false\n  }",
+    replace: "  if a_point.is_identity() {\n    ()\n  }",
+    // The identity point (0, 1) has order 1; without rejection, an
+    // all-zero signature verifies against it (S*B = O = R + k*O).
+    // The explicit identity-rejection test must go red.
+    expectHint: "identity point rejection",
+  },
+  {
+    id: "ed25519-noncanonical-y",
+    label: "ed25519 non-canonical y rejection removed (RFC 8032 §5.1.3)",
+    file: join(repoRoot, "src", "crypto", "ed25519.mbt"),
+    find: "  let y_original = Bytes::from_array(y_arr)\n  if y_original != y.to_bytes() {\n    return None\n  }",
+    replace: "  let y_original = Bytes::from_array(y_arr)\n  if y_original != y.to_bytes() {\n    ()\n  }",
+    // Non-canonical y (y >= p) is no longer rejected by point_decode.
+    // The round-trip check test that feeds y = p must go red.
+    expectHint: "non-canonical y round-trip check",
+  },
+  {
+    id: "sha256-initial-h0",
+    label: "sha256 initial hash H0 bit-flipped (0x6a09e667 -> 0x6a09e668)",
+    file: join(repoRoot, "src", "digest", "sha256.mbt"),
+    find: "0x6a09e667U, 0xbb67ae85U",
+    replace: "0x6a09e668U, 0xbb67ae85U",
+    // Flips the LSB of the first FIPS 180-4 §5.3.3 initial value.
+    // The NIST "abc" KAT must produce a different digest.
+    expectHint: "FIPS 180-4 initial hash state",
+  },
+  {
+    id: "sha256-round-k0",
+    label: "sha256 round constant K0 bit-flipped (0x428a2f98 -> 0x428a2f99)",
+    file: join(repoRoot, "src", "digest", "sha256.mbt"),
+    find: "0x428a2f98U, 0x71374491U",
+    replace: "0x428a2f99U, 0x71374491U",
+    // Flips the LSB of the first FIPS 180-4 §4.2.2 round constant.
+    // The NIST "abc" KAT must produce a different digest.
+    expectHint: "FIPS 180-4 round constant",
+  },
 ];
 
 const countOccurrences = (haystack, needle) =>

@@ -418,14 +418,18 @@ test "ed25519_verify explicitly rejects identity public key (RFC 8032 §5.1.3)" 
   ]
   let pk = Bytes::from_array(identity_pk)
   let msg = @digest.string_to_utf8_bytes("any message")
-  // Craft a signature with R = identity encoding, S = 0.
-  let sig : Array[Byte] = []
-  for _ in 0..<64 {
+  // Craft a forgery that WOULD verify against the identity public key
+  // if the explicit is_identity() rejection were absent: R = identity
+  // encoding (0x01 + 31 zero bytes), S = 0. Then S*B = O = R, and
+  // R + k*A = O + k*O = O = S*B, so the equation holds. Only the
+  // explicit identity-point check blocks this forgery.
+  let sig : Array[Byte] = [b'\x01']
+  for _ in 0..<63 {
     sig.push(b'\x00')
   }
   let sig_bytes = Bytes::from_array(sig)
-  // Even with an all-zero signature, verify must return false for
-  // the identity public key (explicit rejection, not just equation failure).
+  // The explicit is_identity() check must reject this before the
+  // equation check, otherwise the forgery verifies.
   assert_false(ed25519_verify(pk, msg, sig_bytes))
 }
 

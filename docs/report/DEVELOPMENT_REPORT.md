@@ -1,7 +1,7 @@
 # MoonEvidence 开发报告
 
 > MoonBit OSC2026 开源生态挑战赛 · 项目验收材料
-> 仓库：https://github.com/wenlittle/MoonEvidence ｜ 规模：约 4.4k 行 MoonBit（实现 ~2.0k + 测试 ~2.4k）｜ 提交：52 个
+> 仓库：https://github.com/starlittle/MoonEvidence ｜ 规模：6891 行 MoonBit（实现 3590 + 测试 3301）｜ 提交：76 个
 
 ## 一、项目背景与定位
 
@@ -43,7 +43,7 @@
 
 | 层 | 数量与内容 |
 | --- | --- |
-| 单元测试 | **155 个**，wasm-gc 与 js 双后端全绿；含 NIST/RFC 向量、JCS fixtures、版本链图语义 |
+| 单元测试 | **219 个**，wasm-gc 与 js 双后端全绿；含 NIST/RFC 向量、JCS fixtures、版本链图语义 |
 | CLI 黑盒 | **22 用例**（`tools/cli-test.ps1`）：12 个示例包用例 + 10 包篡改矩阵逐 pack 断言**精确错误码集合**（禁止"至少包含"式宽松断言） |
 | 篡改矩阵 | `tests/fixtures/packs/` 10 个 pack 由独立 Node 参考实现生成，覆盖每个错误码族；CI 设防腐化校验（重新生成后 `git diff` 必须为空） |
 | Property 测试 | 规范化幂等、Merkle 证明可靠性——并经**变异验证**（故意破坏实现确认测试会红，证明断言非恒真） |
@@ -62,7 +62,7 @@
 
 ## 六、生态价值与后续路线
 
-**可复用价值**：六个纯包均可独立复用——`canonjson`（生态首个 RFC 8785 实现）、`digest`（纯 MoonBit SHA-256 含流式 API）、`merkle`（域分离树 + 包含性证明）对其他项目是直接可用的构件；`verify_evidence` 字符串边界让任何 JS 宿主零成本集成。
+**可复用价值**：12 个包（6 核心 + 4 扩展 + 2 适配）均可独立复用——`canonjson`（生态首个 RFC 8785 实现）、`digest`（纯 MoonBit SHA-256/SHA-512/HMAC 含流式 API）、`merkle`（域分离树 + 包含性证明）、`create`（证据包创建）、`store`（内容寻址存储）、`audit`（哈希链审计日志）、`crypto`（纯 MoonBit Ed25519）对其他项目是直接可用的构件；`verify_evidence` 字符串边界让任何 JS 宿主零成本集成。
 
 **后续路线**：
 - 流式哈希接入适配层，把大包内存峰值从 Σ(全部文件) 降到 max(单文件)

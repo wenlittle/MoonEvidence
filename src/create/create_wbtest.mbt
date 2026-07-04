@@ -16,8 +16,8 @@ test "create_manifest produces valid canonical JSON" {
   // Must parse as valid JSON.
   let _parsed = @json.parse(manifest_json)
   // Must be idempotent under canonicalization.
-  let re_canon = try { @canonjson.canonicalize(manifest_json) } catch { _ => "" }
-  assert_eq!(manifest_json, re_canon)
+  let re_canon = @canonjson.canonicalize(manifest_json) catch { _ => "" }
+  assert_eq(manifest_json, re_canon)
 }
 
 ///|
@@ -35,11 +35,11 @@ test "create → verify round-trip succeeds" {
   }
   let manifest_json = create_manifest(files, options)
   let report = @verify.verify_manifest(manifest_json, files)
-  assert_true!(report.ok)
-  assert_eq!(report.checked.files_total, 3)
-  assert_eq!(report.checked.files_passed, 3)
-  assert_true!(report.checked.merkle_checked)
-  assert_eq!(report.findings.length(), 0)
+  assert_true(report.ok)
+  assert_eq(report.checked.files_total, 3)
+  assert_eq(report.checked.files_passed, 3)
+  assert_true(report.checked.merkle_checked)
+  assert_eq(report.findings.length(), 0)
 }
 
 ///|
@@ -65,7 +65,7 @@ test "create_manifest includes correct file count and sorted order" {
       }
     _ => return
   }
-  assert_eq!(file_array.length(), 3)
+  assert_eq(file_array.length(), 3)
   // Files should be sorted by path.
   let first_path = match file_array[0] {
     Object(obj) =>
@@ -75,7 +75,7 @@ test "create_manifest includes correct file count and sorted order" {
       }
     _ => ""
   }
-  assert_eq!(first_path, "a.txt")
+  assert_eq(first_path, "a.txt")
 }
 
 ///|
@@ -89,7 +89,7 @@ test "create_manifest with version parent" {
   }
   let manifest_json = create_manifest(files, options)
   let report = @verify.verify_manifest(manifest_json, files)
-  assert_true!(report.ok)
+  assert_true(report.ok)
 }
 
 ///|
@@ -108,9 +108,7 @@ test "create_manifest with empty files produces valid output" {
 
 ///|
 test "create → tamper → verify detects mismatch" {
-  let files : Map[String, Bytes] = {
-    "secret.txt": b"original content",
-  }
+  let files : Map[String, Bytes] = { "secret.txt": b"original content" }
   let options : CreateOptions = {
     subject: { id: "tamper-test", kind: "test" },
     algorithm: @digest.Sha256,
@@ -123,6 +121,6 @@ test "create → tamper → verify detects mismatch" {
     "secret.txt": b"TAMPERED content",
   }
   let report = @verify.verify_manifest(manifest_json, tampered_files)
-  assert_false!(report.ok)
-  assert_true!(report.findings.length() > 0)
+  assert_false(report.ok)
+  assert_true(report.findings.length() > 0)
 }

@@ -247,6 +247,14 @@ fn validate_entry_path(
 ) -> Unit raise ModelError {
   for index in 0..<path.length() {
     let unit = path[index].to_int()
+    // Null byte injection: a path containing 0x00 can truncate the string
+    // when passed to C-style filesystem APIs (the null terminator is
+    // honored), letting "files/evil\x00.txt" resolve as "files/evil".
+    if unit == 0x00 {
+      raise ModelError::InvalidField(
+        context, "null bytes are not allowed in paths",
+      )
+    }
     if unit == 0x5c {
       raise ModelError::InvalidField(
         context, "backslash separators are not allowed (use \"/\")",

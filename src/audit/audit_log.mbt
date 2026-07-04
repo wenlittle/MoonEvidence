@@ -46,6 +46,7 @@ pub(all) struct AuditEntry {
   subject_id : String
   manifest_digest : String?
   prev_hash : String?
+  hash : String
   signature : String?
 } derive(Eq, @debug.Debug)
 
@@ -60,19 +61,15 @@ pub fn AuditEntry::compute_hash(self : AuditEntry) -> String {
     Some(h) => Json::string(h)
     None => Json::null()
   }
-  let entry_json = Json::object(
-    {
-      "timestamp": Json::string(self.timestamp),
-      "actor": Json::string(self.actor),
-      "action": Json::string(self.action.to_string()),
-      "subject_id": Json::string(self.subject_id),
-      "manifest_digest": digest_json,
-      "prev_hash": prev_json,
-    },
-  )
-  let canonical = try {
-    @canonjson.canonicalize(entry_json.stringify())
-  } catch {
+  let entry_json = Json::object({
+    "timestamp": Json::string(self.timestamp),
+    "actor": Json::string(self.actor),
+    "action": Json::string(self.action.to_string()),
+    "subject_id": Json::string(self.subject_id),
+    "manifest_digest": digest_json,
+    "prev_hash": prev_json,
+  })
+  let canonical = @canonjson.canonicalize(entry_json.stringify()) catch {
     _ => entry_json.stringify()
   }
   let bytes = @digest.string_to_utf8_bytes(canonical)
@@ -94,21 +91,17 @@ pub fn AuditEntry::to_json(self : AuditEntry) -> String {
     Some(s) => Json::string(s)
     None => Json::null()
   }
-  let entry_json = Json::object(
-    {
-      "timestamp": Json::string(self.timestamp),
-      "actor": Json::string(self.actor),
-      "action": Json::string(self.action.to_string()),
-      "subject_id": Json::string(self.subject_id),
-      "manifest_digest": digest_json,
-      "prev_hash": prev_json,
-      "hash": Json::string(self.compute_hash()),
-      "signature": sig_json,
-    },
-  )
-  try {
-    @canonjson.canonicalize(entry_json.stringify())
-  } catch {
+  let entry_json = Json::object({
+    "timestamp": Json::string(self.timestamp),
+    "actor": Json::string(self.actor),
+    "action": Json::string(self.action.to_string()),
+    "subject_id": Json::string(self.subject_id),
+    "manifest_digest": digest_json,
+    "prev_hash": prev_json,
+    "hash": Json::string(self.hash),
+    "signature": sig_json,
+  })
+  @canonjson.canonicalize(entry_json.stringify()) catch {
     _ => entry_json.stringify()
   }
 }
@@ -142,23 +135,32 @@ pub fn AuditLog::append(
     subject_id,
     manifest_digest,
     prev_hash: self.last_hash,
+    hash: "",
     signature: None,
   }
   let hash = entry.compute_hash()
-  self.entries.push(entry)
+  let final_entry : AuditEntry = { ..entry, hash, }
+  self.entries.push(final_entry)
   self.last_hash = Some(hash)
 }
 
 ///|
 /// Verifies the hash chain integrity: each entry's prev_hash must match
-/// the computed hash of the preceding entry.
+/// the computed hash of the preceding entry, and each entry's stored
+/// `hash` field must match the freshly recomputed hash. Without the
+/// latter check, a tampered `hash` field would go undetected as long as
+/// the prev_hash links still line up.
 pub fn AuditLog::verify_chain(self : AuditLog) -> Bool {
   let mut prev_hash : String? = None
   for entry in self.entries {
     if entry.prev_hash != prev_hash {
       return false
     }
-    prev_hash = Some(entry.compute_hash())
+    let computed = entry.compute_hash()
+    if entry.hash != computed {
+      return false
+    }
+    prev_hash = Some(computed)
   }
   true
 }
@@ -180,64 +182,33 @@ pub fn AuditLog::sign_last(self : AuditLog, sk : Bytes) -> Unit {
   let hash_bytes = @digest.string_to_utf8_bytes(hash_str)
   let sig = @crypto.ed25519_sign(sk, hash_bytes)
   let sig_hex = @digest.bytes_to_lower_hex(sig)
-  let signed_entry : AuditEntry = {
-    timestamp: entry.timestamp,
-    actor: entry.actor,
-    action: entry.action,
-    subject_id: entry.subject_id,
-    manifest_digest: entry.manifest_digest,
-    prev_hash: entry.prev_hash,
-    signature: Some(sig_hex),
-  }
+  let signed_entry : AuditEntry = { ..entry, signature: Some(sig_hex) }
   self.entries[idx] = signed_entry
 }
 
 ///|
 /// Verifies all Ed25519 signatures in the log.
 /// Entries without signatures are skipped (returns true for them).
+/// A signature whose hex encoding is invalid (tampered or corrupted) causes
+/// verification to fail rather than silently decoding to wrong bytes.
 pub fn AuditLog::verify_signatures(self : AuditLog, pk : Bytes) -> Bool {
   for entry in self.entries {
     match entry.signature {
       Some(sig_hex) => {
         let hash_str = entry.compute_hash()
         let hash_bytes = @digest.string_to_utf8_bytes(hash_str)
-        let sig = hex_to_bytes(sig_hex)
-        if @crypto.ed25519_verify(pk, hash_bytes, sig) == false {
-          return false
+        match @digest.hex_to_bytes(sig_hex) {
+          Some(sig) =>
+            if @crypto.ed25519_verify(pk, hash_bytes, sig) == false {
+              return false
+            }
+          None => return false
         }
       }
       None => ()
     }
   }
   true
-}
-
-///|
-fn hex_to_bytes(hex : String) -> Bytes {
-  let chars = hex.to_array()
-  let arr : Array[Byte] = []
-  let mut i = 0
-  while i + 1 < chars.length() {
-    let hi = hex_char_val(chars[i])
-    let lo = hex_char_val(chars[i + 1])
-    let val = hi * 16 + lo
-    arr.push((val.to_uint64() & 0xffUL).to_byte())
-    i = i + 2
-  }
-  Bytes::from_array(arr)
-}
-
-///|
-fn hex_char_val(c : Char) -> Int {
-  if c >= '0' && c <= '9' {
-    c.to_int() - '0'.to_int()
-  } else if c >= 'a' && c <= 'f' {
-    c.to_int() - 'a'.to_int() + 10
-  } else if c >= 'A' && c <= 'F' {
-    c.to_int() - 'A'.to_int() + 10
-  } else {
-    0
-  }
 }
 
 ///|
@@ -249,9 +220,7 @@ pub fn AuditLog::to_json(self : AuditLog) -> String {
     entries_json.push(parsed)
   }
   let doc = Json::array(entries_json)
-  try {
-    @canonjson.canonicalize(doc.stringify())
-  } catch {
+  @canonjson.canonicalize(doc.stringify()) catch {
     _ => doc.stringify()
   }
 }

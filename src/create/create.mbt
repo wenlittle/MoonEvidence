@@ -46,17 +46,13 @@ pub fn create_manifest(
     let digest = @digest.Digest::of_bytes(options.algorithm, data)
     let digest_str = digest.to_string()
 
-    let entry = Json::object(
-      {
-        "path": Json::string(path),
-        "size": Json::number(data.length().to_double()),
-        "digest": Json::string(digest_str),
-      },
-    )
+    let entry = Json::object({
+      "path": Json::string(path),
+      "size": Json::number(data.length().to_double()),
+      "digest": Json::string(digest_str),
+    })
     file_entries.push(entry)
-    let canonical_entry = try {
-      @canonjson.canonicalize(entry.stringify())
-    } catch {
+    let canonical_entry = @canonjson.canonicalize(entry.stringify()) catch {
       _ => entry.stringify()
     }
     let leaf_bytes = @digest.string_to_utf8_bytes(canonical_entry)
@@ -76,31 +72,23 @@ pub fn create_manifest(
     None => Json::null()
   }
 
-  let manifest = Json::object(
-    {
-      "schema": Json::string("moon-evidence/v0"),
-      "subject": Json::object(
-        {
-          "id": Json::string(options.subject.id),
-          "type": Json::string(options.subject.kind),
-        },
-      ),
-      "hash_algorithm": Json::string(options.algorithm.label()),
-      "files": Json::array(file_entries),
-      "merkle_root": merkle_root,
-      "version": Json::object(
-        {
-          "id": Json::string(options.version_id),
-          "parent": version_parent_json,
-        },
-      ),
-    },
-  )
+  let manifest = Json::object({
+    "schema": Json::string("moon-evidence/v0"),
+    "subject": Json::object({
+      "id": Json::string(options.subject.id),
+      "type": Json::string(options.subject.kind),
+    }),
+    "hash_algorithm": Json::string(options.algorithm.label()),
+    "files": Json::array(file_entries),
+    "merkle_root": merkle_root,
+    "version": Json::object({
+      "id": Json::string(options.version_id),
+      "parent": version_parent_json,
+    }),
+  })
 
   let raw_json = manifest.stringify()
-  try {
-    @canonjson.canonicalize(raw_json)
-  } catch {
+  @canonjson.canonicalize(raw_json) catch {
     _ => raw_json
   }
 }

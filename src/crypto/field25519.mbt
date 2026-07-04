@@ -189,14 +189,34 @@ pub fn Fe::to_bytes(self : Fe) -> Bytes {
 
 ///|
 /// Equality test via canonical byte comparison.
+/// Constant-time: accumulates all byte differences with XOR before testing,
+/// so the control flow does not depend on secret field-element data.
 pub fn Fe::eq(self : Fe, other : Fe) -> Bool {
   let a = self.to_bytes()
   let b = other.to_bytes()
-  let mut same = true
+  let mut diff = 0
   for i in 0..<32 {
-    if a[i] != b[i] {
-      same = false
-    }
+    diff = diff | (a[i].to_int() ^ b[i].to_int())
   }
-  same
+  diff == 0
+}
+
+///|
+/// Constant-time conditional move for field elements.
+/// Returns `true_val` when `bit == 1`, `false_val` when `bit == 0`,
+/// without a secret-dependent branch. `bit` must be 0 or 1.
+/// Used by scalar_mul to avoid timing side-channels on secret scalars.
+fn fe_cmov(false_val : Fe, true_val : Fe, bit : Int) -> Fe {
+  let b : UInt64 = (bit & 1).to_uint64()
+  // mask = all 1s if b == 1, all 0s if b == 0 (branch-free).
+  let mask : UInt64 = b * 0xffffffffffffffffUL
+  let r = FixedArray::make(16, 0UL)
+  for i in 0..<16 {
+    // r = false ^ (mask & (false ^ true))
+    // mask = 0  -> r = false
+    // mask = -1 -> r = false ^ (false ^ true) = true
+    let diff = false_val.limbs[i] ^ true_val.limbs[i]
+    r[i] = false_val.limbs[i] ^ (mask & diff)
+  }
+  { limbs: r }
 }

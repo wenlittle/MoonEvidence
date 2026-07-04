@@ -437,7 +437,7 @@ of defense caught what") stays accurate.
 | --- | --- |
 | Source | `moon package --list`, `moon publish --dry-run` (live runs) |
 | Method | Package the module and inspect the artifact list; dry-run publish to probe credentials |
-| Key result | `moon package` passes check and produces `_build/publish/wenlittle-MoonEvidence-0.1.0.zip` with a clean file list (src + docs + examples + tools, no build artifacts); `moon publish --dry-run` stops at `failed to open credentials file ... please login first` |
+| Key result | `moon package` passes check and produces `_build/publish/wenlittle-MoonEvidence-0.1.0.zip`（改名前产物，仓库后已由 wenlittle 改名为 starlittle） with a clean file list (src + docs + examples + tools, no build artifacts); `moon publish --dry-run` stops at `failed to open credentials file ... please login first` |
 | Decision | Publishing is an externally visible action and needs the account owner: run `moon login` then `moon publish` when ready; everything else (metadata in `moon.mod`: name/version/license/repository/keywords/description/readme) is already in place |
 | Confidence | High - the only missing ingredient is the user's Mooncakes credential |
 
@@ -507,6 +507,84 @@ Remaining owner-side actions (outside the repo): dual push to GitHub + Gitlink, 
 | Finding 2: guidelines drift | `docs/CODE_GUIDELINES.md` "Diagnostics" still listed draft camel-case diagnostic names superseded by the frozen error-code contract; section now points at the spec table (this commit) |
 | Updated freeze point | `dced33c` (formatting) supersedes `40ef593` as the code freeze; verification results identical |
 | Confidence | High - all checks executed live this session |
+
+## 2026-07-04 Asia/Shanghai (5-round health check, plan-only)
+
+### Authoritative Baseline Measurement
+
+| Field | Result |
+| --- | --- |
+| Source | Local git repo + filesystem, measured live this session |
+| Method | `git rev-list --count HEAD`; `Get-ChildItem`/`Measure-Object -Line` over `src/**/*.mbt`; `Select-String '^test '` over wbtests; `Test-Path LICENSE`; `Select-String 'wenlittle'` |
+| Commits | **76** (docs claim 52 / 57) |
+| Implementation lines | 22 files **3590** lines (excl. wbtest/bench/prop) |
+| Test lines | 26 files **3301** lines |
+| Total MoonBit lines | **6891** (docs claim 4382 / 4.4k / 4600 / 8000+) |
+| Test declarations | **219** (docs claim 155 / 205 / 215) |
+| Packages | **12** moon.pkg (docs claim 6 / 8 / 14) |
+| LICENSE file | **absent** (moon.mod declares Apache-2.0) |
+| wenlittle refs | **7** (concentrated in application materials) |
+| Confidence | High - every number produced by a command run this session |
+
+> **Resolution (2026-07-04, same session)**：上表 "docs claim ..." 列记录的是修正前的文档值。本次同步已将全部比赛材料统一到实测基线（76 提交 / 6891 行 / 219 测试 / 12 包），`wenlittle` 在比赛材料中清零（仅本日志的历史快照与 `docs/plans/` 诊断文档保留改名前记录），并新增 `LICENSE`（Apache-2.0 全文）。因此 "docs claim" 列现为历史对照，不再代表当前文档状态。
+
+### 5-Round Health Check Summary
+
+| Field | Result |
+| --- | --- |
+| Source | 3-way parallel deep audit (source / tests / docs+CI) + targeted verification + root-cause clustering |
+| Method | Read all 48 .mbt files, all fixtures, all docs, CI config; grep signals (TODO/FIXME/pub(all)/@fs/panic); cross-check quantitative claims across docs |
+| Dimension scores | Source 7.5/10; Tests 6.5/10; Docs & governance 4.5/10; **Composite 6.2/10** |
+| P0 blockers (3) | Repo/author attribution conflict (wenlittle/starlittle + single/four-person); Ed25519 missing S<l check (malleability, RFC 8032 §8.4); E3002 zero coverage + false README claim |
+| P1 high (6) | incremental error-code drift (E2001/E3002 vs E2003/E3003); quantitative drift; frozen API vs code; two conflicting dev reports; Ed25519 KAT pk constant never asserted; audit hex_to_bytes silent corruption |
+| P2 medium (13) | Ed25519 non-constant-time + slow reduction + recompute curve_d2; create sort not code-point; SHA-512 implicit padding; path null-byte; CLI blackbox gaps; self-validation; stale nav docs; CI gaps; missing LICENSE/CHANGELOG; loose assertions; PowerShell-only |
+| P3 low (12) | hex duplication; bench guards; manual mutation; duplicated setup; fixtures guard scope; missing fuzz/long-chain; audit hash check; hardcoded version; Int overflow; symlink; gitattributes; demo video |
+| Root causes | A. no sync mechanism post-freeze; B. later packages bypassed core quality gates; C. application materials maintained on separate track |
+| Impact | Project engineering core is strong but "step-11 frozen snapshot" vs "actual state" systematically diverged; crypto as trust root not yet production-grade |
+| Confidence | High - all findings backed by file:line evidence or command output |
+
+### Deliverable
+
+Full health check + phased improvement plan written to `docs/plans/2026-07-04-health-check-and-improvement-plan.md` (6 phases: P0 block -> docs alignment -> crypto hardening -> test deepening -> CI governance -> competitiveness). Plan-only: no source code modified this session.
+
+## 2026-07-04 Asia/Shanghai (improvement plan execution)
+
+### Changes Applied
+- **P0 blockers fixed**: Ed25519 S<l check (malleability), incremental error codes unified (E2001→E2003, E3002→E3003), repo attribution unified (starlittle)
+- **Crypto hardened**: constant-time scalar_mul (cmov), Fe::eq XOR accumulation, 7 constants cached, RFC 8032 §7.1 KAT 4 sets (corrected wrong pk constant), malleability tests 3, low-order/non-canonical tests
+- **Security hardened**: hex_to_bytes unified to digest pkg (audit no longer silent-corrupts), path null-byte rejection, audit verify_chain validates hash field, SHA-512 explicit 16-byte length, ObjectStore Int64
+- **Test deepened**: CLI error-code matrix 19 fixtures, cross-verify.mjs independent Node verification, 1000-node chain stress, parser fuzz 400 rounds, mutation-check.mjs 3/3 caught, bench guard
+- **CI upgraded**: moon fmt --check gate, bench job, native test on ubuntu, release.yml (tag-triggered), cli-test.sh (bash), .gitattributes binary coverage
+- **Docs aligned**: wenlittle→starlittle, quantitative unified (76/6891/219/12), stale report archived, STRUCTURE_TREE/PROJECT_INDEX/ROADMAP refreshed, ARCHITECTURE v2 frozen API, LICENSE/CHANGELOG/SECURITY/CONTRIBUTING added
+- **Deprecated syntax cleaned**: all assert_eq!/assert_true!/assert_false! → non-deprecated forms (77 macro calls across 6 test files); plus 3 `Map::size()`→`length()` deprecations (object_store) and the missing `moonbitlang/core/debug` import in `src/audit/moon.pkg` (compiler-recommended fix for 11 `core_package_not_imported` warnings). All 92 warnings (77 deprecated assert macros + 15 other deprecated APIs/imports) resolved to 0.
+
+### Verification Run
+
+| Command | Result |
+| --- | --- |
+| `moon check` | exit 0, **0 warnings** (was 92), 0 errors |
+| `moon fmt --check` | exit 0 (no drift) |
+| `moon test --target js` | **234/234 passed** |
+| `moon test --target wasm-gc` | **234/234 passed** |
+| `moon build --target native` | failed: no system C compiler (cl/cc/gcc/clang absent) — non-blocking, covered by CI ubuntu |
+| `tools/cli-test.ps1 -Target js` | **41/41 passed** |
+| `node tools/cross-verify.mjs` | 6/10 packs verify intact; 4 negative fixtures (bad-digest-field / bad-merkle-root / missing-file / tampered-file) correctly detected as non-intact — expected baseline, no fixture bytes changed |
+
+Note: the 92 warnings were 77 deprecated `assert_eq!`/`assert_true!`/`assert_false!` macro calls plus 15 other deprecations (11 `core_package_not_imported` for `@debug.Debug` derives in `audit_log.mbt`, 3 `Map::size()` calls, 1 more). The task brief's "全是 assert 语法" was a slight under-count; all categories are now resolved.
+
+### Post-Improvement Baseline
+| Field | Value |
+| --- | --- |
+| Commits | 76 |
+| Implementation lines | 3700 |
+| Test lines | 3893 |
+| Total lines | 7593 |
+| Test declarations | 238 (234 tests + 4 benchmarks) |
+| Packages | 12 |
+| moon check warnings | 0 |
+| moon test --target js | 234/234 passed |
+| CLI blackbox | 41/41 passed |
+| Confidence | High |
 
 ## Logging Rule
 

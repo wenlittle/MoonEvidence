@@ -31,11 +31,26 @@ jobs:
       - name: Type check
         run: moon check
 
+      # Format gate: the codebase was once normalized by `moon fmt` across all
+      # 38 source files (RESULTS_LOG "moon fmt Normalization"). This step makes
+      # any future fmt drift fail CI instead of silently accumulating.
+      - name: Format check
+        run: moon fmt --check
+
       - name: Run tests (wasm-gc + js)
         run: moon test --target wasm-gc,js
 
       - name: Build native
         run: moon build --target native
+
+      # Native unit tests now run on ubuntu CI (runners ship gcc, so the
+      # native backend can link and execute). Unit tests live in the pure
+      # packages (canonjson/digest/merkle/model/diag/verify) and are
+      # backend-agnostic; the cmd/main FFI paths stay covered by the
+      # black-box suite below. Required step: if a native-only failure
+      # surfaces, relax with `continue-on-error: true` and file an issue.
+      - name: Run tests (native)
+        run: moon test --target native
 
       - name: CLI black-box tests (native)
         shell: pwsh
@@ -53,3 +68,26 @@ jobs:
 
       - name: Browser adapter smoke (node over js artifact)
         run: node tools/smoke-api.mjs
+
+  # Informational benchmark job: tracks SHA-256 throughput and end-to-end
+  # verify cost (RESULTS_LOG step 8 task 4). Non-blocking by design - benchmark
+  # timing is inherently noisy on shared runners, so a regression here must
+  # not break the main CI flow. `moon bench` exists and was run locally on the
+  # js target; if a future toolchain removes it, this job simply fails soft.
+  bench:
+    needs: check-test-build
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MoonBit CLI
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: Show toolchain versions
+        run: moon version --all
+
+      - name: Run benchmarks (js)
+        run: moon bench --target js

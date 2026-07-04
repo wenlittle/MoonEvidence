@@ -34,6 +34,14 @@ Semantics worth noting (asserted by the matrix):
   flags the unattested payload.
 
 Codes not covered here are covered elsewhere: E1xxx/E2001/E2002 by
-`tests/fixtures/manifest/` (model unit layer), E3002 by merkle unit tests
-(the CLI does not consume proofs/ in the MVP), E5001/E5002 by dedicated
-CLI cases.
+`tests/fixtures/manifest/` (model unit layer), E3003 by this matrix's
+`bad-merkle-root` (and `bad-digest-field`) plus the `verify`/`incremental`
+unit tests, E5001/E5002 by dedicated CLI cases.
+
+E3002 (proof format invalid) is currently **zero coverage** and is
+declared here honestly: the CLI does not consume `proofs/` in the MVP,
+and no test in the suite fires E3002. It is reserved in the error-code
+contract for a future inclusion-proof CLI path. The incremental
+verification path was corrected to surface E3003 (root mismatch), not
+E3002 — see `src/verify/incremental_wbtest.mbt` (asserts `E3003`,
+explicitly notes E3002 is reserved for "proof format invalid").

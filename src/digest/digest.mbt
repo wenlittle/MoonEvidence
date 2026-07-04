@@ -66,6 +66,42 @@ pub fn is_hex(input : String) -> Bool {
 }
 
 ///|
+/// Maps a single hex digit byte value (ASCII code) to its 0..15 numeric
+/// value; `None` for non-hex characters. Case-insensitive.
+fn hex_nibble(byte : Int) -> Int? {
+  if byte >= 0x30 && byte <= 0x39 {
+    Some(byte - 0x30)
+  } else if byte >= 0x61 && byte <= 0x66 {
+    Some(byte - 0x61 + 10)
+  } else if byte >= 0x41 && byte <= 0x46 {
+    Some(byte - 0x41 + 10)
+  } else {
+    None
+  }
+}
+
+///|
+/// Decodes a hex string into bytes, returning `None` when the length is odd
+/// or any character is not a hex digit (case-insensitive). This is the
+/// single canonical hex decoder for the codebase: every caller that used to
+/// silently map invalid characters to 0 (audit) or -1 (merkle tests) now
+/// goes through here, so a tampered hex signature surfaces as a
+/// verification failure instead of silent byte corruption.
+pub fn hex_to_bytes(hex : String) -> Bytes? {
+  if hex.length() % 2 != 0 {
+    return None
+  }
+  let out : Array[Byte] = []
+  for index in 0..<(hex.length() / 2) {
+    let high = hex_nibble(hex[index * 2].to_int())
+    let low = hex_nibble(hex[index * 2 + 1].to_int())
+    guard high is Some(hi) && low is Some(lo) else { return None }
+    out.push(((hi << 4) | lo).to_byte())
+  }
+  Some(Bytes::from_array(out))
+}
+
+///|
 /// Lowercases a hex string after validating it with `is_hex`; `None` when
 /// the input is empty or contains a non-hex character.
 pub fn normalize_hex(input : String) -> String? {

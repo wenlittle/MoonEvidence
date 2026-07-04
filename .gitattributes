@@ -9,3 +9,13 @@ examples/*/files/** binary
 # (manifests included - CI diffs them against the generator output).
 tests/fixtures/packs/** -text
 
+# Explicit binary coverage for assets that must never be CRLF-converted or
+# text-merged by Git. Without these entries `* text=auto` leaves the
+# attribute unset for unrecognized extensions, which is usually fine but is
+# not a guarantee - make it explicit so LFS/checkout behaviour is predictable.
+*.png  binary
+*.pdf  binary
+*.docx binary
+
+# `moon package` publish artifacts (release workflow uploads these).
+*.zip  binary

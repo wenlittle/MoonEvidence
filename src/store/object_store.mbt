@@ -37,7 +37,7 @@ pub fn ObjectStore::has(self : ObjectStore, hash : String) -> Bool {
 
 ///|
 pub fn ObjectStore::count(self : ObjectStore) -> Int {
-  self.objects.size()
+  self.objects.length()
 }
 
 ///|
@@ -69,7 +69,7 @@ pub(all) struct DeduplicateResult {
   store : ObjectStore
   total_files : Int
   unique_objects : Int
-  bytes_saved : Int
+  bytes_saved : Int64
 }
 
 ///|
@@ -78,20 +78,22 @@ pub(all) struct DeduplicateResult {
 pub fn deduplicate(files : Map[String, Bytes]) -> DeduplicateResult {
   let store = ObjectStore::new()
   let index : Map[String, String] = {}
-  let mut total_bytes = 0
-  let mut unique_bytes = 0
+  // Int64 accumulators: content.length() returns Int, but sums over many
+  // files can exceed 2^31 (~2 GiB). Int64 gives headroom up to ~8 EiB.
+  let mut total_bytes : Int64 = 0L
+  let mut unique_bytes : Int64 = 0L
   for path, content in files {
-    total_bytes = total_bytes + content.length()
+    total_bytes = total_bytes + content.length().to_int64()
     let hash = store.put(content)
     index[path] = hash
   }
   for _, content in store.objects {
-    unique_bytes = unique_bytes + content.length()
+    unique_bytes = unique_bytes + content.length().to_int64()
   }
   {
     index,
     store,
-    total_files: files.size(),
+    total_files: files.length(),
     unique_objects: store.count(),
     bytes_saved: total_bytes - unique_bytes,
   }
@@ -104,18 +106,14 @@ pub fn DeduplicateResult::to_json(self : DeduplicateResult) -> String {
   for path, hash in self.index {
     entries[path] = Json::string(hash)
   }
-  let doc = Json::object(
-    {
-      "index": Json::object(entries),
-      "stats": Json::object(
-        {
-          "total_files": Json::number(self.total_files.to_double()),
-          "unique_objects": Json::number(self.unique_objects.to_double()),
-          "bytes_saved": Json::number(self.bytes_saved.to_double()),
-        },
-      ),
-    },
-  )
+  let doc = Json::object({
+    "index": Json::object(entries),
+    "stats": Json::object({
+      "total_files": Json::number(self.total_files.to_double()),
+      "unique_objects": Json::number(self.unique_objects.to_double()),
+      "bytes_saved": Json::number(self.bytes_saved.to_double()),
+    }),
+  })
   doc.stringify()
 }
 

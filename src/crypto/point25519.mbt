@@ -12,43 +12,66 @@ pub struct Point {
 }
 
 ///|
-// d = -121665/121666 mod p (little-endian 32 bytes)
+// d = -121665/121666 mod p (little-endian 32 bytes).
+// Cached as a top-level constant so Point::add does not re-decode it on every
+// call (scalar_mul performs ~256 adds, each previously redoing this decode).
+let curve_d_val : Fe = Fe::from_bytes(
+  Bytes::from_array([
+    b'\xa3', b'\x78', b'\x59', b'\x13', b'\xca', b'\x4d', b'\xeb', b'\x75', b'\xab',
+    b'\xd8', b'\x41', b'\x41', b'\x4d', b'\x0a', b'\x70', b'\x00', b'\x98', b'\xe8',
+    b'\x79', b'\x77', b'\x79', b'\x40', b'\xc7', b'\x8c', b'\x73', b'\xfe', b'\x6f',
+    b'\x2b', b'\xee', b'\x6c', b'\x03', b'\x52',
+  ]),
+)
+
+///|
 fn curve_d() -> Fe {
-  let b : Array[Byte] = [
-    b'\xa3', b'\x78', b'\x59', b'\x13', b'\xca', b'\x4d', b'\xeb', b'\x75',
-    b'\xab', b'\xd8', b'\x41', b'\x41', b'\x4d', b'\x0a', b'\x70', b'\x00',
-    b'\x98', b'\xe8', b'\x79', b'\x77', b'\x79', b'\x40', b'\xc7', b'\x8c',
-    b'\x73', b'\xfe', b'\x6f', b'\x2b', b'\xee', b'\x6c', b'\x03', b'\x52',
-  ]
-  Fe::from_bytes(Bytes::from_array(b))
+  curve_d_val
 }
+
+///|
+// 2*d precomputed once; Point::add uses this directly instead of recomputing
+// curve_d().add(curve_d()) on every invocation.
+let curve_d2_val : Fe = curve_d_val.add(curve_d_val)
 
 ///|
 fn curve_d2() -> Fe {
-  curve_d().add(curve_d())
+  curve_d2_val
 }
+
+///|
+let base_x_val : Fe = Fe::from_bytes(
+  Bytes::from_array([
+    b'\x1a', b'\xd5', b'\x25', b'\x8f', b'\x60', b'\x2d', b'\x56', b'\xc9', b'\xb2',
+    b'\xa7', b'\x25', b'\x95', b'\x60', b'\xc7', b'\x2c', b'\x69', b'\x5c', b'\xdc',
+    b'\xd6', b'\xfd', b'\x31', b'\xe2', b'\xa4', b'\xc0', b'\xfe', b'\x53', b'\x6e',
+    b'\xcd', b'\xd3', b'\x36', b'\x69', b'\x21',
+  ]),
+)
 
 ///|
 fn base_x() -> Fe {
-  let b : Array[Byte] = [
-    b'\x1a', b'\xd5', b'\x25', b'\x8f', b'\x60', b'\x2d', b'\x56', b'\xc9',
-    b'\xb2', b'\xa7', b'\x25', b'\x95', b'\x60', b'\xc7', b'\x2c', b'\x69',
-    b'\x5c', b'\xdc', b'\xd6', b'\xfd', b'\x31', b'\xe2', b'\xa4', b'\xc0',
-    b'\xfe', b'\x53', b'\x6e', b'\xcd', b'\xd3', b'\x36', b'\x69', b'\x21',
-  ]
-  Fe::from_bytes(Bytes::from_array(b))
+  base_x_val
 }
 
 ///|
+let base_y_val : Fe = Fe::from_bytes(
+  Bytes::from_array([
+    b'\x58', b'\x66', b'\x66', b'\x66', b'\x66', b'\x66', b'\x66', b'\x66', b'\x66',
+    b'\x66', b'\x66', b'\x66', b'\x66', b'\x66', b'\x66', b'\x66', b'\x66', b'\x66',
+    b'\x66', b'\x66', b'\x66', b'\x66', b'\x66', b'\x66', b'\x66', b'\x66', b'\x66',
+    b'\x66', b'\x66', b'\x66', b'\x66', b'\x66',
+  ]),
+)
+
+///|
 fn base_y() -> Fe {
-  let b : Array[Byte] = [
-    b'\x58', b'\x66', b'\x66', b'\x66', b'\x66', b'\x66', b'\x66', b'\x66',
-    b'\x66', b'\x66', b'\x66', b'\x66', b'\x66', b'\x66', b'\x66', b'\x66',
-    b'\x66', b'\x66', b'\x66', b'\x66', b'\x66', b'\x66', b'\x66', b'\x66',
-    b'\x66', b'\x66', b'\x66', b'\x66', b'\x66', b'\x66', b'\x66', b'\x66',
-  ]
-  Fe::from_bytes(Bytes::from_array(b))
+  base_y_val
 }
+
+///|
+// The Ed25519 base point B, precomputed once and shared.
+let base_point_val : Point = Point::from_affine(base_x(), base_y())
 
 ///|
 /// The neutral element (identity point) of the curve group.
@@ -65,7 +88,7 @@ pub fn Point::from_affine(x : Fe, y : Fe) -> Point {
 ///|
 /// The Ed25519 base point B with y = 4/5 mod p.
 pub fn Point::base_point() -> Point {
-  Point::from_affine(base_x(), base_y())
+  base_point_val
 }
 
 ///|
@@ -100,8 +123,24 @@ pub fn Point::double(self : Point) -> Point {
 }
 
 ///|
+/// Constant-time conditional move for points.
+/// Returns `true_val` when `bit == 1`, `false_val` when `bit == 0`,
+/// without a secret-dependent branch.
+fn point_cmov(false_val : Point, true_val : Point, bit : Int) -> Point {
+  {
+    x: fe_cmov(false_val.x, true_val.x, bit),
+    y: fe_cmov(false_val.y, true_val.y, bit),
+    z: fe_cmov(false_val.z, true_val.z, bit),
+    t: fe_cmov(false_val.t, true_val.t, bit),
+  }
+}
+
+///|
 /// Double-and-add scalar multiplication (MSB first).
 /// Scalar is 32-byte little-endian.
+/// Constant-time: every iteration always performs a double and an add,
+/// then selects the add result with a branch-free conditional move, so the
+/// control flow does not depend on secret scalar bits.
 pub fn Point::scalar_mul(self : Point, scalar : Bytes) -> Point {
   let mut q = Point::identity()
   let mut i = 31
@@ -110,9 +149,10 @@ pub fn Point::scalar_mul(self : Point, scalar : Bytes) -> Point {
     let mut bit = 7
     while bit >= 0 {
       q = q.double()
-      if ((byte_val >> bit) & 1) == 1 {
-        q = q.add(self)
-      }
+      // Always compute the add, then conditionally keep it.
+      let added = q.add(self)
+      let bit_val = (byte_val >> bit) & 1
+      q = point_cmov(q, added, bit_val)
       bit = bit - 1
     }
     i = i - 1

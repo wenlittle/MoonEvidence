@@ -1,0 +1,10 @@
+﻿===BUILD===
+moon : Finished. moon: no work to do
+所在位置 C:\Users\starlittle\AppData\Local\Temp\ps-script-3e57fec5-2718-48e6-9d5e-d4f5da1fe71b.ps1:113 字符: 164
++ ... coding utf8 report\_cap_out.txt; (moon build --target js 2>&1 | Out-S ...
++                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Finished. moon: no work to do:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+EXIT=0

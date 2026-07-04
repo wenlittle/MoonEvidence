@@ -4,15 +4,17 @@
 
 ///|
 // Group order l = 2^252 + 27742317777372353535851937790883648493
-// Little-endian bytes of l.
+// Little-endian bytes of l. Cached as a top-level constant.
+let group_order_val : Bytes = Bytes::from_array([
+  b'\xed', b'\xd3', b'\xf5', b'\x5c', b'\x1a', b'\x63', b'\x12', b'\x58', b'\xd6',
+  b'\x9c', b'\xf7', b'\xa2', b'\xde', b'\xf9', b'\xde', b'\x14', b'\x00', b'\x00',
+  b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00',
+  b'\x00', b'\x00', b'\x00', b'\x00', b'\x10',
+])
+
+///|
 fn group_order() -> Bytes {
-  let b : Array[Byte] = [
-    b'\xed', b'\xd3', b'\xf5', b'\x5c', b'\x1a', b'\x63', b'\x12', b'\x58',
-    b'\xd6', b'\x9c', b'\xf7', b'\xa2', b'\xde', b'\xf9', b'\xde', b'\x14',
-    b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00',
-    b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x10',
-  ]
-  Bytes::from_array(b)
+  group_order_val
 }
 
 ///|
@@ -59,6 +61,14 @@ fn clamp_scalar(h : Bytes) -> Bytes {
 // reduce mod l via schoolbook division.
 // For simplicity, we implement modular reduction of a 64-byte little-endian
 // number mod l using repeated subtraction with doubling.
+//
+// KNOWN PERFORMANCE BOTTLENECK: this uses "multiply by 256 then subtract l
+// repeatedly" to reduce. After each shift the accumulator is < l*257, so up to
+// 256 subtractions may be needed per input byte, over 64 bytes -> up to ~16K
+// full 33-byte subtractions per call (~500K byte ops). This is correct but
+// slow compared to TweetNaCl's sc_reduce (21-bit limb, single-pass) or a true
+// Barrett reduction. Correctness is prioritized here; a future optimization
+// should port sc_reduce from TweetNaCl for an order-of-magnitude speedup.
 fn reduce_scalar_512(h : Bytes) -> Bytes {
   // We need to reduce a 512-bit number mod l (253-bit prime order).
   // Strategy: process 64 bytes as a polynomial in 2^8, accumulate mod l.
@@ -69,6 +79,12 @@ fn reduce_scalar_512(h : Bytes) -> Bytes {
   // Represent the running accumulator as 33 bytes (264 bits, enough for l*256+255).
   let acc : Array[Int] = Array::make(33, 0)
   let l = group_order()
+  // Precompute l as Int bytes once (hoisted out of the hot subtract loop).
+  let l_bytes : Array[Int] = Array::make(33, 0)
+  for idx in 0..<32 {
+    l_bytes[idx] = l[idx].to_int() & 0xff
+  }
+  l_bytes[32] = 0
   let mut i = 63
   while i >= 0 {
     // Multiply acc by 256 (shift left 1 byte)
@@ -87,7 +103,7 @@ fn reduce_scalar_512(h : Bytes) -> Bytes {
       let mut k = 32
       while k >= 0 {
         let a_k = acc[k]
-        let l_k = if k < 32 { l[k].to_int() & 0xff } else { 0 }
+        let l_k = l_bytes[k]
         if a_k > l_k && cmp == 0 {
           cmp = 1
         } else if a_k < l_k && cmp == 0 {
@@ -99,7 +115,7 @@ fn reduce_scalar_512(h : Bytes) -> Bytes {
         // acc >= l, subtract l
         let mut borrow = 0
         for idx in 0..<33 {
-          let l_v = if idx < 32 { l[idx].to_int() & 0xff } else { 0 }
+          let l_v = l_bytes[idx]
           let diff = acc[idx] - l_v - borrow
           if diff < 0 {
             acc[idx] = diff + 256
@@ -166,7 +182,8 @@ fn sc_muladd(a : Bytes, b : Bytes, c : Bytes) -> Bytes {
   let product : Array[Int] = Array::make(64, 0)
   for i in 0..<32 {
     for j in 0..<32 {
-      product[i + j] = product[i + j] + (a[i].to_int() & 0xff) * (b[j].to_int() & 0xff)
+      product[i + j] = product[i + j] +
+        (a[i].to_int() & 0xff) * (b[j].to_int() & 0xff)
     }
   }
   // Add c
@@ -187,6 +204,28 @@ fn sc_muladd(a : Bytes, b : Bytes, c : Bytes) -> Bytes {
 }
 
 ///|
+// Compare a 32-byte little-endian scalar s against the group order l.
+// Returns true iff s < l (RFC 8032 §8.4 canonical encoding check).
+// This rejects non-canonical S values to prevent signature malleability.
+fn scalar_lt_l(s : Bytes) -> Bool {
+  let l = group_order()
+  // Compare from the most significant byte (index 31) down to 0.
+  let mut i = 31
+  while i >= 0 {
+    let sv = s[i].to_int() & 0xff
+    let lv = l[i].to_int() & 0xff
+    if sv < lv {
+      return true
+    } else if sv > lv {
+      return false
+    }
+    i = i - 1
+  }
+  // s == l, not strictly less.
+  false
+}
+
+///|
 /// Verifies an Ed25519 signature.
 /// pk: 32-byte public key, msg: message, sig: 64-byte signature.
 pub fn ed25519_verify(pk : Bytes, msg : Bytes, sig : Bytes) -> Bool {
@@ -204,6 +243,10 @@ pub fn ed25519_verify(pk : Bytes, msg : Bytes, sig : Bytes) -> Bool {
   }
   let r_enc = Bytes::from_array(r_bytes)
   let s_enc = Bytes::from_array(s_bytes)
+  // RFC 8032 §8.4: reject non-canonical S (S >= l) to block malleability.
+  if !scalar_lt_l(s_enc) {
+    return false
+  }
   // Decode public key point A
   let a_point = match point_decode(pk) {
     Some(p) => p
@@ -225,15 +268,19 @@ pub fn ed25519_verify(pk : Bytes, msg : Bytes, sig : Bytes) -> Bool {
 }
 
 ///|
-// sqrt(-1) mod p, needed for point decoding.
+// sqrt(-1) mod p, needed for point decoding. Cached as a top-level constant.
+let sqrt_m1_val : Fe = Fe::from_bytes(
+  Bytes::from_array([
+    b'\xb0', b'\xa0', b'\x0e', b'\x4a', b'\x27', b'\x1b', b'\xee', b'\xc4', b'\x78',
+    b'\xe4', b'\x2f', b'\xad', b'\x06', b'\x18', b'\x43', b'\x2f', b'\xa7', b'\xd7',
+    b'\xfb', b'\x3d', b'\x99', b'\x00', b'\x4d', b'\x2b', b'\x0b', b'\xdf', b'\xc1',
+    b'\x4f', b'\x80', b'\x24', b'\x83', b'\x2b',
+  ]),
+)
+
+///|
 fn sqrt_m1() -> Fe {
-  let b : Array[Byte] = [
-    b'\xb0', b'\xa0', b'\x0e', b'\x4a', b'\x27', b'\x1b', b'\xee', b'\xc4',
-    b'\x78', b'\xe4', b'\x2f', b'\xad', b'\x06', b'\x18', b'\x43', b'\x2f',
-    b'\xa7', b'\xd7', b'\xfb', b'\x3d', b'\x99', b'\x00', b'\x4d', b'\x2b',
-    b'\x0b', b'\xdf', b'\xc1', b'\x4f', b'\x80', b'\x24', b'\x83', b'\x2b',
-  ]
-  Fe::from_bytes(Bytes::from_array(b))
+  sqrt_m1_val
 }
 
 ///|

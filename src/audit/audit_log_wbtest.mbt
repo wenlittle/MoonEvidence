@@ -3,15 +3,15 @@
 ///|
 test "empty audit log verifies" {
   let log = AuditLog::new()
-  assert_true!(log.verify_chain())
+  assert_true(log.verify_chain())
 }
 
 ///|
 test "single entry audit log" {
   let log = AuditLog::new()
   log.append("2026-06-18T19:00:00Z", "alice", Created, "dataset-v1")
-  assert_eq!(log.length(), 1)
-  assert_true!(log.verify_chain())
+  assert_eq(log.length(), 1)
+  assert_true(log.verify_chain())
 }
 
 ///|
@@ -20,8 +20,8 @@ test "multi-entry audit chain links correctly" {
   log.append("2026-06-18T19:00:00Z", "alice", Created, "dataset-v1")
   log.append("2026-06-18T20:00:00Z", "bob", Verified, "dataset-v1")
   log.append("2026-06-18T21:00:00Z", "alice", Sealed, "dataset-v1")
-  assert_eq!(log.length(), 3)
-  assert_true!(log.verify_chain())
+  assert_eq(log.length(), 3)
+  assert_true(log.verify_chain())
 }
 
 ///|
@@ -33,13 +33,14 @@ test "entry hash is deterministic" {
     subject_id: "test",
     manifest_digest: None,
     prev_hash: None,
+    hash: "",
     signature: None,
   }
   let h1 = entry.compute_hash()
   let h2 = entry.compute_hash()
-  assert_eq!(h1, h2)
-  assert_true!(h1.has_prefix("sha256:"))
-  assert_eq!(h1.length(), 71)
+  assert_eq(h1, h2)
+  assert_true(h1.has_prefix("sha256:"))
+  assert_eq(h1.length(), 71)
 }
 
 ///|
@@ -47,7 +48,7 @@ test "tampered chain detected" {
   let log = AuditLog::new()
   log.append("2026-06-18T19:00:00Z", "alice", Created, "test")
   log.append("2026-06-18T20:00:00Z", "bob", Verified, "test")
-  assert_true!(log.verify_chain())
+  assert_true(log.verify_chain())
   let tampered_entry : AuditEntry = {
     timestamp: "2026-06-18T19:00:00Z",
     actor: "TAMPERED",
@@ -55,10 +56,29 @@ test "tampered chain detected" {
     subject_id: "test",
     manifest_digest: None,
     prev_hash: None,
+    hash: "",
     signature: None,
   }
   log.entries[0] = tampered_entry
-  assert_false!(log.verify_chain())
+  assert_false(log.verify_chain())
+}
+
+///|
+test "tampered hash field is detected by verify_chain" {
+  // Even when the prev_hash chain links correctly and the entry content is
+  // unchanged, a tampered `hash` field must cause verify_chain to fail.
+  let log = AuditLog::new()
+  log.append("2026-06-18T19:00:00Z", "alice", Created, "test")
+  assert_true(log.verify_chain())
+  let entry = log.entries[0]
+  // Flip the stored hash to a well-formed but wrong digest while keeping
+  // every other field (including prev_hash) intact.
+  let tampered_entry : AuditEntry = {
+    ..entry,
+    hash: "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  }
+  log.entries[0] = tampered_entry
+  assert_false(log.verify_chain())
 }
 
 ///|
@@ -66,7 +86,7 @@ test "audit log serializes to JSON" {
   let log = AuditLog::new()
   log.append("2026-06-18T19:00:00Z", "alice", Created, "test")
   let json_str = log.to_json()
-  assert_true!(json_str.length() > 10)
+  assert_true(json_str.length() > 10)
   let _ = @json.parse(json_str)
 }
 
@@ -74,17 +94,17 @@ test "audit log serializes to JSON" {
 test "custom action type" {
   let log = AuditLog::new()
   log.append("2026-06-18T19:00:00Z", "system", Custom("migrated"), "test")
-  assert_true!(log.verify_chain())
-  assert_eq!(log.entries[0].action.to_string(), "migrated")
+  assert_true(log.verify_chain())
+  assert_eq(log.entries[0].action.to_string(), "migrated")
 }
 
 ///|
 fn test_sk() -> Bytes {
   let b : Array[Byte] = [
-    b'\x9d', b'\x61', b'\xb1', b'\x9d', b'\xef', b'\xfd', b'\x5a', b'\x60',
-    b'\xba', b'\x84', b'\x4a', b'\xf4', b'\x92', b'\xec', b'\x2c', b'\xc4',
-    b'\x44', b'\x49', b'\xc5', b'\x69', b'\x7b', b'\x32', b'\x69', b'\x19',
-    b'\x70', b'\x3b', b'\xac', b'\x03', b'\x1c', b'\xae', b'\x7f', b'\x60',
+    b'\x9d', b'\x61', b'\xb1', b'\x9d', b'\xef', b'\xfd', b'\x5a', b'\x60', b'\xba',
+    b'\x84', b'\x4a', b'\xf4', b'\x92', b'\xec', b'\x2c', b'\xc4', b'\x44', b'\x49',
+    b'\xc5', b'\x69', b'\x7b', b'\x32', b'\x69', b'\x19', b'\x70', b'\x3b', b'\xac',
+    b'\x03', b'\x1c', b'\xae', b'\x7f', b'\x60',
   ]
   Bytes::from_array(b)
 }
@@ -96,9 +116,9 @@ test "sign and verify audit entry" {
   let log = AuditLog::new()
   log.append("2026-06-18T19:00:00Z", "alice", Created, "dataset-v1")
   log.sign_last(sk)
-  assert_true!(log.entries[0].signature is Some(_))
-  assert_true!(log.verify_signatures(pk))
-  assert_true!(log.verify_chain())
+  assert_true(log.entries[0].signature is Some(_))
+  assert_true(log.verify_signatures(pk))
+  assert_true(log.verify_chain())
 }
 
 ///|
@@ -108,7 +128,40 @@ test "signed log rejects wrong public key" {
   log.append("2026-06-18T19:00:00Z", "alice", Created, "test")
   log.sign_last(sk)
   let wrong_pk = Bytes::make(32, b'\x42')
-  assert_false!(log.verify_signatures(wrong_pk))
+  assert_false(log.verify_signatures(wrong_pk))
+}
+
+///|
+test "tampered signature hex is rejected instead of silently decoding" {
+  // A signature whose hex string is corrupted (non-hex character injected)
+  // must cause verify_signatures to return false, rather than silently
+  // decoding the bad characters to 0x00 bytes and proceeding.
+  let sk = test_sk()
+  let pk = @crypto.ed25519_public_key(sk)
+  let log = AuditLog::new()
+  log.append("2026-06-18T19:00:00Z", "alice", Created, "test")
+  log.sign_last(sk)
+  // Inject two non-hex characters at the front, preserving even length so
+  // the decoder reaches the per-character validation rather than the odd
+  // length early return.
+  let entry = log.entries[0]
+  let good_sig = match entry.signature {
+    Some(s) => s
+    None => fail("expected a signature")
+  }
+  let tampered_sig = "zz" + good_sig
+  let tampered_entry : AuditEntry = {
+    timestamp: entry.timestamp,
+    actor: entry.actor,
+    action: entry.action,
+    subject_id: entry.subject_id,
+    manifest_digest: entry.manifest_digest,
+    prev_hash: entry.prev_hash,
+    hash: entry.hash,
+    signature: Some(tampered_sig),
+  }
+  log.entries[0] = tampered_entry
+  assert_false(log.verify_signatures(pk))
 }
 
 ///|
@@ -120,7 +173,76 @@ test "multi-entry signed log" {
   log.sign_last(sk)
   log.append("2026-06-18T20:00:00Z", "bob", Verified, "dataset-v1")
   log.sign_last(sk)
-  assert_eq!(log.length(), 2)
-  assert_true!(log.verify_chain())
-  assert_true!(log.verify_signatures(pk))
+  assert_eq(log.length(), 2)
+  assert_true(log.verify_chain())
+  assert_true(log.verify_signatures(pk))
+}
+
+// ---------------------------------------------------------------------------
+// Long-chain stress tests (step 7 hardening). The cases above only exercise
+// chains of length <= 3, so a quadratic or off-by-one bug in verify_chain
+// (e.g. a loop that stops one entry short, or a prev_hash comparison that
+// silently coerces types) would slip through. These tests build 1000-entry
+// linear chains and confirm verify_chain stays correct at scale, plus a
+// fork case that the linear-only model must still reject.
+// ---------------------------------------------------------------------------
+
+///|
+test "long chain: 1000 linear entries verify" {
+  let log = AuditLog::new()
+  for index in 0..<1000 {
+    log.append("2026-06-18T19:00:00Z", "alice", Created, "dataset-\{index}")
+  }
+  assert_eq(log.length(), 1000)
+  // Every prev_hash must chain to the previous computed hash; a single
+  // off-by-one in the loop would break one link and flip the verdict.
+  assert_true(log.verify_chain())
+}
+
+///|
+test "long chain: broken prev_hash in the middle is detected" {
+  let log = AuditLog::new()
+  for index in 0..<1000 {
+    log.append("2026-06-18T19:00:00Z", "alice", Created, "dataset-\{index}")
+  }
+  // Tamper entry 500 (middle of the chain): rewrite its prev_hash so it
+  // no longer links to entry 499's computed hash. verify_chain must fail
+  // at exactly this position, proving the walk reaches the middle.
+  let entry = log.entries[500]
+  let tampered : AuditEntry = {
+    ..entry,
+    prev_hash: Some(
+      "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    ),
+  }
+  log.entries[500] = tampered
+  assert_false(log.verify_chain())
+}
+
+///|
+test "long chain: forked entries are rejected" {
+  // AuditLog is append-only and linear by construction; a forked chain
+  // (two entries sharing the same prev_hash) must be detected as a break.
+  // We build e0 -> e1, then append a third entry whose prev_hash points
+  // back at e0 (the same prev e1 used) instead of e1's hash.
+  let log = AuditLog::new()
+  log.append("2026-06-18T19:00:00Z", "alice", Created, "dataset-v1")
+  log.append("2026-06-18T20:00:00Z", "bob", Verified, "dataset-v1")
+  let fork_prev = log.entries[0].hash
+  let fork_entry : AuditEntry = {
+    timestamp: "2026-06-18T21:00:00Z",
+    actor: "carol",
+    action: Sealed,
+    subject_id: "dataset-v1",
+    manifest_digest: None,
+    prev_hash: Some(fork_prev),
+    hash: "",
+    signature: None,
+  }
+  let fork_hash = fork_entry.compute_hash()
+  let fork_final : AuditEntry = { ..fork_entry, hash: fork_hash }
+  log.entries.push(fork_final)
+  // verify_chain walks in order: at the fork entry, its prev_hash (e0's
+  // hash) no longer equals e1's freshly computed hash, so the chain breaks.
+  assert_false(log.verify_chain())
 }

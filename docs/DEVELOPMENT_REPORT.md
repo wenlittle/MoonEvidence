@@ -1,5 +1,7 @@
 # MoonEvidence 开发报告
 
+> **归档说明**：此为早期功能清单式版本，数字已同步到实测值（76 提交 / 6891 行 / 219 测试 / 12 包）。竞赛权威验收报告见 `docs/report/DEVELOPMENT_REPORT.md`（含 AI 协作实践、标准兼容证据与逐条验收自查）。
+
 ## 1. 项目概述
 
 MoonEvidence 是一个纯 MoonBit 实现的可信证据包验证库和 CLI 工具，服务于 OSC2026 MoonBit 开源竞赛。
@@ -88,7 +90,7 @@ src/
 
 | 指标 | 数值 |
 | --- | --- |
-| 单元测试 | 215 |
+| 单元测试 | 219 |
 | 黑盒 CLI 测试 | 22 |
 | 属性测试 | 有（canonjson / merkle） |
 | CI 三后端矩阵 | native / wasm-gc / js |
@@ -111,7 +113,7 @@ src/
 
 - **Git 工作流**：有意义的 commit message，feature 粒度提交
 - **CI/CD**：GitHub Actions 三后端构建 + 黑盒测试 + 浏览器冒烟测试
-- **代码规模**：约 8000+ 有效 MoonBit 行（满足 4-10k 要求）
+- **代码规模**：6891 有效 MoonBit 行（实现 3590 + 测试 3301，满足 4-10k 要求）
 - **双仓库同步**：GitHub + Gitlink
 - **文档齐全**：README（中英双语）/ 架构文档 / 用户指南 / 证据包规范 / 环境搭建 / 代码规范 / 路线图
 

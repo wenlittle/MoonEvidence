@@ -28,9 +28,12 @@ pub fn verify_manifest_incremental(
 
   let manifest = @model.Manifest::parse(manifest_json) catch {
     error => {
-      findings.push(
-        { code: error.error_code(), severity: Error, path: error.field_path(), message: error.detail() },
-      )
+      findings.push({
+        code: error.error_code(),
+        severity: Error,
+        path: error.field_path(),
+        message: error.detail(),
+      })
       return {
         report: {
           ok: false,
@@ -43,9 +46,7 @@ pub fn verify_manifest_incremental(
     }
   }
 
-  let canonical_json = try {
-    @canonjson.canonicalize(manifest_json)
-  } catch {
+  let canonical_json = @canonjson.canonicalize(manifest_json) catch {
     _ => manifest_json
   }
   ignore(canonical_json)
@@ -64,9 +65,12 @@ pub fn verify_manifest_incremental(
 
     match files.get(entry.path) {
       None => {
-        findings.push(
-          { code: "E2001", severity: Error, path: entry.path, message: "file listed in manifest but missing from pack" },
-        )
+        findings.push({
+          code: "E2003",
+          severity: Error,
+          path: entry.path,
+          message: "file listed in manifest but missing from pack",
+        })
         continue
       }
       Some(content) => {
@@ -81,14 +85,12 @@ pub fn verify_manifest_incremental(
           if actual == entry.digest {
             files_passed = files_passed + 1
           } else {
-            findings.push(
-              {
-                code: "E2003",
-                severity: Error,
-                path: entry.path,
-                message: "digest mismatch, expected \{entry.digest.to_string()} got \{actual.to_string()}",
-              },
-            )
+            findings.push({
+              code: "E2003",
+              severity: Error,
+              path: entry.path,
+              message: "digest mismatch, expected \{entry.digest.to_string()} got \{actual.to_string()}",
+            })
           }
         }
       }
@@ -96,16 +98,19 @@ pub fn verify_manifest_incremental(
   }
 
   for path in files.keys() {
-    if not(listed.contains(path)) {
-      findings.push(
-        { code: "W1001", severity: Warning, path, message: "file present in pack but not listed in manifest" },
-      )
+    if !listed.contains(path) {
+      findings.push({
+        code: "W1001",
+        severity: Warning,
+        path,
+        message: "file present in pack but not listed in manifest",
+      })
     }
   }
 
   let mut merkle_checked = false
   match manifest.merkle_root {
-    Some(expected_root) => {
+    Some(expected_root) =>
       match @merkle.compute_root(leaves) {
         Some(root) => {
           let actual_hex = @digest.bytes_to_lower_hex(root)
@@ -113,33 +118,34 @@ pub fn verify_manifest_incremental(
           if @digest.same_digest(actual_str, expected_root.to_string()) {
             merkle_checked = true
           } else {
-            findings.push(
-              {
-                code: "E3002",
-                severity: Error,
-                path: "merkle_root",
-                message: "merkle root mismatch",
-              },
-            )
+            findings.push({
+              code: "E3003",
+              severity: Error,
+              path: "merkle_root",
+              message: "merkle root mismatch",
+            })
           }
         }
         None =>
-          findings.push(
-            { code: "E3001", severity: Error, path: "merkle_root", message: "merkle root present but files[] is empty" },
-          )
+          findings.push({
+            code: "E3001",
+            severity: Error,
+            path: "merkle_root",
+            message: "merkle root present but files[] is empty",
+          })
       }
-    }
     None =>
       if manifest.files.length() > 0 {
-        findings.push(
-          { code: "E3001", severity: Error, path: "merkle_root", message: "merkle root missing while files[] is non-empty" },
-        )
+        findings.push({
+          code: "E3001",
+          severity: Error,
+          path: "merkle_root",
+          message: "merkle root missing while files[] is non-empty",
+        })
       }
   }
 
-  let ok = findings.iter().all(
-    fn(f) { f.severity != @diag.Error },
-  )
+  let ok = findings.iter().all(fn(f) { f.severity != @diag.Error })
   {
     report: {
       ok,

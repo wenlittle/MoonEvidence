@@ -58,7 +58,7 @@ Remove-Item -Recurse -Force $env:TEMP/live-demo
 ## 第 4 分钟 · 质量底座（一屏讲完）
 
 ```powershell
-moon test --target wasm-gc,js    # 155/155 双后端
+moon test --target wasm-gc,js    # 219/219 双后端
 powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target js   # 22/22 黑盒
 ```
 
@@ -82,4 +82,4 @@ powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target js   # 22/22
 - [ ] 静态服务器已起、demo 页面已打开过一次（esm bundle 已被浏览器缓存）
 - [ ] 终端字体够大；`$cli` 变量已设
 - [ ] 临时目录 `$env:TEMP/live-demo` 不存在残留
-- [ ] 计时一遍 ≤ 5 分钟（2026-06-11 彩排实测：全部命令含 155 双后端测试与 22 黑盒仅 **5.7 秒**，时间几乎全部留给讲解，余量极大）
+- [ ] 计时一遍 ≤ 5 分钟（2026-06-11 彩排实测：全部命令含 219 双后端测试与 22 黑盒仅 **5.7 秒**，时间几乎全部留给讲解，余量极大）

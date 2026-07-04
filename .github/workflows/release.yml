@@ -1,0 +1,73 @@
+name: Release
+
+# Triggered by version tags (e.g. v0.3.0). Packages the module with
+# `moon package`, computes a SHA256 digest of the produced zip, and publishes
+# both the artifact and the digest as a GitHub Release. The digest lets
+# downstream consumers verify the published package was not tampered with
+# in transit - mirroring the integrity contract the CLI itself enforces on
+# evidence packs. See RESULTS_LOG step 10 for the `moon package` artifact
+# layout (`_build/publish/<owner>-<Module>-<version>.zip`).
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MoonBit CLI
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: Show toolchain versions
+        run: moon version --all
+
+      - name: Type check
+        run: moon check
+
+      - name: Package module
+        run: moon package
+
+      - name: Locate artifact and compute SHA256
+        id: artifact
+        run: |
+          zip_path="$(find _build/publish -type f -name '*.zip' | head -n 1)"
+          if [ -z "$zip_path" ]; then
+            echo "::error::No zip artifact found under _build/publish" >&2
+            ls -la _build/publish || true
+            exit 1
+          fi
+          echo "Found artifact: $zip_path"
+          sha256sum "$zip_path" > "$zip_path.sha256"
+          echo "zip_path=$zip_path" >> "$GITHUB_OUTPUT"
+          echo "sha256_path=$zip_path.sha256" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "## Packaged artifact"
+            echo ""
+            echo "File: \`$(basename "$zip_path")\`"
+            echo ""
+            echo "### SHA256"
+            echo ""
+            echo '```'
+            cat "$zip_path.sha256"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Create GitHub Release with artifact + SHA256
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            "${{ steps.artifact.outputs.zip_path }}" \
+            "${{ steps.artifact.outputs.sha256_path }}" \
+            --title "${{ github.ref_name }}" \
+            --generate-notes

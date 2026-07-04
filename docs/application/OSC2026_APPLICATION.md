@@ -7,7 +7,7 @@
 - 项目名称：MoonEvidence：可信证据包验证库与原生 CLI
 - 参赛者：【待填：姓名/昵称】
 - 联系方式：【待填：手机/邮箱】
-- GitHub 仓库链接：https://github.com/wenlittle/MoonEvidence.git
+- GitHub 仓库链接：https://github.com/starlittle/MoonEvidence.git
 - Gitlink 仓库链接：【待填：建仓后填写，与 GitHub 保持同步】
 - 项目方向：工程基础设施 / 面向特定格式的验证工具（数据完整性、可信存证）
 - 是否为移植项目：否（原创项目，实现对照 RFC 8785、RFC 6962、FIPS 180-4 公开标准）

@@ -20,17 +20,24 @@ Build a reusable MoonBit library and CLI for trusted evidence pack verification:
 
 | File | Purpose |
 | --- | --- |
-| `README.md` | Public project overview |
-| `docs/ARCHITECTURE.md` | Layered package structure and dependency rules |
+| `README.md` / `README.zh.md` | Public project overview (bilingual) |
+| `docs/GUIDE.md` | User guide with three real scenarios |
+| `docs/DEMO_SCRIPT.md` | 5-minute presentation demo script |
+| `docs/ARCHITECTURE.md` | Layered package structure and frozen public API |
+| `docs/DEVELOPMENT_REPORT.md` | Development report (early feature-list version; authoritative acceptance report in `docs/report/`) |
+| `docs/report/DEVELOPMENT_REPORT.md` | Competition acceptance development report (authoritative) |
 | `docs/spec/EVIDENCE_PACK_SPEC.md` | Minimal evidence pack schema and verification semantics |
 | `docs/ENVIRONMENT.md` | Toolchain prerequisites and current environment state |
 | `docs/CODE_GUIDELINES.md` | Code style, comments, tests, and public API rules |
-| `docs/ROADMAP.md` | Week-by-week implementation plan |
+| `docs/ROADMAP.md` | Phased implementation plan and future directions |
 | `docs/STRUCTURE_TREE.md` | Current project file structure tree |
+| `docs/PROJECT_INDEX.md` | This index |
 | `docs/records/RESULTS_LOG.md` | Timestamped research, verification, and environment results |
 | `docs/records/DECISION_LOG.md` | Stable decisions and why they were made |
+| `docs/records/ACCEPTANCE_CHECKLIST.md` | Acceptance requirements self-check |
 | `docs/research/MOONCAKES_COLLISION_CHECK.md` | Mooncakes keyword search and collision-risk record |
 | `docs/plans/2026-06-10-competition-master-plan.md` | Competition master plan: innovation points, step-by-step roadmap, and delivery checklist |
+| `docs/plans/2026-07-04-health-check-and-improvement-plan.md` | 2026-07-04 health check and improvement plan |
 | `tools/env-check.ps1` | Read-only local environment check script |
 
 ## Source Traceability Rule
@@ -47,8 +54,8 @@ Use `docs/records/RESULTS_LOG.md` for measured facts and `docs/records/DECISION_
 
 ## Next Actions
 
-1. Freeze the minimal `manifest.json` model in MoonBit and validate required fields.
-2. Add one valid evidence pack fixture and one tampered fixture before expanding feature scope.
-3. Implement Merkle root/proof verification with explicit leaf and sibling encoding rules.
-4. Add structured diagnostics so CLI output can explain why a pack passed or failed.
-5. Keep `RESULTS_LOG.md` updated after each verified result.
+1. **Mooncakes 发布**：`moon login` 后发布 0.3.0 到 Mooncakes（碰撞检查已清、package 已构建，仅缺凭证）。
+2. **演示视频**：按 `docs/DEMO_SCRIPT.md` 录制 5 分钟比赛展示视频。
+3. **流式哈希**：把流式 SHA-256 接入适配层，将大包内存峰值从 Σ(全部文件) 降到 max(单文件)。
+4. 仓库双推 GitHub + Gitlink，确认 CI 首跑绿，勾掉 `ACCEPTANCE_CHECKLIST.md` 第 2 条。
+5. 持续维护 `RESULTS_LOG.md`，每步交付前重跑并记录命令与结果。

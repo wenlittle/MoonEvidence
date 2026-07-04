@@ -22,23 +22,13 @@ fn root_hex(leaves : Array[Bytes]) -> String raise {
 }
 
 ///|
+/// Thin wrapper over `@digest.hex_to_bytes` so test fixtures can use a
+/// raising `Bytes` interface. Invalid hex fails the test instead of
+/// silently decoding to wrong bytes.
 fn hex_to_bytes(hex : String) -> Bytes raise {
-  guard hex.length() % 2 == 0 else { fail("odd hex length") }
-  Bytes::makei(hex.length() / 2, fn(index) {
-    let high = hex_digit_value(hex[index * 2].to_int())
-    let low = hex_digit_value(hex[index * 2 + 1].to_int())
-    ((high << 4) | low).to_byte()
-  })
-}
-
-///|
-fn hex_digit_value(unit : Int) -> Int {
-  if unit >= 0x30 && unit <= 0x39 {
-    unit - 0x30
-  } else if unit >= 0x61 && unit <= 0x66 {
-    unit - 0x61 + 10
-  } else {
-    -1
+  match @digest.hex_to_bytes(hex) {
+    Some(bytes) => bytes
+    None => fail("invalid hex in fixture: \{hex}")
   }
 }
 

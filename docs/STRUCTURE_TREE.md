@@ -1,64 +1,187 @@
 # Structure Tree
 
-Current preparation tree as of 2026-06-08 Asia/Shanghai.
+Current preparation tree as of 2026-07-04 Asia/Shanghai.
 
 ```text
 moon-evidence/
   .github/
     workflows/
+      ci.yml
       README.md
+  .gitattributes
   .gitignore
   moon.mod
   README.md
+  README.zh.md
   docs/
     ARCHITECTURE.md
     CODE_GUIDELINES.md
+    DEMO_SCRIPT.md
+    DEVELOPMENT_REPORT.md
     ENVIRONMENT.md
+    GUIDE.md
     PROJECT_INDEX.md
     ROADMAP.md
     STRUCTURE_TREE.md
+    申报书.html
+    申报书.md
+    申报书.pdf
+    申报书.tex
+    application/
+      OSC2026_APPLICATION.md
+    images/
+      demo-web.png
+    plans/
+      2026-06-10-competition-master-plan.md
+      2026-07-04-health-check-and-improvement-plan.md
     records/
+      ACCEPTANCE_CHECKLIST.md
       DECISION_LOG.md
       RESULTS_LOG.md
+    report/
+      DEVELOPMENT_REPORT.md
     research/
       MOONCAKES_COLLISION_CHECK.md
     spec/
       EVIDENCE_PACK_SPEC.md
+  demo/
+    web/
+      index.html
   examples/
     tampered-pack/
+      files/
+        a.txt
+        b.bin
       README.md
+      manifest.json
     valid-pack/
+      files/
+        a.txt
+        b.bin
+      versions/
+        version_chain.json
       README.md
+      manifest.json
   src/
     README.md
-    canonjson/
+    api/                       # 浏览器 ESM 适配器
+      api.mbt
+      api_wbtest.mbt
+      moon.pkg
+    audit/                     # 哈希链审计日志 + Ed25519 签名集成
+      audit_log.mbt
+      audit_log_wbtest.mbt
+      moon.pkg
+    canonjson/                 # RFC 8785 规范化 JSON
       README.md
       canonjson.mbt
+      canonjson_jcs_wbtest.mbt
+      canonjson_prop_wbtest.mbt
       canonjson_wbtest.mbt
       moon.pkg
-    digest/
-      README.md
-      digest.mbt
-      digest_wbtest.mbt
-      moon.pkg
-    merkle/
-      README.md
-    model/
-      README.md
-    verify/
-      README.md
-    diag/
-      README.md
-    cmd/
+    cmd/                       # CLI 适配器
       main/
         README.md
+        main.mbt
+        moon.pkg
+    create/                    # 证据包创建
+      create.mbt
+      create_wbtest.mbt
+      moon.pkg
+    crypto/                    # Ed25519 数字签名（纯 MoonBit）
+      ed25519.mbt
+      ed25519_wbtest.mbt
+      field25519.mbt
+      field25519_wbtest.mbt
+      moon.pkg
+      point25519.mbt
+      point25519_wbtest.mbt
+    diag/                      # 结构化诊断 + explain
+      README.md
+      diag.mbt
+      diag_wbtest.mbt
+      moon.pkg
+    digest/                    # SHA-256 / SHA-512 / HMAC
+      README.md
+      digest.mbt
+      digest_bench_wbtest.mbt
+      digest_wbtest.mbt
+      hmac.mbt
+      hmac_wbtest.mbt
+      moon.pkg
+      sha256.mbt
+      sha256_wbtest.mbt
+      sha512.mbt
+      sha512_wbtest.mbt
+      utf8.mbt
+      utf8_wbtest.mbt
+    merkle/                    # RFC 6962 风格 Merkle 树
+      README.md
+      merkle.mbt
+      merkle_golden_wbtest.mbt
+      merkle_prop_wbtest.mbt
+      merkle_wbtest.mbt
+      moon.pkg
+    model/                     # manifest / 版本链模型
+      README.md
+      error.mbt
+      manifest.mbt
+      manifest_wbtest.mbt
+      moon.pkg
+      version.mbt
+      version_wbtest.mbt
+    store/                     # 内容寻址存储
+      moon.pkg
+      object_store.mbt
+      object_store_wbtest.mbt
+    verify/                    # 七步验证流水线 + 版本链
+      README.md
+      chain.mbt
+      chain_wbtest.mbt
+      incremental.mbt
+      incremental_wbtest.mbt
+      moon.pkg
+      verify.mbt
+      verify_bench_wbtest.mbt
+      verify_wbtest.mbt
   tests/
     README.md
     fixtures/
       README.md
+      jcs/                     # RFC 8785 Appendix B 向量
+      manifest/                # manifest 模型篡改夹具
+        README.md
+      merkle/                  # golden 数据
+        golden.json
+      packs/                   # 10 包篡改矩阵
+        README.md
+        bad-digest-field/
+        bad-merkle-root/
+        chain-broken/
+        chain-cycle/
+        chain-empty/
+        chain-fork/
+        missing-file/
+        tampered-file/
+        unlisted-file/
+        valid/
+      version-chain/           # 版本链篡改夹具
   tools/
-    env-check.ps1
+    cli-test.ps1               # 22 用例黑盒 CLI 套件
+    env-check.ps1              # 只读环境检查
+    gen-fixtures.mjs           # 篡改矩阵生成（独立 Node 参考实现）
+    gen-merkle-fixtures.mjs    # Merkle golden 数据生成
+    gen-pack-fixture.mjs       # 单个证据包夹具生成
+    smoke-api.mjs              # 浏览器适配器烟测
 ```
+
+## Package Summary
+
+`src/` 下共 **12 个包**（6 核心 + 4 扩展 + 2 适配）：
+
+- **核心包（零 IO）**：`canonjson` / `digest` / `merkle` / `model` / `verify` / `diag`
+- **扩展包**：`create`（证据包创建）/ `store`（内容寻址存储）/ `audit`（审计日志）/ `crypto`（Ed25519 签名）
+- **适配器**：`cmd/main`（native CLI）/ `api`（浏览器 ESM）
 
 ## Tracking Rule
 

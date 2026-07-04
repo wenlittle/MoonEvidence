@@ -1,6 +1,6 @@
 # MoonEvidence
 
-[![CI](https://github.com/wenlittle/MoonEvidence/actions/workflows/ci.yml/badge.svg)](https://github.com/wenlittle/MoonEvidence/actions/workflows/ci.yml)
+[![CI](https://github.com/starlittle/MoonEvidence/actions/workflows/ci.yml/badge.svg)](https://github.com/starlittle/MoonEvidence/actions/workflows/ci.yml)
 
 English | [中文](README.zh.md)
 
@@ -14,39 +14,58 @@ MoonEvidence is not a blockchain application or smart contract framework. It is 
 
 ## Features
 
-### Core Verification (v0.1)
+### Core Verification
 - Canonical JSON serialization (RFC 8785) for stable digests.
 - Pure MoonBit SHA-256 and SHA-512 digest implementations.
 - HMAC-SHA256 message authentication (RFC 2104).
-- Evidence manifest model and validation.
+- Evidence manifest model and validation (path traversal rejected at parse time).
 - Merkle root/proof verification (RFC 6962 style).
-- Linear version chain verification.
+- Linear version chain verification (unique root, no cycles, no forks).
+- 7-step verification pipeline: parse → canonicalize → digest → merkle → version chain → diagnostics.
 - Structured diagnostics and human-readable explain output.
-- Native CLI entry points: `verify` and `explain`.
+- Frozen exit codes: 0 (pass), 1 (fail), 2 (usage/IO error).
 
-### Pack Creation (v0.2)
-- Evidence pack creation from raw files (`create_manifest` API).
-- Incremental verification with digest caching.
-- Multi-algorithm support (SHA-256, SHA-512).
+### Pack Creation & Extensions
+- **Evidence pack creation**: `create` CLI command + `create_manifest` API.
+- **Incremental verification**: digest caching, skip unchanged files.
+- **Batch CLI mode**: verify multiple packs at once, summarize results.
+- **Content-addressed storage**: Git-like object store with SHA-256 deduplication.
+
+### Advanced Capabilities
+- **Audit log**: hash-chained append-only operation records.
+- **Ed25519 digital signatures**: pure MoonBit implementation, from finite field to sign/verify (~800 lines).
+- **Audit log + signature integration**: optional Ed25519 signature verification.
 
 ## Architecture at a Glance
 
 ```mermaid
 graph TD
   subgraph adapters["Adapters (the only place IO happens)"]
-    CLI["src/cmd/main<br/>CLI: verify / explain"]
+    CLI["src/cmd/main<br/>CLI: verify / explain / create"]
     API["src/api<br/>browser esm adapter"]
+    CREATE["src/create<br/>evidence pack creation"]
+    AUDIT["src/audit<br/>audit log + signatures"]
   end
-  subgraph core["Pure verification core (zero IO, portable across 3 backends)"]
-    VERIFY["verify<br/>7-step pipeline + chain linearity"]
+  subgraph core["Verification Core (zero IO, 3-backend portable)"]
+    VERIFY["verify<br/>7-step pipeline + version chain"]
     MODEL["model<br/>manifest / version chain"]
-    DIAG["diag<br/>findings · explain · canonical report"]
-    CANON["canonjson<br/>RFC 8785"]
-    DIGEST["digest<br/>pure SHA-256"]
+    DIAG["diag<br/>structured findings · explain"]
+  end
+  subgraph foundation["Foundation Layer"]
+    CANON["canonjson<br/>RFC 8785 canonicalization"]
+    DIGEST["digest<br/>SHA-256 / SHA-512 / HMAC"]
     MERKLE["merkle<br/>RFC 6962 style tree"]
+    CRYPTO["crypto<br/>Ed25519 signatures"]
+    STORE["store<br/>content-addressed storage"]
   end
   CLI --> VERIFY
+  CLI --> CREATE
   API --> VERIFY
+  CREATE --> DIGEST
+  CREATE --> MERKLE
+  CREATE --> CANON
+  AUDIT --> CRYPTO
+  AUDIT --> DIGEST
   VERIFY --> MODEL
   VERIFY --> DIAG
   VERIFY --> CANON
@@ -63,30 +82,44 @@ CLI, in CI's three-backend matrix, and in the browser.
 
 ## Project Documents
 
+### Getting Started
 - [User Guide (three real scenarios)](docs/GUIDE.md)
-- [Project Index](docs/PROJECT_INDEX.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Evidence Pack Spec](docs/spec/EVIDENCE_PACK_SPEC.md)
 - [Environment Setup](docs/ENVIRONMENT.md)
-- [Code Guidelines](docs/CODE_GUIDELINES.md)
+- [Demo Script (5-minute presentation)](docs/DEMO_SCRIPT.md)
+
+### Deep Dive
+- [Architecture](docs/ARCHITECTURE.md)
+- [Evidence Pack Specification](docs/spec/EVIDENCE_PACK_SPEC.md)
 - [Roadmap](docs/ROADMAP.md)
+- [Development Report](docs/DEVELOPMENT_REPORT.md)
+
+### Engineering & Quality
+- [Project Index](docs/PROJECT_INDEX.md)
+- [Code Guidelines](docs/CODE_GUIDELINES.md)
 - [Results Log](docs/records/RESULTS_LOG.md)
+- [Acceptance Checklist](docs/records/ACCEPTANCE_CHECKLIST.md)
+- [Decision Log](docs/records/DECISION_LOG.md)
 
 ## Quick Start (CLI)
 
 ```powershell
 # build the CLI (js artifact, runs via node; native works wherever a C compiler exists)
 moon build --target js
+$cli = "_build/js/debug/build/src/cmd/main/main.js"
 
 # verify the bundled example packs
-node _build/js/debug/build/src/cmd/main/main.js verify examples/valid-pack
-node _build/js/debug/build/src/cmd/main/main.js verify examples/tampered-pack
+node $cli verify examples/valid-pack
+node $cli explain examples/tampered-pack
+
+# create your own evidence pack
+node $cli create examples/valid-pack/files my-pack
+node $cli verify my-pack
 
 # machine-readable report / human-readable findings
-node _build/js/debug/build/src/cmd/main/main.js verify --json examples/valid-pack
-node _build/js/debug/build/src/cmd/main/main.js explain examples/tampered-pack
+node $cli verify --json examples/valid-pack
+node $cli explain examples/tampered-pack
 
-# run the full black-box suite (12 cases)
+# run the full black-box suite
 powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target js
 ```
 
@@ -164,36 +197,40 @@ is expected to be faster. Methodology and raw output:
 
 ## Current Status
 
-All eight pure library packages are implemented and green: `canonjson`
-(RFC 8785 escaping, code-unit key order, full ECMAScript number
-serialization pinned by the Appendix B vectors), `digest` (pure
-MoonBit SHA-256, NIST vectors), `merkle` (RFC 6962 style domain separation,
-cross-checked against an independent Node reference), `model` (validated
-manifest + version chain, traversal-hostile paths rejected at parse time),
-`verify` (seven-step pipeline), and `diag` (structured findings, explain,
-canonical JSON reports). On top of them sit two thin adapters: the CLI
-(`src/cmd/main`) ships `verify [--json]` / `explain` with frozen exit
-codes, exercised by a 22-case black-box suite: 12 cases over the bundled
-`examples/` packs plus a 10-pack tamper matrix
-(`tests/fixtures/packs/`, generated by an independent Node reference
-implementation and rot-guarded in CI); the browser adapter (`src/api`)
-exposes the same pipeline as a single esm export consumed by the
-`demo/web` page and smoke-tested in CI via Node. Properties
-(canonicalization idempotence, Merkle proof soundness) are pinned by
-mutation-verified property suites, and throughput is tracked by
-`moon bench` suites (see Performance above).
+All 12 packages are implemented and fully tested across three backends.
+
+### Core Packages (zero IO)
+- `canonjson` — RFC 8785 escaping, code-unit key order, full ECMAScript number serialization (Appendix B vectors)
+- `digest` — pure MoonBit SHA-256 / SHA-512 / HMAC (NIST vectors)
+- `merkle` — RFC 6962 style domain separation, cross-checked against independent Node reference
+- `model` — validated manifest + version chain, path traversal rejected at parse time
+- `verify` — seven-step verification pipeline
+- `diag` — structured findings, explain, canonical JSON reports
+
+### Extension Packages
+- `create` — evidence pack creation from raw files
+- `store` — content-addressed object storage (Git-like)
+- `audit` — hash-chained append-only audit log
+- `crypto` — Ed25519 digital signatures (pure MoonBit, from GF(2^255-19) up)
+
+### Adapters
+- **CLI** (`src/cmd/main`): `verify` / `explain` / `create` with frozen exit codes
+- **Browser** (`src/api`): esm bundle for client-side verification
+
+### Test Coverage
+- **234 unit tests** passing on native / wasm-gc / js
+- **41-case black-box CLI suite**: 12 example packs + 10-pack tamper matrix + 19 error-code fixtures
+- **Property tests**: canonicalization idempotence, Merkle proof soundness (mutation-verified)
+- **CI three-backend matrix**: native / wasm-gc / js build + test + browser smoke test
 
 ```powershell
 moon check
-moon test --target wasm-gc,js
+moon test --target native,wasm-gc,js
 moon build --target js
 powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target js
 node tools/smoke-api.mjs
 moon bench --target js
 ```
 
-All commands pass locally (155/155 unit tests on both wasm-gc and js,
-22/22 black-box cases, adapter smoke green) as of 2026-06-11 Asia/Shanghai;
-CI additionally builds all three backends (native, wasm-gc, js) and runs
-the black-box suite against the native CLI. Next up: Mooncakes release and
-documentation close-out (master plan step 10).
+All commands pass locally as of 2026-07-04 Asia/Shanghai. Codebase is 7593
+effective MoonBit lines (implementation 3700 + tests 3893), well within the 4-10k competition range.

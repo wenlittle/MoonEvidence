@@ -26,11 +26,19 @@ fn bench_payload(size : Int) -> Bytes {
 ///|
 test "bench: sha256 1 MiB" (b : @bench.T) {
   let payload = bench_payload(1024 * 1024)
+  // Guard: confirm the digest is the expected 32-byte SHA-256 output before
+  // recording the benchmark, so a regression that silently returned a
+  // truncated/empty Bytes (e.g. a hash that short-circuited on large input)
+  // cannot masquerade as a fast bench run.
+  assert_eq(sha256(payload).length(), 32)
   b.bench(fn() { b.keep(sha256(payload)) })
 }
 
 ///|
 test "bench: sha256 64 KiB" (b : @bench.T) {
   let payload = bench_payload(64 * 1024)
+  // Same guard as above: the bench only measures a meaningful hot path when
+  // the digest it keeps is actually a full 32-byte SHA-256.
+  assert_eq(sha256(payload).length(), 32)
   b.bench(fn() { b.keep(sha256(payload)) })
 }

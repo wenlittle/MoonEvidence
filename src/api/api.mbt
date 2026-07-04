@@ -39,7 +39,7 @@ pub fn verify_evidence(request_json : String) -> String {
         guard value is String(hex) else {
           return error_response("files[\"\{path}\"] must be a hex string")
         }
-        guard hex_to_bytes(hex) is Some(content) else {
+        guard @digest.hex_to_bytes(hex) is Some(content) else {
           return error_response("files[\"\{path}\"] is not valid hex")
         }
         files[path] = content
@@ -80,36 +80,4 @@ pub fn verify_evidence(request_json : String) -> String {
 ///|
 fn error_response(message : String) -> String {
   Json::object({ "ok": Json::boolean(false), "error": Json::string(message) }).stringify()
-}
-
-///|
-/// Decodes lowercase/uppercase hex into bytes; `None` on odd length or any
-/// non-hex character.
-fn hex_to_bytes(hex : String) -> Bytes? {
-  if hex.length() % 2 != 0 {
-    return None
-  }
-  let out : Array[Byte] = []
-  for index in 0..<(hex.length() / 2) {
-    let high = hex_digit(hex[index * 2].to_int())
-    let low = hex_digit(hex[index * 2 + 1].to_int())
-    guard high is Some(high_value) && low is Some(low_value) else {
-      return None
-    }
-    out.push((high_value * 16 + low_value).to_byte())
-  }
-  Some(Bytes::from_array(out))
-}
-
-///|
-fn hex_digit(unit : Int) -> Int? {
-  if unit >= 0x30 && unit <= 0x39 {
-    Some(unit - 0x30)
-  } else if unit >= 0x61 && unit <= 0x66 {
-    Some(unit - 0x61 + 10)
-  } else if unit >= 0x41 && unit <= 0x46 {
-    Some(unit - 0x41 + 10)
-  } else {
-    None
-  }
 }

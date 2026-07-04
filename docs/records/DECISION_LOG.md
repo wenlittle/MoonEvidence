@@ -98,3 +98,71 @@ Excluded:
 - Version DAG.
 - Authorization snapshot.
 
+## 2026-07-04: Ed25519 verify S<l check (RFC 8032 §8.4, anti-malleability)
+
+Decision: `verify` rejects signatures where the scalar `S` is not in `[0, l)`,
+per the RFC 8032 §8.4 malleability rule.
+
+Reason:
+
+- Without the bound, a signer's valid signature `(R, S)` can be reborn as
+  `(R, l - S)` (or `S + l`) that also verifies, breaking the "one signature
+  per message" assumption auditors rely on.
+- The check is a single comparison after the existing `S` decode; cost is
+  negligible and it closes a P0 blocker flagged in the 2026-07-04 health check.
+- Three malleability regression tests pin both the canonical and the malleable
+  forms.
+
+## 2026-07-04: incremental path error codes unified with main path (E2003/E3003)
+
+Decision: the incremental verification path reports the same error codes as
+the main path (E2003 file-digest mismatch, E3003 merkle-root mismatch),
+replacing the drifted E2001/E3002 it previously emitted.
+
+Reason:
+
+- Two code paths emitting different codes for the same fault class broke the
+  CLI error-code matrix and any consumer doing code-based routing.
+- Unifying on the main-path codes keeps a single error-code contract; the
+  incremental path is a performance optimization, not separate semantics.
+
+## 2026-07-04: hex_to_bytes unified to the digest package
+
+Decision: all `hex_to_bytes` callers route through the single implementation
+in `src/digest`; the duplicate copies in audit and other packages were
+removed.
+
+Reason:
+
+- Three independent implementations had diverged on error handling; the audit
+  copy silently truncated/kept bad input, which could mask a tampered digest
+  as valid (silent corruption of the trust root).
+- A single audited implementation with explicit length validation and
+  canonical-form enforcement removes the divergence risk.
+
+## 2026-07-04: ARCHITECTURE v2 frozen (create/store/audit/crypto/api signatures)
+
+Decision: `docs/ARCHITECTURE.md` v2 freezes the public signatures of the six
+core packages (create, store, audit, crypto, api, plus the existing four),
+not just the original verify-side set.
+
+Reason:
+
+- The codebase grew four new packages after the v1 freeze without a frozen API
+  surface, so the doc and the code had drifted.
+- Freezing v2 gives the error-code matrix, the CLI, and the browser adapter a
+  stable contract to program against; later hardening tightens inputs, never
+  loosens frozen signatures.
+
+## 2026-07-04: CI moon fmt --check gate (prevent fmt drift recurrence)
+
+Decision: CI runs `moon fmt --check` as a required gate on every push/PR.
+
+Reason:
+
+- The 2026-06-11 post-freeze audit found the whole codebase had never been
+  formatted (475/144 line churn on the first run); without a gate, drift
+  recurs.
+- A `--check` gate fails the build on any unformatted file, keeping formatting
+  canonical without relying on contributors remembering to run `moon fmt`.
+

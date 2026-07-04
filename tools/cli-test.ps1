@@ -8,6 +8,10 @@
 # tests/fixtures/packs/ is verified with --json and the finding-code
 # multiset must match EXACTLY (no "at least contains" assertions).
 #
+# Part 3 feeds every fixture under tests/fixtures/manifest/ through
+# `verify --json` so the parse-layer error codes (E1001/E1002/E1003/
+# E2001/E2002) fire at the CLI boundary, not only inside model unit tests.
+#
 # Usage:
 #   ./tools/cli-test.ps1                 # test the js artifact via node
 #   ./tools/cli-test.ps1 -Target native  # test the native executable
@@ -44,11 +48,11 @@ function Find-CliArtifact {
 }
 
 function Find-Node {
+  # Resolve node exclusively from PATH so the script is portable across
+  # machines; the previous hard-coded D:\Programming_Language\Node\node.exe
+  # fallback only worked on one developer box.
   $fromPath = Get-Command node -ErrorAction SilentlyContinue
   if ($fromPath) { return $fromPath.Source }
-  # Local fallback documented in docs/ENVIRONMENT.md.
-  $known = "D:\Programming_Language\Node\node.exe"
-  if (Test-Path $known) { return $known }
   throw "node not found on PATH. Install Node.js or test -Target native instead."
 }
 
@@ -156,7 +160,87 @@ foreach ($case in $matrix) {
   }
 }
 
-$total = @($cases).Count + @($matrix).Count
+# --- Part 3: manifest error-code matrix (step 7 hardening) ----------------
+#
+# Part 2 only exercises the packs/ tamper matrix, so the parse-layer error
+# codes (E1001/E1002/E1003/E2001/E2002) never fire from the CLI black-box
+# suite. This part feeds every fixture under tests/fixtures/manifest/ to
+# `verify --json` and asserts the EXACT finding-code multiset, closing the
+# E1003 (unsupported schema), E2001 (unsupported algorithm) and E2002 (bad
+# digest format) coverage gaps directly at the CLI boundary.
+#
+# Each fixture is a single manifest file (not a pack directory); the CLI
+# resolves pack_root to its parent dir, so files/ never resolves and the
+# parse error is the only finding that fires. valid.json is the exception:
+# it parses cleanly but, with no files/ tree on disk, surfaces E2003 per
+# listed file plus E3003 (recomputed root differs from the sealed root
+# because the manifest fixture ships a root that does not match its own
+# canonical leaf bytes - this is documented in tests/fixtures/manifest/).
+#
+# E3002 (proof format invalid) is intentionally absent: the CLI ships no
+# proofs/ consumer in the MVP, so no manifest fixture can trigger it. It
+# remains reserved in the error-code contract for a future inclusion-proof
+# path; see tests/fixtures/packs/README.md for the honest coverage note.
+
+$manifestMatrix = @(
+  @{ File = "invalid-json.json";         Codes = @("E1001") }
+  @{ File = "missing-schema.json";       Codes = @("E1002") }
+  @{ File = "unsupported-schema.json";   Codes = @("E1003") }
+  @{ File = "missing-subject-id.json";   Codes = @("E1002") }
+  @{ File = "empty-subject-type.json";   Codes = @("E1002") }
+  @{ File = "unsupported-algorithm.json"; Codes = @("E2001") }
+  @{ File = "files-not-array.json";      Codes = @("E1002") }
+  @{ File = "duplicate-file-path.json";  Codes = @("E1002") }
+  @{ File = "negative-size.json";        Codes = @("E1002") }
+  @{ File = "fractional-size.json";      Codes = @("E1002") }
+  @{ File = "bad-digest-format.json";    Codes = @("E2002") }
+  @{ File = "uppercase-digest.json";     Codes = @("E2002") }
+  @{ File = "bad-merkle-root.json";      Codes = @("E2002") }
+  @{ File = "empty-version-parent.json"; Codes = @("E1002") }
+  @{ File = "path-traversal.json";       Codes = @("E1002") }
+  @{ File = "path-absolute.json";        Codes = @("E1002") }
+  @{ File = "path-drive-letter.json";    Codes = @("E1002") }
+  @{ File = "path-backslash.json";       Codes = @("E1002") }
+  @{ File = "valid.json";                Codes = @("E2003", "E2003", "E3003") }
+)
+
+foreach ($case in $manifestMatrix) {
+  $fixturePath = "tests/fixtures/manifest/$($case.File)"
+  $result = Invoke-Cli -CliArgs @("verify", "--json", $fixturePath)
+  $problems = @()
+  # Every manifest fixture fails verification (parse error or, for valid.json,
+  # missing file bytes) so the exit code must be 1.
+  if ($result.ExitCode -ne 1) {
+    $problems += "exit code: expected 1, got $($result.ExitCode)"
+  }
+  $report = $null
+  try {
+    $report = $result.Output | ConvertFrom-Json
+  } catch {
+    $problems += "output is not valid JSON"
+  }
+  if ($report) {
+    if ($report.ok -ne $false) {
+      $problems += "ok: expected false, got $($report.ok)"
+    }
+    # Exact multiset comparison: sorted code lists must be identical.
+    $actual = @($report.findings | ForEach-Object { $_.code }) | Sort-Object
+    $expected = @($case.Codes) | Sort-Object
+    if (($actual -join ",") -ne ($expected -join ",")) {
+      $problems += "codes: expected [$($expected -join ',')], got [$($actual -join ',')]"
+    }
+  }
+  if ($problems.Count -eq 0) {
+    Write-Host "PASS  manifest: $($case.File)"
+  } else {
+    $failed += 1
+    Write-Host "FAIL  manifest: $($case.File)"
+    foreach ($problem in $problems) { Write-Host "      $problem" }
+    Write-Host "      output: $($result.Output.Trim())"
+  }
+}
+
+$total = @($cases).Count + @($matrix).Count + @($manifestMatrix).Count
 Write-Host ""
 Write-Host "cli-test ($Target): $($total - $failed)/$total passed"
 if ($failed -gt 0) { exit 1 }

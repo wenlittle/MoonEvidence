@@ -17,3 +17,9 @@ Thumbs.db
 
 # Local generated evidence packs
 examples/generated/
+
+# Local capture/setup scripts (not part of the project)
+_capwin.ps1
+_mev_cap.ps1
+_mev_run.ps1
+_termsetup.ps1

@@ -2,11 +2,11 @@ import {
   "moonbitlang/core/json",
   "starlittle/MoonEvidence/src/verify",
   "starlittle/MoonEvidence/src/diag",
+  "starlittle/MoonEvidence/src/digest",
 }
 
 import {
   "moonbitlang/core/debug",
-  "starlittle/MoonEvidence/src/digest",
   "starlittle/MoonEvidence/src/merkle",
 } for "wbtest"
 

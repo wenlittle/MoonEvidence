@@ -133,7 +133,11 @@ fn run_verify(args : Array[String], json_allowed~ : Bool) -> Int {
   println(
     "\nbatch: \{pass_count} passed, \{fail_count} failed out of \{paths.length()} packs",
   )
-  if all_ok { 0 } else { 1 }
+  if all_ok {
+    0
+  } else {
+    1
+  }
 }
 
 ///|
@@ -257,6 +261,15 @@ fn run_verify_single(pack_path : String, json_mode : Bool) -> Int {
 /// Recursively collects files under `<root>/<rel_dir>` as pack-relative
 /// paths (`files/...`). Missing or unreadable directories yield nothing:
 /// a pack without a files/ tree is legal.
+///
+/// Security limitation: the `@fs` package (moonbitlang/x/fs v0.1.20260529)
+/// does not expose `is_symlink`, `read_link`, or any other symlink-detection
+/// API. Consequently this function cannot reject symlinked entries, which
+/// means a malicious pack directory could use symlinks to pull in files
+/// outside `<root>`. Until `@fs` gains symlink introspection, pack
+/// creators should ensure the pack tree is symlink-free before running
+/// the tool, or run the tool in a chroot/container that bounds the
+/// reachable filesystem.
 fn collect_pack_files(
   root : String,
   rel_dir : String,
@@ -271,8 +284,12 @@ fn collect_pack_files(
     let rel_path = "\{rel_dir}/\{name}"
     let is_subdir = @fs.is_dir("\{root}/\{rel_path}") catch { _ => false }
     if is_subdir {
+      // TODO(security): once @fs exposes is_symlink/read_link, reject
+      // symlinked directories here to prevent path traversal via symlinks.
       collect_pack_files(root, rel_path, out)
     } else {
+      // TODO(security): once @fs exposes is_symlink/read_link, reject
+      // symlinked files here to prevent out-of-tree content inclusion.
       out.push(rel_path)
     }
   }
@@ -361,7 +378,7 @@ fn run_create(args : Array[String]) -> Int {
     let file_path = "\{pack_dir}/\{entry}"
     let is_file = !(@fs.is_dir(file_path) catch { _ => false })
     if is_file {
-      let content = try @fs.read_file_to_bytes(file_path) catch {
+      let content = @fs.read_file_to_bytes(file_path) catch {
         _ => {
           println("[E5002] \{file_path}: file read failed")
           return 2
@@ -370,15 +387,12 @@ fn run_create(args : Array[String]) -> Int {
       files[entry] = content
     }
   }
-  let manifest_json = @create.create_manifest(
-    files,
-    {
-      subject: { id: sid, kind: stype },
-      algorithm: @digest.Sha256,
-      version_id: "v1",
-      version_parent: None,
-    },
-  )
+  let manifest_json = @create.create_manifest(files, {
+    subject: { id: sid, kind: stype },
+    algorithm: @digest.Sha256,
+    version_id: "v1",
+    version_parent: None,
+  })
   let out = match output_path {
     Some(p) => p
     None => "\{pack_dir}/manifest.json"
@@ -389,6 +403,6 @@ fn run_create(args : Array[String]) -> Int {
       return 2
     }
   }
-  println("created \{out} (\{files.size()} files)")
+  println("created \{out} (\{files.length()} files)")
   0
 }

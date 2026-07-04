@@ -38,10 +38,8 @@ pub struct Sha512Ctx {
 pub fn Sha512Ctx::new() -> Sha512Ctx {
   {
     state: [
-      0x6a09e667f3bcc908UL, 0xbb67ae8584caa73bUL,
-      0x3c6ef372fe94f82bUL, 0xa54ff53a5f1d36f1UL,
-      0x510e527fade682d1UL, 0x9b05688c2b3e6c1fUL,
-      0x1f83d9abfb41bd6bUL, 0x5be0cd19137e2179UL,
+      0x6a09e667f3bcc908UL, 0xbb67ae8584caa73bUL, 0x3c6ef372fe94f82bUL, 0xa54ff53a5f1d36f1UL,
+      0x510e527fade682d1UL, 0x9b05688c2b3e6c1fUL, 0x1f83d9abfb41bd6bUL, 0x5be0cd19137e2179UL,
     ],
     buffer: FixedArray::make(128, b'\x00'),
     buffered: 0,
@@ -78,7 +76,23 @@ pub fn Sha512Ctx::finalize(self : Sha512Ctx) -> Bytes {
     tail[index] = self.buffer[index]
   }
   tail[self.buffered] = b'\x80'
+  // FIPS 180-4 section 5.1.2 requires a 128-bit (16-byte) big-endian
+  // length field for SHA-512. We write all 16 bytes explicitly rather
+  // than relying on the zero-initialization of `tail` for the high 64
+  // bits, so the padding is unambiguous and self-documenting.
+  //
+  // Overflow note: `total_bytes * 8UL` is the bit count. For inputs of
+  // 2^61 bytes (~2.3 EiB) or larger the multiplication wraps around
+  // UInt64. In practice this is unreachable (no single Bytes buffer
+  // approaches that size), but a future migration to a 128-bit counter
+  // would only need to touch this block.
   let bit_length = self.total_bytes * 8UL
+  // High 64 bits of the 128-bit length field (always zero for any
+  // realistically sized input).
+  for index in 0..<8 {
+    tail[tail.length() - 16 + index] = b'\x00'
+  }
+  // Low 64 bits of the 128-bit length field: bit length, big-endian.
   for index in 0..<8 {
     let shift = (7 - index) * 8
     tail[tail.length() - 8 + index] = ((bit_length >> shift) & 0xffUL).to_byte()
@@ -105,14 +119,14 @@ fn process_block_512(
   let w : FixedArray[UInt64] = FixedArray::make(80, 0UL)
   for t in 0..<16 {
     let base = offset + t * 8
-    w[t] = (block[base].to_int().to_uint64() << 56)
-      | (block[base + 1].to_int().to_uint64() << 48)
-      | (block[base + 2].to_int().to_uint64() << 40)
-      | (block[base + 3].to_int().to_uint64() << 32)
-      | (block[base + 4].to_int().to_uint64() << 24)
-      | (block[base + 5].to_int().to_uint64() << 16)
-      | (block[base + 6].to_int().to_uint64() << 8)
-      | block[base + 7].to_int().to_uint64()
+    w[t] = (block[base].to_int().to_uint64() << 56) |
+      (block[base + 1].to_int().to_uint64() << 48) |
+      (block[base + 2].to_int().to_uint64() << 40) |
+      (block[base + 3].to_int().to_uint64() << 32) |
+      (block[base + 4].to_int().to_uint64() << 24) |
+      (block[base + 5].to_int().to_uint64() << 16) |
+      (block[base + 6].to_int().to_uint64() << 8) |
+      block[base + 7].to_int().to_uint64()
   }
   for t in 16..<80 {
     let s0 = rotr64(w[t - 15], 1) ^ rotr64(w[t - 15], 8) ^ (w[t - 15] >> 7)
@@ -134,13 +148,23 @@ fn process_block_512(
     let big_s0 = rotr64(a, 28) ^ rotr64(a, 34) ^ rotr64(a, 39)
     let maj = (a & b) ^ (a & c) ^ (b & c)
     let temp2 = big_s0 + maj
-    h = g; g = f; f = e; e = d + temp1
-    d = c; c = b; b = a; a = temp1 + temp2
+    h = g
+    g = f
+    f = e
+    e = d + temp1
+    d = c
+    c = b
+    b = a
+    a = temp1 + temp2
   }
-  state[0] = state[0] + a; state[1] = state[1] + b
-  state[2] = state[2] + c; state[3] = state[3] + d
-  state[4] = state[4] + e; state[5] = state[5] + f
-  state[6] = state[6] + g; state[7] = state[7] + h
+  state[0] = state[0] + a
+  state[1] = state[1] + b
+  state[2] = state[2] + c
+  state[3] = state[3] + d
+  state[4] = state[4] + e
+  state[5] = state[5] + f
+  state[6] = state[6] + g
+  state[7] = state[7] + h
 }
 
 ///|

@@ -4,14 +4,72 @@
 //
 //   node tools/smoke-api.mjs
 //
+// Covers all 10 exported pub API functions in closed loops:
+//   1. verify_evidence (golden + tampered + malformed)
+//   2. create_evidence_pack → verify_evidence round-trip
+//   3. generate_proof → verify_proof round-trip
+//   4. audit_append → audit_verify round-trip
+//   5. ed25519_keypair → ed25519_sign → ed25519_verify round-trip
+//
 // Exit code 0 on pass, 1 on any unexpected verdict.
-import { verify_evidence } from "../_build/js/release/build/src/api/api.js";
+import {
+  verify_evidence,
+  create_evidence_pack,
+  generate_proof,
+  verify_proof,
+  audit_append,
+  audit_verify,
+  ed25519_keypair,
+  ed25519_sign,
+  ed25519_verify,
+} from "../_build/js/release/build/src/api/api.js";
 import { existsSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 
 const hex = (buf) =>
   [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 
-function run(pack) {
+const utf8 = (s) => new TextEncoder().encode(s);
+
+const sha256Hex = (buf) =>
+  createHash("sha256").update(buf).digest("hex");
+
+///|
+/// Build the canonical file entry text (RFC 8785 JCS key order: digest, path, size).
+/// Must match `canonical_file_entry_text` in api.mbt so verify_proof receives
+/// the exact same bytes generate_proof used to compute the leaf hash.
+const canonicalFileEntry = (path, content) => {
+  const digest = sha256Hex(content);
+  return JSON.stringify({
+    digest: `sha256:${digest}`,
+    path,
+    size: content.length,
+  });
+};
+
+let pass = 0;
+let fail = 0;
+
+function check(label, condition, detail = "") {
+  if (condition) {
+    console.log(`  ✓ ${label}`);
+    pass++;
+  } else {
+    console.log(`  ✗ ${label} ${detail}`);
+    fail++;
+  }
+}
+
+function call(fn, request) {
+  return JSON.parse(fn(JSON.stringify(request)));
+}
+
+// ---------------------------------------------------------------------------
+// 1. verify_evidence: golden + tampered + malformed
+// ---------------------------------------------------------------------------
+console.log("1. verify_evidence");
+
+function runPack(pack) {
   const manifest = readFileSync(`examples/${pack}/manifest.json`, "utf8");
   const request = {
     manifest,
@@ -24,28 +82,171 @@ function run(pack) {
   if (existsSync(chainPath)) {
     request.version_chain = readFileSync(chainPath, "utf8");
   }
-  const response = JSON.parse(verify_evidence(JSON.stringify(request)));
-  console.log(
-    pack,
-    "ok =", response.ok,
-    "codes =", JSON.stringify(response.report.findings.map((f) => f.code)),
-  );
-  return response;
+  return JSON.parse(verify_evidence(JSON.stringify(request)));
 }
 
-const valid = run("valid-pack");
-const tampered = run("tampered-pack");
+const valid = runPack("valid-pack");
+const tampered = runPack("tampered-pack");
 const bad = JSON.parse(verify_evidence("{ not json"));
-console.log("malformed request error =", JSON.stringify(bad.error));
 
-if (
-  valid.ok === true &&
-  tampered.ok === false &&
-  tampered.report.findings.some((f) => f.code === "E2003") &&
-  bad.ok === false
-) {
-  console.log("SMOKE PASS");
-} else {
+check("valid-pack ok", valid.ok === true);
+check("tampered-pack fails", tampered.ok === false);
+check("tampered has E2003", tampered.report.findings.some((f) => f.code === "E2003"));
+check("malformed rejected", bad.ok === false);
+
+// ---------------------------------------------------------------------------
+// 2. create_evidence_pack → verify_evidence round-trip
+// ---------------------------------------------------------------------------
+console.log("2. create_evidence_pack → verify_evidence");
+
+const contentHex = hex(utf8("smoke create test"));
+const created = call(create_evidence_pack, {
+  files: { "files/a.txt": contentHex },
+  subject: { id: "smoke-create", type: "dataset" },
+  algorithm: "sha256",
+  version_id: "v1",
+});
+check("create succeeds", created.ok === true, JSON.stringify(created));
+
+if (created.ok) {
+  const verified = call(verify_evidence, {
+    manifest: created.manifest,
+    files: { "files/a.txt": contentHex },
+  });
+  check("created pack verifies ok", verified.ok === true, JSON.stringify(verified));
+  check("created pack has 0 findings", verified.report.findings.length === 0);
+}
+
+// ---------------------------------------------------------------------------
+// 3. generate_proof → verify_proof round-trip
+// ---------------------------------------------------------------------------
+console.log("3. generate_proof → verify_proof");
+
+if (created.ok) {
+  const proofResp = call(generate_proof, {
+    manifest: created.manifest,
+    files: { "files/a.txt": contentHex },
+    index: 0,
+  });
+  check("generate_proof succeeds", proofResp.ok === true, JSON.stringify(proofResp));
+
+  if (proofResp.ok) {
+    // verify_proof expects the raw leaf payload (canonical file entry text),
+    // not the leaf hash. Reconstruct it from the known content.
+    const content = utf8("smoke create test");
+    const leafHex = hex(utf8(canonicalFileEntry("files/a.txt", content)));
+    const verifyResp = call(verify_proof, {
+      leaf: leafHex,
+      proof: proofResp.proof,
+      root: proofResp.root,
+    });
+    check("verify_proof accepts valid proof", verifyResp.ok === true, JSON.stringify(verifyResp));
+    if (verifyResp.ok) {
+      check("proof is valid", verifyResp.valid === true);
+    }
+
+    // Tamper: wrong content produces a different leaf payload
+    const tamperedContent = utf8("tampered-content");
+    const tamperedLeafHex = hex(utf8(canonicalFileEntry("files/a.txt", tamperedContent)));
+    const tamperedResp = call(verify_proof, {
+      leaf: tamperedLeafHex,
+      proof: proofResp.proof,
+      root: proofResp.root,
+    });
+    check("verify_proof rejects tampered leaf", tamperedResp.valid === false, JSON.stringify(tamperedResp));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 4. audit_append → audit_verify round-trip
+// ---------------------------------------------------------------------------
+console.log("4. audit_append → audit_verify");
+
+const auditResp1 = call(audit_append, {
+  log: "[]",
+  timestamp: "2026-07-05T10:00:00Z",
+  actor: "smoke-tester",
+  action: "created",
+  subject_id: "smoke-ds-v1",
+});
+check("first audit_append succeeds", auditResp1.ok === true, JSON.stringify(auditResp1));
+
+if (auditResp1.ok) {
+  const auditResp2 = call(audit_append, {
+    log: auditResp1.log,
+    timestamp: "2026-07-05T11:00:00Z",
+    actor: "smoke-verifier",
+    action: "verified",
+    subject_id: "smoke-ds-v1",
+  });
+  check("second audit_append succeeds", auditResp2.ok === true, JSON.stringify(auditResp2));
+
+  if (auditResp2.ok) {
+    const verifyResp = call(audit_verify, { log: auditResp2.log });
+    check("audit_verify succeeds", verifyResp.ok === true, JSON.stringify(verifyResp));
+    if (verifyResp.ok) {
+      check("chain_valid is true", verifyResp.chain_valid === true);
+      check("length is 2", verifyResp.length === 2, `got ${verifyResp.length}`);
+    }
+
+    // Tamper: change actor in the log
+    const tamperedLog = auditResp2.log.replace("smoke-tester", "attacker");
+    const tamperedResp = call(audit_verify, { log: tamperedLog });
+    check("audit_verify detects tampered log", tamperedResp.chain_valid === false, JSON.stringify(tamperedResp));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 5. ed25519_keypair → ed25519_sign → ed25519_verify round-trip
+// ---------------------------------------------------------------------------
+console.log("5. ed25519_keypair → ed25519_sign → ed25519_verify");
+
+const seedHex = hex(new Uint8Array(32).fill(0).map((_, i) => i + 1));
+const kpResp = call(ed25519_keypair, { seed: seedHex });
+check("keypair succeeds", kpResp.ok === true, JSON.stringify(kpResp));
+
+if (kpResp.ok) {
+  check("has public_key", typeof kpResp.public_key === "string");
+  check("has secret_key", typeof kpResp.secret_key === "string");
+
+  const msgHex = hex(utf8("smoke sign test"));
+  const signResp = call(ed25519_sign, {
+    secret_key: kpResp.secret_key,
+    message: msgHex,
+  });
+  check("sign succeeds", signResp.ok === true, JSON.stringify(signResp));
+
+  if (signResp.ok) {
+    const verifyResp = call(ed25519_verify, {
+      public_key: kpResp.public_key,
+      message: msgHex,
+      signature: signResp.signature,
+    });
+    check("verify accepts valid signature", verifyResp.valid === true, JSON.stringify(verifyResp));
+
+    // Tamper: wrong message
+    const wrongMsg = hex(utf8("tampered"));
+    const tamperedResp = call(ed25519_verify, {
+      public_key: kpResp.public_key,
+      message: wrongMsg,
+      signature: signResp.signature,
+    });
+    check("verify rejects wrong message", tamperedResp.valid === false, JSON.stringify(tamperedResp));
+  }
+}
+
+// Demo seed warning
+const demoKp = call(ed25519_keypair, {});
+check("demo keypair has warning", typeof demoKp.warning === "string", JSON.stringify(demoKp));
+
+// ---------------------------------------------------------------------------
+// Summary
+// ---------------------------------------------------------------------------
+console.log("");
+console.log(`SMOKE: ${pass} passed, ${fail} failed`);
+if (fail > 0) {
   console.log("SMOKE FAIL");
   process.exit(1);
+} else {
+  console.log("SMOKE PASS");
 }

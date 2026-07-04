@@ -657,6 +657,42 @@ User asked for a fresh 5-round "how to make it good" health check, plan-only (no
 | `grep check-metrics\|cross-verify\|mutation-check .github/workflows -r` | 0 hits — confirmed not in CI |
 | Direct reads | verify.mbt:100, merkle.mbt:17, create.mbt:72, api.mbt:500-503/559-563, ed25519.mbt:321/344, 申报书.md:9/24-31/36/39, SECURITY.md:18, demo/web/index.html:6 — all confirm findings |
 
+## 2026-07-05 Asia/Shanghai (improvement plan execution: phases 0-3)
+
+### Phase 0-3 execution: 4 commits, 5 root causes sealed
+
+User said "那就继续改吧" — execute the 5-phase plan from the round-3 health check. Phases 0-3 completed across 4 commits; Phase 4 (Mooncakes publish + demo video) deferred to user action.
+
+| Field | Result |
+| --- | --- |
+| Source | docs/plans/2026-07-05-health-check-and-improvement-plan.md (37 issues, 5 phases); direct code edits in src/ + docs/ |
+| Method | Sequential phase execution: (0) blocker seal; (1) API layer test coverage; (2) CI gate wiring; (3) security claims alignment. Each phase: edit → moon check → moon test → moon fmt → check-metrics → git commit |
+| Commits | cfd7303 (Phase 0, 23 files +891/-177), 433ba5c (Phase 1, 4 files +530/-32), c9194af (Phase 2, 4 files +95/-33), 2784a26 (Phase 3, 9 files +73/-19) |
+| Phase 0 sealed | α SHA-512 multi-algo: threaded `algorithm?` optional param through all 6 merkle pub functions + verify.mbt:100 + create.mbt; β audit from_json: implemented `AuditLog::from_json`, rewired audit_append/audit_verify; γ 申报书: rewrote all 3 formats with 12 features + Trust Workbench, phone desensitized 187****1181; δ SECURITY.md: contact → GitHub Security Advisory |
+| Phase 1 sealed | 8 previously-untested pub API functions now have 12 round-trip wbtests (create/proof/audit/ed25519); subject.type primary with subject.kind backward-compat; ed25519_keypair returns warning when demo seed used |
+| Phase 2 sealed | ci.yml: fetch-depth:0 + 3 blocking steps (check-metrics, cross-verify, mutation-check); cross-verify.mjs: negative pack recognition (bad-*/tampered-*/missing-*); mutation-check.mjs: mutation targets updated for post-SHA-512 code; DECISION_LOG round-4 annotation |
+| Phase 3 sealed | Ed25519 point_decode: non-canonical y (y>=p) rejection via Fe::to_bytes() round-trip; ed25519_verify: explicit identity point rejection; SECURITY.md: split into 2 accurate entries + residual limitation; CLI_VERSION 0.3.0→0.4.0; README error code range E1xxx..E5xxx; E3002 documented as reserved |
+| Tests | 275/275 pass on js + wasm-gc (native: env lacks C compiler, CI has gcc); 2 new security tests |
+| Metrics | 91 commits / 10438 lines (impl 4896 + test 5542) / 279 tests / 12 packages / moon.mod 0.4.0 == CHANGELOG 0.4.0 |
+| check-metrics | 19/19 assertions PASS (exit 0) |
+| cross-verify | 10/10 PASS (6 positive + 4 negative packs correctly handled) |
+| mutation-check | 3/3 mutations caught, 0 slipped, 0 errored |
+| Deferred (Phase 4) | Mooncakes publish (user action), collision recheck (rerun before submit), demo video (user recording), dual push GitHub+Gitlink (user action) |
+| Confidence | High — all 5 root causes (α multi-algo, β API shell, γ governance form-only, δ materials stuck at 0.2/0.3, ε security claims ahead of code) sealed with code + tests |
+
+### Final Verification Run
+
+| Command | Result |
+| --- | --- |
+| `git rev-list --count HEAD` | 91 |
+| `moon check` | exit 0, 0 warnings |
+| `moon test --target js` | 275/275 passed |
+| `moon test --target wasm-gc` | 275/275 passed |
+| `moon test --target native` | env error (no C compiler; CI has gcc) |
+| `node tools/check-metrics.mjs` | 19/19 PASS (exit 0) |
+| `node tools/cross-verify.mjs` | 10/10 passed |
+| `node tools/mutation-check.mjs` | 3 caught / 0 slipped / 0 errored |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

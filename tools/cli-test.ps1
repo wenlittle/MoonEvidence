@@ -240,7 +240,181 @@ foreach ($case in $manifestMatrix) {
   }
 }
 
-$total = @($cases).Count + @($matrix).Count + @($manifestMatrix).Count
+# --- Part 4: create command black-box (round 4 phase 2) -------------------
+#
+# The create command had zero black-box coverage and a path-prefix bug:
+# it prepended "files/" to every collected path, but the actual files
+# sat at the directory root — so create→verify always failed. These
+# tests exercise the create→verify closed loop with flat, nested, and
+# empty directory layouts, plus argument validation.
+
+$createTmp = Join-Path $env:TEMP "moon-evidence-cli-test-creation"
+if (Test-Path $createTmp) { Remove-Item $createTmp -Recurse -Force }
+New-Item -ItemType Directory -Path $createTmp -Force | Out-Null
+
+# Helper: create a file with content under a temp dir.
+function New-TestFile($Dir, $RelPath, $Content) {
+  $full = Join-Path $Dir $RelPath
+  $parent = Split-Path -Parent $full
+  if (-not (Test-Path $parent)) { New-Item -ItemType Directory -Path $parent -Force | Out-Null }
+  Set-Content -Path $full -Value $Content -NoNewline -Encoding UTF8
+}
+
+# Case 1: flat directory → create → verify
+$dir1 = Join-Path $createTmp "flat"
+New-Item -ItemType Directory -Path $dir1 -Force | Out-Null
+New-TestFile $dir1 "a.txt" "hello"
+New-TestFile $dir1 "b.txt" "world"
+$r = Invoke-Cli -CliArgs @("create", $dir1, "--subject-id", "test-flat", "--subject-type", "report")
+$p = @()
+if ($r.ExitCode -ne 0) { $p += "exit: expected 0, got $($r.ExitCode)" }
+if ($r.Output -notmatch 'created.*2 files, sha256') { $p += "output missing: created (2 files, sha256)" }
+if ($p.Count -eq 0) {
+  $r2 = Invoke-Cli -CliArgs @("verify", $dir1)
+  $p2 = @()
+  if ($r2.ExitCode -ne 0) { $p2 += "verify exit: expected 0, got $($r2.ExitCode)" }
+  if ($r2.Output -notmatch 'verification OK') { $p2 += "verify output missing: verification OK" }
+  if ($p2.Count -eq 0) { Write-Host "PASS  create: flat → verify" }
+  else { $failed += 1; Write-Host "FAIL  create: flat → verify"; $p2 | ForEach-Object { Write-Host "      $_" } }
+} else {
+  $failed += 1; Write-Host "FAIL  create: flat"; $p | ForEach-Object { Write-Host "      $_" }
+  Write-Host "      output: $($r.Output.Trim())"
+}
+
+# Case 2: nested directory → create → verify
+$dir2 = Join-Path $createTmp "nested"
+New-Item -ItemType Directory -Path $dir2 -Force | Out-Null
+New-TestFile $dir2 "a.txt" "top"
+New-TestFile $dir2 "sub/c.txt" "nested"
+$r = Invoke-Cli -CliArgs @("create", $dir2, "--subject-id", "test-nested")
+$p = @()
+if ($r.ExitCode -ne 0) { $p += "exit: expected 0, got $($r.ExitCode)" }
+if ($r.Output -notmatch '2 files, sha256') { $p += "output missing: (2 files, sha256)" }
+if ($p.Count -eq 0) {
+  $r2 = Invoke-Cli -CliArgs @("verify", $dir2)
+  $p2 = @()
+  if ($r2.ExitCode -ne 0) { $p2 += "verify exit: expected 0, got $($r2.ExitCode)" }
+  if ($r2.Output -notmatch 'verification OK') { $p2 += "verify output missing: verification OK" }
+  if ($p2.Count -eq 0) { Write-Host "PASS  create: nested → verify" }
+  else { $failed += 1; Write-Host "FAIL  create: nested → verify"; $p2 | ForEach-Object { Write-Host "      $_" } }
+} else {
+  $failed += 1; Write-Host "FAIL  create: nested"; $p | ForEach-Object { Write-Host "      $_" }
+  Write-Host "      output: $($r.Output.Trim())"
+}
+
+# Case 3: empty directory → create → verify
+$dir3 = Join-Path $createTmp "empty"
+New-Item -ItemType Directory -Path $dir3 -Force | Out-Null
+$r = Invoke-Cli -CliArgs @("create", $dir3, "--subject-id", "test-empty")
+$p = @()
+if ($r.ExitCode -ne 0) { $p += "exit: expected 0, got $($r.ExitCode)" }
+if ($r.Output -notmatch '0 files, sha256') { $p += "output missing: (0 files, sha256)" }
+if ($p.Count -eq 0) {
+  $r2 = Invoke-Cli -CliArgs @("verify", $dir3)
+  $p2 = @()
+  if ($r2.ExitCode -ne 0) { $p2 += "verify exit: expected 0, got $($r2.ExitCode)" }
+  if ($r2.Output -notmatch 'verification OK') { $p2 += "verify output missing: verification OK" }
+  if ($p2.Count -eq 0) { Write-Host "PASS  create: empty → verify" }
+  else { $failed += 1; Write-Host "FAIL  create: empty → verify"; $p2 | ForEach-Object { Write-Host "      $_" } }
+} else {
+  $failed += 1; Write-Host "FAIL  create: empty"; $p | ForEach-Object { Write-Host "      $_" }
+  Write-Host "      output: $($r.Output.Trim())"
+}
+
+# Case 4: missing --subject-id → exit 2
+$dir4 = Join-Path $createTmp "no-sid"
+New-Item -ItemType Directory -Path $dir4 -Force | Out-Null
+New-TestFile $dir4 "a.txt" "data"
+$r = Invoke-Cli -CliArgs @("create", $dir4)
+$p = @()
+if ($r.ExitCode -ne 2) { $p += "exit: expected 2, got $($r.ExitCode)" }
+if ($p.Count -eq 0) { Write-Host "PASS  create: missing --subject-id" }
+else { $failed += 1; Write-Host "FAIL  create: missing --subject-id"; $p | ForEach-Object { Write-Host "      $_" } }
+
+# Case 5: non-existent directory → exit 2
+$r = Invoke-Cli -CliArgs @("create", "$createTmp/no-such-dir", "--subject-id", "x")
+$p = @()
+if ($r.ExitCode -ne 2) { $p += "exit: expected 2, got $($r.ExitCode)" }
+if ($r.Output -notmatch 'E5001') { $p += "output missing: E5001" }
+if ($p.Count -eq 0) { Write-Host "PASS  create: non-existent dir" }
+else { $failed += 1; Write-Host "FAIL  create: non-existent dir"; $p | ForEach-Object { Write-Host "      $_" } }
+
+# Case 6: custom output path → create → verify manifest file
+$dir6 = Join-Path $createTmp "custom-out"
+New-Item -ItemType Directory -Path $dir6 -Force | Out-Null
+New-TestFile $dir6 "a.txt" "custom"
+$customManifest = Join-Path $dir6 "my-manifest.json"
+$r = Invoke-Cli -CliArgs @("create", $dir6, "--subject-id", "test-custom", "-o", $customManifest)
+$p = @()
+if ($r.ExitCode -ne 0) { $p += "exit: expected 0, got $($r.ExitCode)" }
+if ($r.Output -notmatch 'created.*my-manifest') { $p += "output missing: created my-manifest" }
+if ($p.Count -eq 0) {
+  # Verify the custom manifest file (not the default manifest.json)
+  $r2 = Invoke-Cli -CliArgs @("verify", $customManifest)
+  $p2 = @()
+  if ($r2.ExitCode -ne 0) { $p2 += "verify exit: expected 0, got $($r2.ExitCode)" }
+  if ($r2.Output -notmatch 'verification OK') { $p2 += "verify output missing: verification OK" }
+  if ($p2.Count -eq 0) { Write-Host "PASS  create: custom output → verify" }
+  else { $failed += 1; Write-Host "FAIL  create: custom output → verify"; $p2 | ForEach-Object { Write-Host "      $_" } }
+} else {
+  $failed += 1; Write-Host "FAIL  create: custom output"; $p | ForEach-Object { Write-Host "      $_" }
+  Write-Host "      output: $($r.Output.Trim())"
+}
+
+# Case 7: SHA-512 algorithm → create → verify
+$dir7 = Join-Path $createTmp "sha512"
+New-Item -ItemType Directory -Path $dir7 -Force | Out-Null
+New-TestFile $dir7 "a.txt" "sha512-content"
+$r = Invoke-Cli -CliArgs @("create", $dir7, "--subject-id", "test-sha512", "--algorithm", "sha512")
+$p = @()
+if ($r.ExitCode -ne 0) { $p += "exit: expected 0, got $($r.ExitCode)" }
+if ($r.Output -notmatch '1 files, sha512') { $p += "output missing: (1 files, sha512)" }
+if ($p.Count -eq 0) {
+  $r2 = Invoke-Cli -CliArgs @("verify", $dir7)
+  $p2 = @()
+  if ($r2.ExitCode -ne 0) { $p2 += "verify exit: expected 0, got $($r2.ExitCode)" }
+  if ($r2.Output -notmatch 'verification OK') { $p2 += "verify output missing: verification OK" }
+  if ($p2.Count -eq 0) { Write-Host "PASS  create: sha512 → verify" }
+  else { $failed += 1; Write-Host "FAIL  create: sha512 → verify"; $p2 | ForEach-Object { Write-Host "      $_" } }
+} else {
+  $failed += 1; Write-Host "FAIL  create: sha512"; $p | ForEach-Object { Write-Host "      $_" }
+  Write-Host "      output: $($r.Output.Trim())"
+}
+
+# Case 8: unknown algorithm → exit 2
+$dir8 = Join-Path $createTmp "bad-algo"
+New-Item -ItemType Directory -Path $dir8 -Force | Out-Null
+New-TestFile $dir8 "a.txt" "x"
+$r = Invoke-Cli -CliArgs @("create", $dir8, "--subject-id", "x", "--algorithm", "md5")
+$p = @()
+if ($r.ExitCode -ne 2) { $p += "exit: expected 2, got $($r.ExitCode)" }
+if ($r.Output -notmatch 'unknown algorithm') { $p += "output missing: unknown algorithm" }
+if ($p.Count -eq 0) { Write-Host "PASS  create: unknown algorithm" }
+else { $failed += 1; Write-Host "FAIL  create: unknown algorithm"; $p | ForEach-Object { Write-Host "      $_" } }
+
+# Case 9: version chaining → create → verify JSON shows version fields
+$dir9 = Join-Path $createTmp "versioned"
+New-Item -ItemType Directory -Path $dir9 -Force | Out-Null
+New-TestFile $dir9 "a.txt" "v2-content"
+$r = Invoke-Cli -CliArgs @("create", $dir9, "--subject-id", "test-ver", "--version-id", "v2", "--version-parent", "abc123")
+$p = @()
+if ($r.ExitCode -ne 0) { $p += "exit: expected 0, got $($r.ExitCode)" }
+if ($p.Count -eq 0) {
+  $r2 = Invoke-Cli -CliArgs @("verify", "--json", $dir9)
+  $p2 = @()
+  if ($r2.ExitCode -ne 0) { $p2 += "verify exit: expected 0, got $($r2.ExitCode)" }
+  if ($r2.Output -notmatch '"ok":true') { $p2 += "verify output missing: ok:true" }
+  if ($p2.Count -eq 0) { Write-Host "PASS  create: version chaining → verify" }
+  else { $failed += 1; Write-Host "FAIL  create: version chaining → verify"; $p2 | ForEach-Object { Write-Host "      $_" } }
+} else {
+  $failed += 1; Write-Host "FAIL  create: version chaining"; $p | ForEach-Object { Write-Host "      $_" }
+  Write-Host "      output: $($r.Output.Trim())"
+}
+
+# Cleanup
+Remove-Item $createTmp -Recurse -Force -ErrorAction SilentlyContinue
+
+$total = @($cases).Count + @($matrix).Count + @($manifestMatrix).Count + 9
 Write-Host ""
 Write-Host "cli-test ($Target): $($total - $failed)/$total passed"
 if ($failed -gt 0) { exit 1 }

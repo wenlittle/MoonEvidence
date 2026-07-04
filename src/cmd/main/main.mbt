@@ -16,7 +16,10 @@ let usage_text : String =
   #|Usage:
   #|  moon-evidence verify [--json] <path> [<path> ...]
   #|  moon-evidence explain <path> [<path> ...]
-  #|  moon-evidence create <dir> --subject-id <id> --subject-type <type> [-o <out>]
+  #|  moon-evidence create <dir> --subject-id <id> [--subject-type <type>]
+  #|                          [--algorithm sha256|sha512]
+  #|                          [--version-id <id>] [--version-parent <hash>]
+  #|                          [-o <out>]
   #|  moon-evidence --version
   #|  moon-evidence --help
   #|
@@ -24,6 +27,14 @@ let usage_text : String =
   #|  verify    Verify evidence packs; --json emits canonical JSON reports
   #|  explain   Verify and print human-readable findings reports
   #|  create    Create a manifest from files in a directory
+  #|
+  #|Create options:
+  #|  --subject-id <id>       Evidence subject identifier (required)
+  #|  --subject-type <type>   Subject type (default: generic)
+  #|  --algorithm <name>      Hash algorithm: sha256 or sha512 (default: sha256)
+  #|  --version-id <id>       Version identifier (default: v1)
+  #|  --version-parent <hash> Parent version hash for chaining (default: none)
+  #|  -o, --output <path>     Output manifest path (default: <dir>/manifest.json)
   #|
   #|Batch mode:
   #|  Pass multiple paths to verify/explain several packs in one invocation.
@@ -335,6 +346,56 @@ fn collect_pack_files(
 }
 
 ///|
+/// Recursively collects files under `<root>/<rel_dir>` as input-relative
+/// paths. Missing or unreadable directories yield nothing.
+///
+/// Security mitigation: mirroring `collect_pack_files`, this function
+/// applies the same depth and file caps to bound symlink cycles and
+/// resource exhaustion.
+fn collect_create_files(
+  root : String,
+  rel_dir : String,
+  out : Array[String],
+  depth? : Int = 0,
+) -> Unit {
+  // Depth cap: terminate symlink-to-directory cycles.
+  if depth >= max_pack_depth {
+    return
+  }
+  // File cap: bound resource use against symlink bombs.
+  if out.length() >= max_pack_files {
+    return
+  }
+  let full_dir = if rel_dir.is_empty() {
+    root
+  } else {
+    "\{root}/\{rel_dir}"
+  }
+  if !@fs.path_exists(full_dir) {
+    return
+  }
+  let entries = @fs.read_dir(full_dir) catch { _ => return }
+  for name in entries {
+    // File cap check inside the loop too, so a single huge directory
+    // does not blow past the limit before the next recursion.
+    if out.length() >= max_pack_files {
+      return
+    }
+    let rel_path = if rel_dir.is_empty() {
+      name
+    } else {
+      "\{rel_dir}/\{name}"
+    }
+    let is_subdir = @fs.is_dir("\{root}/\{rel_path}") catch { _ => false }
+    if is_subdir {
+      collect_create_files(root, rel_path, out, depth=depth + 1)
+    } else {
+      out.push(rel_path)
+    }
+  }
+}
+
+///|
 /// Parent directory of a file path, handling both separators; `.` when the
 /// path has no directory component.
 fn parent_dir(path : String) -> String {
@@ -362,6 +423,9 @@ fn run_create(args : Array[String]) -> Int {
   let mut subject_id : String? = None
   let mut subject_type : String? = None
   let mut output_path : String? = None
+  let mut algorithm_name : String? = None
+  let mut version_id : String? = None
+  let mut version_parent : String? = None
   let mut i = 1
   while i < args.length() {
     let arg = args[i]
@@ -371,6 +435,15 @@ fn run_create(args : Array[String]) -> Int {
     } else if arg == "--subject-type" && i + 1 < args.length() {
       i = i + 1
       subject_type = Some(args[i])
+    } else if arg == "--algorithm" && i + 1 < args.length() {
+      i = i + 1
+      algorithm_name = Some(args[i])
+    } else if arg == "--version-id" && i + 1 < args.length() {
+      i = i + 1
+      version_id = Some(args[i])
+    } else if arg == "--version-parent" && i + 1 < args.length() {
+      i = i + 1
+      version_parent = Some(args[i])
     } else if (arg == "-o" || arg == "--output") && i + 1 < args.length() {
       i = i + 1
       output_path = Some(args[i])
@@ -394,6 +467,21 @@ fn run_create(args : Array[String]) -> Int {
     Some(t) => t
     None => "generic"
   }
+  let algorithm = match algorithm_name {
+    Some(name) =>
+      match @digest.normalize_algorithm(name) {
+        Some(algo) => algo
+        None => {
+          println("create: unknown algorithm '\{name}' (supported: sha256, sha512)")
+          return 2
+        }
+      }
+    None => @digest.Sha256
+  }
+  let vid = match version_id {
+    Some(v) => v
+    None => "v1"
+  }
   if !@fs.path_exists(pack_dir) {
     println("[E5001] \{pack_dir}: path does not exist")
     return 2
@@ -403,34 +491,43 @@ fn run_create(args : Array[String]) -> Int {
     println("create: \{pack_dir} is not a directory")
     return 2
   }
-  let entries = @fs.read_dir(pack_dir) catch {
-    _ => {
-      println("[E5002] \{pack_dir}: cannot read directory")
-      return 2
-    }
+  // Recursively collect files, mirroring verify's collect_pack_files
+  // semantics: depth cap + file cap bound symlink cycles and bombs.
+  // Unlike verify (which reads from an existing files/ subtree), create
+  // reads from the raw input directory and uses on-disk relative paths
+  // directly — whatever layout create sees is what verify will check.
+  let file_paths : Array[String] = []
+  collect_create_files(pack_dir, "", file_paths)
+  if file_paths.length() > max_pack_files {
+    println("[E5002] \{pack_dir}: too many files (>\{max_pack_files})")
+    return 2
   }
   let files : Map[String, Bytes] = {}
-  for entry in entries {
-    if entry == "manifest.json" || entry == "versions" {
+  for rel_path in file_paths {
+    // Skip the manifest file itself — it's the output, not evidence.
+    // Only the root-level manifest.json is excluded; a nested file of
+    // the same name is legitimate evidence.
+    if rel_path == "manifest.json" {
       continue
     }
-    let file_path = "\{pack_dir}/\{entry}"
-    let is_file = !(@fs.is_dir(file_path) catch { _ => false })
-    if is_file {
-      let content = @fs.read_file_to_bytes(file_path) catch {
-        _ => {
-          println("[E5002] \{file_path}: file read failed")
-          return 2
-        }
+    let full_path = "\{pack_dir}/\{rel_path}"
+    let content = @fs.read_file_to_bytes(full_path) catch {
+      _ => {
+        println("[E5002] \{full_path}: file read failed")
+        return 2
       }
-      files[entry] = content
     }
+    // Use the on-disk relative path directly so create→verify is
+    // symmetric: verify resolves each manifest entry as
+    // <pack_root>/<entry.path>, which matches the on-disk layout
+    // create saw when collecting.
+    files[rel_path] = content
   }
   let manifest_json = @create.create_manifest(files, {
     subject: { id: sid, kind: stype },
-    algorithm: @digest.Sha256,
-    version_id: "v1",
-    version_parent: None,
+    algorithm: algorithm,
+    version_id: vid,
+    version_parent: version_parent,
   })
   let out = match output_path {
     Some(p) => p
@@ -442,6 +539,6 @@ fn run_create(args : Array[String]) -> Int {
       return 2
     }
   }
-  println("created \{out} (\{files.length()} files)")
+  println("created \{out} (\{files.length()} files, \{algorithm.label()})")
   0
 }

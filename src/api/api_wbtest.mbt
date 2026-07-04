@@ -513,3 +513,488 @@ test "compute_merkle_tree paths array covers the tree height" {
     fail("last spine entry should be level 1 index 0 (root): \{response}")
   }
 }
+
+// ---------------------------------------------------------------------------
+// create_evidence_pack API tests (P0-3: was zero coverage)
+// ---------------------------------------------------------------------------
+
+///|
+fn parse_json_obj(s : String) -> Map[String, Json] raise {
+  guard @json.parse(s) is Object(m) else { fail("expected JSON object: \{s}") }
+  m
+}
+
+///|
+/// Builds a JSON object string from key-value pairs.
+fn json_request(pairs : Array[(String, Json)]) -> String {
+  let m : Map[String, Json] = {}
+  for pair in pairs {
+    m[pair.0] = pair.1
+  }
+  Json::object(m).stringify()
+}
+
+///|
+/// Builds a JSON object of { path: hex_string } pairs.
+fn json_files(pairs : Array[(String, String)]) -> Json {
+  let m : Map[String, Json] = {}
+  for pair in pairs {
+    m[pair.0] = Json::string(pair.1)
+  }
+  Json::object(m)
+}
+
+///|
+/// Builds the Merkle leaf payload (canonical file entry text) as hex.
+/// Mirrors `canonical_file_entry_text` in api.mbt so verify_proof can
+/// reconstruct the exact bytes the proof was generated over.
+fn leaf_payload_hex(path : String, content : Bytes) -> String {
+  let digest_hex = @digest.sha256_hex(content)
+  let doc = Json::object({
+    "path": Json::string(path),
+    "size": Json::number(content.length().to_double()),
+    "digest": Json::string("sha256:\{digest_hex}"),
+  })
+  let canonical = @canonjson.canonicalize(doc.stringify()) catch {
+    _ => doc.stringify()
+  }
+  bytes_to_hex(@digest.string_to_utf8_bytes(canonical))
+}
+
+///|
+test "create_evidence_pack round-trip: create then verify succeeds" {
+  let content_hex = bytes_to_hex(@digest.string_to_utf8_bytes("hello world"))
+  let request = json_request([
+    ("files", json_files([("files/a.txt", content_hex)])),
+    (
+      "subject",
+      Json::object({
+        "id": Json::string("api-create-test"),
+        "type": Json::string("dataset"),
+      }),
+    ),
+    ("algorithm", Json::string("sha256")),
+    ("version_id", Json::string("v1")),
+  ])
+  let resp = create_evidence_pack(request)
+  let fields = parse_json_obj(resp)
+  guard fields.get("ok") is Some(True) else {
+    fail("create should succeed: \{resp}")
+  }
+  guard fields.get("manifest") is Some(String(manifest)) else {
+    fail("response should contain manifest: \{resp}")
+  }
+  // Now verify the created manifest.
+  let verify_req = json_request([
+    ("manifest", Json::string(manifest)),
+    ("files", json_files([("files/a.txt", content_hex)])),
+  ])
+  let vresp = verify_evidence(verify_req)
+  assert_true(response_ok(vresp))
+  assert_eq(report_codes(vresp).length(), 0)
+}
+
+///|
+test "create_evidence_pack accepts kind as backward-compat alias for type" {
+  let content_hex = bytes_to_hex(@digest.string_to_utf8_bytes("data"))
+  let request = json_request([
+    ("files", json_files([("files/a.txt", content_hex)])),
+    (
+      "subject",
+      Json::object({
+        "id": Json::string("kind-test"),
+        "kind": Json::string("archive"),
+      }),
+    ),
+    ("version_id", Json::string("v1")),
+  ])
+  let resp = create_evidence_pack(request)
+  let fields = parse_json_obj(resp)
+  guard fields.get("ok") is Some(True) else {
+    fail("create with kind should succeed: \{resp}")
+  }
+}
+
+///|
+test "create_evidence_pack rejects missing files" {
+  let request = json_request([
+    (
+      "subject",
+      Json::object({ "id": Json::string("x"), "type": Json::string("y") }),
+    ),
+    ("version_id", Json::string("v1")),
+  ])
+  let resp = create_evidence_pack(request)
+  let fields = parse_json_obj(resp)
+  guard fields.get("ok") is Some(False) else {
+    fail("should reject missing files: \{resp}")
+  }
+}
+
+///|
+test "create_evidence_pack supports sha512 algorithm" {
+  let content_hex = bytes_to_hex(@digest.string_to_utf8_bytes("x"))
+  let request = json_request([
+    ("files", json_files([("files/a.txt", content_hex)])),
+    (
+      "subject",
+      Json::object({ "id": Json::string("x"), "type": Json::string("y") }),
+    ),
+    ("algorithm", Json::string("sha512")),
+    ("version_id", Json::string("v1")),
+  ])
+  let resp = create_evidence_pack(request)
+  let fields = parse_json_obj(resp)
+  guard fields.get("ok") is Some(True) else {
+    fail("sha512 should be supported: \{resp}")
+  }
+  // Verify the created sha512 manifest.
+  guard fields.get("manifest") is Some(String(manifest)) else {
+    fail("should have manifest: \{resp}")
+  }
+  let verify_req = json_request([
+    ("manifest", Json::string(manifest)),
+    ("files", json_files([("files/a.txt", content_hex)])),
+  ])
+  let vresp = verify_evidence(verify_req)
+  assert_true(response_ok(vresp))
+}
+
+// ---------------------------------------------------------------------------
+// generate_proof + verify_proof API tests (P0-3: was zero coverage)
+// ---------------------------------------------------------------------------
+
+///|
+test "generate_proof then verify_proof round-trip succeeds" {
+  // Create a pack first.
+  let content_hex = bytes_to_hex(@digest.string_to_utf8_bytes("leaf0"))
+  let content_b_hex = bytes_to_hex(@digest.string_to_utf8_bytes("leaf1"))
+  let create_req = json_request([
+    (
+      "files",
+      json_files([("files/a.txt", content_hex), ("files/b.txt", content_b_hex)]),
+    ),
+    (
+      "subject",
+      Json::object({
+        "id": Json::string("proof-test"),
+        "type": Json::string("dataset"),
+      }),
+    ),
+    ("version_id", Json::string("v1")),
+  ])
+  let create_resp = create_evidence_pack(create_req)
+  let create_fields = parse_json_obj(create_resp)
+  guard create_fields.get("manifest") is Some(String(manifest)) else {
+    fail("create failed: \{create_resp}")
+  }
+  // Generate proof for index 0.
+  let gen_req = json_request([
+    ("manifest", Json::string(manifest)),
+    (
+      "files",
+      json_files([("files/a.txt", content_hex), ("files/b.txt", content_b_hex)]),
+    ),
+    ("index", Json::number(0.0)),
+  ])
+  let gen_resp = generate_proof(gen_req)
+  let gen_fields = parse_json_obj(gen_resp)
+  guard gen_fields.get("ok") is Some(True) else {
+    fail("generate_proof should succeed: \{gen_resp}")
+  }
+  guard gen_fields.get("leaf_hash") is Some(String(_leaf_hash)) else {
+    fail("should have leaf_hash: \{gen_resp}")
+  }
+  guard gen_fields.get("root") is Some(String(root)) else {
+    fail("should have root: \{gen_resp}")
+  }
+  guard gen_fields.get("proof") is Some(Array(proof)) else {
+    fail("should have proof: \{gen_resp}")
+  }
+  // Verify the proof: leaf must be the canonical file entry payload
+  // (same bytes the proof was generated over), not the raw file content.
+  let leaf_hex = leaf_payload_hex(
+    "files/a.txt",
+    @digest.string_to_utf8_bytes("leaf0"),
+  )
+  let verify_req = json_request([
+    ("leaf", Json::string(leaf_hex)),
+    ("proof", Json::array(proof)),
+    ("root", Json::string(root)),
+  ])
+  let vresp = verify_proof(verify_req)
+  let vfields = parse_json_obj(vresp)
+  guard vfields.get("ok") is Some(True) else {
+    fail("verify_proof should succeed: \{vresp}")
+  }
+  guard vfields.get("valid") is Some(True) else {
+    fail("proof should be valid: \{vresp}")
+  }
+}
+
+///|
+test "generate_proof rejects out-of-range index" {
+  let content_hex = bytes_to_hex(@digest.string_to_utf8_bytes("x"))
+  let create_req = json_request([
+    ("files", json_files([("files/a.txt", content_hex)])),
+    (
+      "subject",
+      Json::object({ "id": Json::string("x"), "type": Json::string("y") }),
+    ),
+    ("version_id", Json::string("v1")),
+  ])
+  let manifest = match
+    parse_json_obj(create_evidence_pack(create_req)).get("manifest") {
+    Some(String(m)) => m
+    _ => fail("create failed")
+  }
+  let gen_req = json_request([
+    ("manifest", Json::string(manifest)),
+    ("files", json_files([("files/a.txt", content_hex)])),
+    ("index", Json::number(99.0)),
+  ])
+  let resp = generate_proof(gen_req)
+  let fields = parse_json_obj(resp)
+  guard fields.get("ok") is Some(False) else {
+    fail("should reject bad index: \{resp}")
+  }
+}
+
+///|
+test "verify_proof rejects tampered proof" {
+  let content_hex = bytes_to_hex(@digest.string_to_utf8_bytes("leaf0"))
+  let content_b_hex = bytes_to_hex(@digest.string_to_utf8_bytes("leaf1"))
+  let create_req = json_request([
+    (
+      "files",
+      json_files([("files/a.txt", content_hex), ("files/b.txt", content_b_hex)]),
+    ),
+    (
+      "subject",
+      Json::object({
+        "id": Json::string("tamper-proof"),
+        "type": Json::string("dataset"),
+      }),
+    ),
+    ("version_id", Json::string("v1")),
+  ])
+  let manifest = match
+    parse_json_obj(create_evidence_pack(create_req)).get("manifest") {
+    Some(String(m)) => m
+    _ => fail("create failed")
+  }
+  let gen_req = json_request([
+    ("manifest", Json::string(manifest)),
+    (
+      "files",
+      json_files([("files/a.txt", content_hex), ("files/b.txt", content_b_hex)]),
+    ),
+    ("index", Json::number(0.0)),
+  ])
+  let gen_resp = generate_proof(gen_req)
+  let gen_fields = parse_json_obj(gen_resp)
+  guard gen_fields.get("root") is Some(String(root)) else {
+    fail("should have root: \{gen_resp}")
+  }
+  guard gen_fields.get("proof") is Some(Array(proof)) else {
+    fail("should have proof: \{gen_resp}")
+  }
+  // Tamper: use the correct path but wrong content (different digest).
+  let tampered_leaf = leaf_payload_hex(
+    "files/a.txt",
+    @digest.string_to_utf8_bytes("TAMPERED"),
+  )
+  let verify_req = json_request([
+    ("leaf", Json::string(tampered_leaf)),
+    ("proof", Json::array(proof)),
+    ("root", Json::string(root)),
+  ])
+  let vresp = verify_proof(verify_req)
+  let vfields = parse_json_obj(vresp)
+  guard vfields.get("valid") is Some(False) else {
+    fail("tampered leaf should fail: \{vresp}")
+  }
+}
+
+// ---------------------------------------------------------------------------
+// audit_append + audit_verify API tests (P0-2/P0-3: was zero coverage)
+// ---------------------------------------------------------------------------
+
+///|
+test "audit_append then audit_verify multi-entry round-trip" {
+  // Start with empty log, append two entries.
+  let req1 = json_request([
+    ("log", Json::string("[]")),
+    ("timestamp", Json::string("2026-07-05T10:00:00Z")),
+    ("actor", Json::string("alice")),
+    ("action", Json::string("created")),
+    ("subject_id", Json::string("dataset-v1")),
+  ])
+  let resp1 = audit_append(req1)
+  let f1 = parse_json_obj(resp1)
+  guard f1.get("ok") is Some(True) else {
+    fail("first append should succeed: \{resp1}")
+  }
+  guard f1.get("log") is Some(String(log1)) else {
+    fail("should return log: \{resp1}")
+  }
+  // Append second entry using the returned log.
+  let req2 = json_request([
+    ("log", Json::string(log1)),
+    ("timestamp", Json::string("2026-07-05T11:00:00Z")),
+    ("actor", Json::string("bob")),
+    ("action", Json::string("verified")),
+    ("subject_id", Json::string("dataset-v1")),
+  ])
+  let resp2 = audit_append(req2)
+  let f2 = parse_json_obj(resp2)
+  guard f2.get("ok") is Some(True) else {
+    fail("second append should succeed: \{resp2}")
+  }
+  guard f2.get("log") is Some(String(log2)) else {
+    fail("should return log: \{resp2}")
+  }
+  // Verify the multi-entry log.
+  let verify_req = json_request([("log", Json::string(log2))])
+  let vresp = audit_verify(verify_req)
+  let vf = parse_json_obj(vresp)
+  guard vf.get("ok") is Some(True) else {
+    fail("audit_verify should succeed: \{vresp}")
+  }
+  guard vf.get("chain_valid") is Some(True) else {
+    fail("chain should be valid: \{vresp}")
+  }
+  guard vf.get("length") is Some(Number(n, ..)) else {
+    fail("should have length: \{vresp}")
+  }
+  assert_eq(n.to_int(), 2)
+}
+
+///|
+test "audit_verify detects tampered log" {
+  // Build a valid log.
+  let req1 = json_request([
+    ("log", Json::string("[]")),
+    ("timestamp", Json::string("2026-07-05T10:00:00Z")),
+    ("actor", Json::string("alice")),
+    ("action", Json::string("created")),
+    ("subject_id", Json::string("ds1")),
+  ])
+  let log1 = match parse_json_obj(audit_append(req1)).get("log") {
+    Some(String(l)) => l
+    _ => fail("append failed")
+  }
+  // Tamper: change actor in the log JSON.
+  let tampered = log1.replace(old="alice", new="eve")
+  let verify_req = json_request([("log", Json::string(tampered))])
+  let vresp = audit_verify(verify_req)
+  let vf = parse_json_obj(vresp)
+  guard vf.get("chain_valid") is Some(False) else {
+    fail("tampered chain should be invalid: \{vresp}")
+  }
+}
+
+// ---------------------------------------------------------------------------
+// ed25519_keypair + sign + verify API tests (P0-3: was zero coverage)
+// ---------------------------------------------------------------------------
+
+///|
+fn demo_seed_hex() -> String {
+  bytes_to_hex(
+    Bytes::from_array([
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+      22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
+    ]),
+  )
+}
+
+///|
+test "ed25519_keypair sign verify round-trip succeeds" {
+  // Generate keypair with explicit seed.
+  let seed_hex = demo_seed_hex()
+  let kp_req = json_request([("seed", Json::string(seed_hex))])
+  let kp_resp = ed25519_keypair(kp_req)
+  let kp = parse_json_obj(kp_resp)
+  guard kp.get("ok") is Some(True) else {
+    fail("keypair should succeed: \{kp_resp}")
+  }
+  guard kp.get("public_key") is Some(String(pk_hex)) else {
+    fail("should have public_key: \{kp_resp}")
+  }
+  guard kp.get("secret_key") is Some(String(sk_hex)) else {
+    fail("should have secret_key: \{kp_resp}")
+  }
+  // Sign a message.
+  let msg_hex = bytes_to_hex(@digest.string_to_utf8_bytes("test message"))
+  let sign_req = json_request([
+    ("secret_key", Json::string(sk_hex)),
+    ("message", Json::string(msg_hex)),
+  ])
+  let sign_resp = ed25519_sign(sign_req)
+  let sf = parse_json_obj(sign_resp)
+  guard sf.get("ok") is Some(True) else {
+    fail("sign should succeed: \{sign_resp}")
+  }
+  guard sf.get("signature") is Some(String(sig_hex)) else {
+    fail("should have signature: \{sign_resp}")
+  }
+  // Verify the signature.
+  let verify_req = json_request([
+    ("public_key", Json::string(pk_hex)),
+    ("message", Json::string(msg_hex)),
+    ("signature", Json::string(sig_hex)),
+  ])
+  let vresp = ed25519_verify(verify_req)
+  let vf = parse_json_obj(vresp)
+  guard vf.get("ok") is Some(True) else {
+    fail("verify should succeed: \{vresp}")
+  }
+  guard vf.get("valid") is Some(True) else {
+    fail("signature should be valid: \{vresp}")
+  }
+}
+
+///|
+test "ed25519_verify rejects wrong message" {
+  let seed_hex = demo_seed_hex()
+  let kp = parse_json_obj(
+    ed25519_keypair(json_request([("seed", Json::string(seed_hex))])),
+  )
+  guard kp.get("public_key") is Some(String(pk_hex)) else { fail("no pk") }
+  guard kp.get("secret_key") is Some(String(sk_hex)) else { fail("no sk") }
+  let msg_hex = bytes_to_hex(@digest.string_to_utf8_bytes("original"))
+  let sign_resp = ed25519_sign(
+    json_request([
+      ("secret_key", Json::string(sk_hex)),
+      ("message", Json::string(msg_hex)),
+    ]),
+  )
+  let sig_hex = match parse_json_obj(sign_resp).get("signature") {
+    Some(String(s)) => s
+    _ => fail("no sig")
+  }
+  // Verify with different message.
+  let wrong_msg = bytes_to_hex(@digest.string_to_utf8_bytes("tampered"))
+  let vresp = ed25519_verify(
+    json_request([
+      ("public_key", Json::string(pk_hex)),
+      ("message", Json::string(wrong_msg)),
+      ("signature", Json::string(sig_hex)),
+    ]),
+  )
+  let vf = parse_json_obj(vresp)
+  guard vf.get("valid") is Some(False) else {
+    fail("wrong message should fail: \{vresp}")
+  }
+}
+
+///|
+test "ed25519_keypair warns when using demo seed" {
+  let resp = ed25519_keypair("{}")
+  let fields = parse_json_obj(resp)
+  guard fields.get("ok") is Some(True) else { fail("should succeed: \{resp}") }
+  // The warning field must be present when no seed is provided.
+  guard fields.get("warning") is Some(String(_)) else {
+    fail("should warn about demo seed: \{resp}")
+  }
+}

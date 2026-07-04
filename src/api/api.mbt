@@ -304,11 +304,16 @@ pub fn create_evidence_pack(request_json : String) -> String {
   }
   let subject_kind = match fields.get("subject") {
     Some(Object(s)) =>
-      match s.get("kind") {
-        Some(String(k)) => k
-        _ => return error_response("\"subject.kind\" must be a string")
+      // Accept "type" (consistent with manifest) or "kind" (backward compat).
+      match s.get("type") {
+        Some(String(t)) => t
+        _ =>
+          match s.get("kind") {
+            Some(String(k)) => k
+            _ => return error_response("\"subject.type\" must be a string")
+          }
       }
-    _ => return error_response("\"subject\" must be an object with kind")
+    _ => return error_response("\"subject\" must be an object with type")
   }
 
   // algorithm (optional, default sha256)
@@ -623,18 +628,24 @@ pub fn ed25519_keypair(request_json : String) -> String {
   }
 
   // Seed: 32 bytes. If not provided, use a fixed demo seed.
-  let seed = match fields.get("seed") {
+  let (seed, using_demo_seed) = match fields.get("seed") {
     None | Some(Null) =>
       // Demo seed — NOT secure, just for workbench visualization.
-      Bytes::from_array([
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
-        22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
-      ])
+      (
+        Bytes::from_array([
+          1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+          21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
+        ]),
+        true,
+      )
     Some(String(hex)) =>
-      match @digest.hex_to_bytes(hex) {
-        Some(b) => b
-        None => return error_response("\"seed\" is not valid hex")
-      }
+      (
+        match @digest.hex_to_bytes(hex) {
+          Some(b) => b
+          None => return error_response("\"seed\" is not valid hex")
+        },
+        false,
+      )
     Some(_) => return error_response("\"seed\" must be a hex string")
   }
   if seed.length() != 32 {
@@ -643,11 +654,17 @@ pub fn ed25519_keypair(request_json : String) -> String {
 
   let sk = seed
   let pk = @crypto.ed25519_public_key(sk)
-  Json::object({
+  let response = {
     "ok": Json::boolean(true),
     "public_key": Json::string(@digest.bytes_to_lower_hex(pk)),
     "secret_key": Json::string(@digest.bytes_to_lower_hex(sk)),
-  }).stringify()
+  }
+  if using_demo_seed {
+    response["warning"] = Json::string(
+      "demo seed used — NOT for production. Provide a 32-byte \"seed\" for real keys.",
+    )
+  }
+  Json::object(response).stringify()
 }
 
 // ed25519_sign request: { "secret_key": "<hex>", "message": "<hex>" }

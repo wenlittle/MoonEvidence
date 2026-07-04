@@ -132,7 +132,8 @@ test "incremental verify reports e3003 when merkle_root is tampered" {
   // Both files are present and correct, so file digests pass. The recorded
   // merkle_root is swapped for a well-formed but wrong digest: the recomputed
   // root no longer matches, which must surface as E3003 (same code as the
-  // main pipeline), NOT E3002 (which is reserved for "proof format invalid").
+  // main pipeline), NOT E3002 (reserved for proof format invalid — not
+  // currently emitted by any code path; documented as reserved).
   let files : Map[String, Bytes] = { "a.txt": b"alpha", "b.txt": b"bravo" }
   let manifest_json = @create.create_manifest(files, {
     subject: { id: "inc-tamper-root", kind: "test" },

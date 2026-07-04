@@ -7,7 +7,7 @@
 
 ///|
 /// Kept in sync with moon.mod at release time.
-const CLI_VERSION : String = "0.3.0"
+const CLI_VERSION : String = "0.4.0"
 
 ///|
 let usage_text : String =

@@ -15,7 +15,8 @@ MoonEvidence 含**自实现的密码学原语**，未依赖任何外部经审计
 - **反可塑性**：`ed25519_verify` 拒绝 `S >= l` 的签名（RFC 8032 §8.4），攻击者无法用 `S + l` 伪造另一合法签名。
 - **恒定时间标量乘法**：`scalar_mul` 用 conditional select（cmov）替代 secret-dependent 分支，`Fe::eq` 改为 XOR 累加，降低侧信道泄露风险。
 - **Barrett reduction**：标量归约（`reduce_scalar_512`）由逐次减法改为 Barrett reduction，签名路径从 ~500K 次操作降至 ~50 次乘法，同时消除归约路径的时序差异。
-- **低阶点 / 非规范编码拒绝**：`point_decode` 拒绝低阶点（cofactor 相关的小群攻击防护）与非规范编码，避免攻击者构造特殊点绕过验证。
+- **非规范编码拒绝**：`point_decode` 通过 Fe::to_bytes() 往返规范化检查拒绝 y ≥ p 的非规范编码（RFC 8032 §5.1.3），防止非规范 y 坐标导致的编码歧义。
+- **Identity point 拒绝**：`ed25519_verify` 显式拒绝 identity 公钥（RFC 8032 §5.1.3），阻断 R = S·B 伪造路径。
 - **审计签名覆盖 canonical JSON**：`audit.sign_last` / `verify_signatures` 对 RFC 8785 规范化序列化后的条目签名，确保签名输入字节稳定、无歧义，杜绝等价 JSON 文本导致的签名漂移。
 - **RFC 8032 §7.1 KAT**：4 组官方已知答案测试（含 verify-only 向量）精确对比公钥常量，验证互操作性。
 
@@ -29,6 +30,7 @@ MoonEvidence 含**自实现的密码学原语**，未依赖任何外部经审计
 
 - 恒定时间实现为代码审查级别，尚未经正式侧信道分析工具（如 dudect）量化验证。
 - 标量乘法虽用 cmov，但 MoonBit 编译器未承诺消除所有 secret-dependent 内存访问；native 后端的 C 编译器可能重新引入分支。
+- 低阶点检查仅覆盖 identity point（显式拒绝），未实现完整 cofactor 8 乘法检查（7 个非 identity 低阶点仍可能通过 point_decode）。在 cofactorless Ed25519 验证中风险有限，但生产级实现应补齐完整 cofactor 检查。
 
 ## 报告漏洞
 

@@ -256,6 +256,12 @@ pub fn ed25519_verify(pk : Bytes, msg : Bytes, sig : Bytes) -> Bool {
     Some(p) => p
     None => return false
   }
+  // RFC 8032 §5.1.3: reject the identity point as a public key.
+  // The identity (0, 1) has order 1; accepting it would allow forgery
+  // via malleability: any signature with R = S*B would verify.
+  if a_point.is_identity() {
+    return false
+  }
   // Decode R
   let r_point = match point_decode(r_enc) {
     Some(p) => p
@@ -319,6 +325,13 @@ pub fn point_decode(data : Bytes) -> Point? {
   }
   y_arr.push(((data[31].to_int() & 0x7f).to_uint64() & 0xffUL).to_byte())
   let y = Fe::from_bytes(Bytes::from_array(y_arr))
+  // Reject non-canonical y (y >= p). RFC 8032 §5.1.3 requires y in [0, p-1].
+  // Fe::to_bytes() performs canonical reduction, so if the round-trip
+  // differs from the input bytes, the encoding was non-canonical.
+  let y_original = Bytes::from_array(y_arr)
+  if y_original != y.to_bytes() {
+    return None
+  }
   // x^2 = (y^2 - 1) / (d*y^2 + 1)
   let y2 = y.square()
   let u = y2.sub(Fe::one())

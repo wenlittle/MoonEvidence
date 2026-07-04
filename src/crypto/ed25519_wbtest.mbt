@@ -391,6 +391,44 @@ test "ed25519 rejects signature whose S equals the group order l" {
   assert_false(ed25519_verify(pk, msg, sig))
 }
 
+///|
+test "point_decode rejects non-canonical y (y = p, RFC 8032 §5.1.3)" {
+  // p = 2^255 - 19 in little-endian: 0xED, 30×0xFF, 0x7F (sign bit clear).
+  // y = p is the smallest non-canonical value; Fe::to_bytes() reduces it
+  // to 0, so the round-trip check must detect the mismatch.
+  let non_canonical : Array[Byte] = [
+    b'\xed', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff',
+    b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff',
+    b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff',
+    b'\xff', b'\xff', b'\xff', b'\xff', b'\x7f',
+  ]
+  let pk = Bytes::from_array(non_canonical)
+  assert_true(point_decode(pk) is None)
+}
+
+///|
+test "ed25519_verify explicitly rejects identity public key (RFC 8032 §5.1.3)" {
+  // The identity point (0, 1) must be rejected as a public key, not just
+  // fail to verify — this blocks malleability attacks where R = S*B.
+  let identity_pk : Array[Byte] = [
+    b'\x01', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00',
+    b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00',
+    b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00',
+    b'\x00', b'\x00', b'\x00', b'\x00', b'\x00',
+  ]
+  let pk = Bytes::from_array(identity_pk)
+  let msg = @digest.string_to_utf8_bytes("any message")
+  // Craft a signature with R = identity encoding, S = 0.
+  let sig : Array[Byte] = []
+  for _ in 0..<64 {
+    sig.push(b'\x00')
+  }
+  let sig_bytes = Bytes::from_array(sig)
+  // Even with an all-zero signature, verify must return false for
+  // the identity public key (explicit rejection, not just equation failure).
+  assert_false(ed25519_verify(pk, msg, sig_bytes))
+}
+
 // ---------------------------------------------------------------------------
 // Low-order / non-canonical encoding tests
 // ---------------------------------------------------------------------------

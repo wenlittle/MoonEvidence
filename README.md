@@ -153,7 +153,7 @@ The findings table and the `explain` text mirror the CLI byte for byte;
 
 ## Diagnostics Preview
 
-Every verification failure maps to a frozen error code (`E1xxx`..`E4xxx`,
+Every verification failure maps to a frozen error code (`E1xxx`..`E5xxx`,
 `W1xxx`). The `explain` renderer prints one finding per line and always
 closes with a summary:
 
@@ -218,7 +218,7 @@ All 12 packages are implemented and fully tested across three backends.
 - **Browser** (`src/api`): esm bundle for client-side verification
 
 ### Test Coverage
-- **277 unit tests** passing on native / wasm-gc / js
+- **279 unit tests** passing on native / wasm-gc / js
 - **41-case black-box CLI suite**: 12 example packs + 10-pack tamper matrix + 19 error-code fixtures
 - **Property tests**: canonicalization idempotence, Merkle proof soundness (mutation-verified)
 - **CI three-backend matrix**: native / wasm-gc / js build + test + browser smoke test
@@ -232,5 +232,5 @@ node tools/smoke-api.mjs
 moon bench --target js
 ```
 
-All commands pass locally as of 2026-07-04 Asia/Shanghai. Codebase is 10386
-effective MoonBit lines (implementation 4883 + tests 5503), well within the 4-10k competition range.
+All commands pass locally as of 2026-07-04 Asia/Shanghai. Codebase is 10438
+effective MoonBit lines (implementation 4896 + tests 5542), well within the 4-10k competition range.

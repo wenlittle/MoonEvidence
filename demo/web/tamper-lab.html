@@ -434,14 +434,14 @@
   loadSampleBtn.addEventListener("click", async () => {
     setStatus("装入示例 valid-pack…");
     try {
-      const manifestResp = await fetch("../examples/valid-pack/manifest.json");
+      const manifestResp = await fetch("../../examples/valid-pack/manifest.json");
       if (!manifestResp.ok) throw new Error("manifest.json not found");
       state.manifestText = await manifestResp.text();
       state.files = {};
       state.packDirName = "valid-pack";
       // 自动加载示例中的两个文件
       for (const name of ["files/a.txt", "files/b.bin"]) {
-        const r = await fetch("../examples/valid-pack/" + name);
+        const r = await fetch("../../examples/valid-pack/" + name);
         if (!r.ok) continue;
         const buf = new Uint8Array(await r.arrayBuffer());
         state.files[name] = {

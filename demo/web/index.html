@@ -324,13 +324,12 @@
 
 <!-- ===== Tamper Lab View ===== -->
 <div class="view" id="view-tamper">
-  <div class="card">
-    <h2>篡改实验室</h2>
-    <p>交互式 Merkle 树可视化——拖入证据包，篡改任一文件，看树如何从叶到根坍塌。<a href="tamper-lab.html" style="color:var(--accent)">打开完整版 →</a></p>
-    <div class="empty-hint">
-      <div class="icon">🌲</div>
-      <p>请使用 <a href="tamper-lab.html" style="color:var(--accent)">Tamper Lab 完整版</a> 获取最佳体验。</p>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line)">
+      <h2 style="margin:0">篡改实验室</h2>
+      <a href="tamper-lab.html" target="_blank" style="color:var(--accent);font-size:13px">在新标签打开完整版 →</a>
     </div>
+    <iframe src="tamper-lab.html" style="width:100%;height:calc(100vh - 200px);border:none;display:block"></iframe>
   </div>
 </div>
 
@@ -342,7 +341,7 @@
   // Module loading
   let mod;
   try {
-    mod = await import("../_build/js/release/build/src/api/api.js");
+    mod = await import("../../_build/js/release/build/src/api/api.js");
     document.getElementById("module-status").textContent = "✓ 模块已就绪";
   } catch (e) {
     document.getElementById("module-status").textContent = "❌ 模块加载失败";
@@ -365,31 +364,30 @@
 
   // ===== Verify =====
   let verifyFiles = {};
+  let verifyManifestText = null;
   $("verify-dir-input").addEventListener("change", async e => {
     verifyFiles = {};
+    verifyManifestText = null;
     const files = Array.from(e.target.files);
     for (const f of files) {
       const rel = f.webkitRelativePath.split("/").slice(1).join("/") || f.name;
-      if (rel.startsWith("files/") || rel === "manifest.json" || rel.startsWith("versions/")) {
+      if (rel === "manifest.json") {
+        // Store manifest as text (not hex) so verify_evidence can use it directly.
+        verifyManifestText = await f.text();
+      } else if (rel.startsWith("files/") || rel.startsWith("versions/")) {
         verifyFiles[rel] = bufToHex(await f.arrayBuffer());
       }
     }
-    $("verify-btn").disabled = Object.keys(verifyFiles).length === 0;
+    $("verify-btn").disabled = !verifyManifestText && Object.keys(verifyFiles).length === 0;
+    if (verifyManifestText) {
+      $("verify-manifest-text").value = verifyManifestText;
+    }
   });
 
   $("verify-btn").addEventListener("click", () => {
-    const manifestText = verifyFiles["manifest.json"];
-    if (!manifestText && !verifyFiles["manifest.json"]) {
-      // manifest.json is hex-encoded; we need the text. But we stored it as hex.
-      // Actually for manifest.json we should store as text. Let's fix: store text for manifest.
-      alert("需要 manifest.json");
-      return;
-    }
-    // Re-read: actually we need manifest as text, not hex. Let's handle differently.
-    // For now, use the paste approach if available.
-    const manifest = $("verify-manifest-text").value || null;
+    const manifest = verifyManifestText || $("verify-manifest-text").value || null;
     if (!manifest) {
-      alert("请通过粘贴 manifest JSON 来验证，或使用完整版 Tamper Lab 拖入目录。");
+      alert("需要 manifest.json——请拖入证据包目录，或粘贴 manifest JSON");
       return;
     }
     doVerify(manifest, verifyFiles);
@@ -413,15 +411,47 @@
       if (resp.ok) {
         box.className = "result-box ok";
         badge.innerHTML = '<span class="status-badge ok">✓ OK</span>';
+        box.innerHTML = renderVerifyResult(resp);
       } else {
         box.className = "result-box fail";
         badge.innerHTML = '<span class="status-badge bad">✗ FAILED</span>';
+        box.innerHTML = renderVerifyResult(resp);
       }
-      box.textContent = JSON.stringify(resp, null, 2);
     } catch (e) {
       box.className = "result-box fail";
       box.textContent = "错误: " + e.message;
     }
+  }
+
+  /// Render verify response as a structured table, not raw JSON.
+  function renderVerifyResult(resp) {
+    const explain = resp.explain || "";
+    const findings = (resp.report && resp.report.findings) || [];
+    let html = `<div style="margin-bottom:8px;font-weight:600">${escapeHtml(explain)}</div>`;
+    if (findings.length === 0) {
+      html += `<div style="color:var(--ok)">无诊断发现——所有检查通过。</div>`;
+    } else {
+      html += `<table style="width:100%;border-collapse:collapse;font-size:12px">`;
+      html += `<tr style="border-bottom:1px solid var(--line)"><th style="text-align:left;padding:4px 8px">代码</th><th style="text-align:left;padding:4px 8px">级别</th><th style="text-align:left;padding:4px 8px">路径</th><th style="text-align:left;padding:4px 8px">说明</th></tr>`;
+      for (const f of findings) {
+        const sev = f.severity || "Info";
+        const sevColor = sev === "Error" ? "var(--fail)" : sev === "Warning" ? "var(--warn)" : "var(--info)";
+        html += `<tr style="border-bottom:1px solid var(--line)">`;
+        html += `<td style="padding:4px 8px;font-family:var(--mono);color:${sevColor};font-weight:700">${escapeHtml(f.code || "")}</td>`;
+        html += `<td style="padding:4px 8px;color:${sevColor}">${escapeHtml(sev)}</td>`;
+        html += `<td style="padding:4px 8px;font-family:var(--mono);font-size:11px">${escapeHtml(f.path || "")}</td>`;
+        html += `<td style="padding:4px 8px">${escapeHtml(f.message || "")}</td>`;
+        html += `</tr>`;
+      }
+      html += `</table>`;
+    }
+    // Collapsible raw JSON for debugging.
+    html += `<details style="margin-top:8px"><summary style="cursor:pointer;color:var(--muted);font-size:11px">原始 JSON</summary><pre style="font-size:11px;white-space:pre-wrap;word-break:break-all;margin-top:4px">${escapeHtml(JSON.stringify(resp, null, 2))}</pre></details>`;
+    return html;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
   }
 
   // ===== Create =====
@@ -438,7 +468,7 @@
     if (!mod) return;
     const req = JSON.stringify({
       files: createFiles,
-      subject: { id: $("create-subject-id").value, kind: $("create-subject-kind").value },
+      subject: { id: $("create-subject-id").value, type: $("create-subject-kind").value },
       algorithm: "sha256",
       version_id: $("create-version-id").value,
     });
@@ -548,7 +578,12 @@
   $("sign-keygen-btn").addEventListener("click", () => {
     if (!mod) return;
     try {
-      const resp = JSON.parse(mod.ed25519_keypair("{}"));
+      // Generate a cryptographically secure random seed using the Web Crypto API,
+      // so each keygen produces a unique keypair (R4-δ1: was hardcoded demo seed).
+      const seedBytes = new Uint8Array(32);
+      crypto.getRandomValues(seedBytes);
+      const seedHex = [...seedBytes].map(b => b.toString(16).padStart(2, "0")).join("");
+      const resp = JSON.parse(mod.ed25519_keypair(JSON.stringify({ seed: seedHex })));
       if (resp.ok) {
         keypair = resp;
         $("sign-keypair").innerHTML = `

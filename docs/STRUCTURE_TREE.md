@@ -167,13 +167,13 @@ moon-evidence/
         valid/
       version-chain/           # 版本链篡改夹具
   tools/
-    cli-test.ps1               # 41 用例黑盒 CLI 套件
+    cli-test.ps1               # 53 用例黑盒 CLI 套件
     env-check.ps1              # 只读环境检查
     gen-fixtures.mjs           # 篡改矩阵生成（独立 Node 参考实现）
     gen-merkle-fixtures.mjs    # Merkle golden 数据生成
     gen-pack-fixture.mjs       # 单个证据包夹具生成
     smoke-api.mjs              # 浏览器适配器烟测
-    cli-test.sh                # 41 用例黑盒 CLI（bash 版，与 ps1 1:1 对等）
+    cli-test.sh                # 53 用例黑盒 CLI（bash 版，与 ps1 1:1 对等）
     cross-verify.mjs           # 独立 Node 交叉验证（create/store/audit 重算对比）
     mutation-check.mjs         # 变异验证（故意破坏实现确认测试会红）
     check-fixtures.mjs         # fixtures 防腐化校验

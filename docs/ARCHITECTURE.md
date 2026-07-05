@@ -161,7 +161,7 @@ below record the behavioural changes; see `CHANGELOG.md` 0.3.1 and
 
 ### Crypto hardening (Ed25519)
 
-- `ed25519_verify` now performs Barrett reduction for the scalar modulus
+- `ed25519_verify` now performs binary quotient decomposition for the scalar modulus
   step (replacing the previous subtractive loop) and `point_decode` rejects
   low-order points and non-canonical encodings (cofactor / small-subgroup
   defence). These are internal changes; the three public `crypto` signatures

@@ -57,7 +57,7 @@ fn clamp_scalar(h : Bytes) -> Bytes {
 
 ///|
 /// Reduce a 64-byte hash modulo the group order l using binary quotient
-/// decomposition (Barrett-like). Process 64 bytes from MSB to LSB:
+/// decomposition. Process 64 bytes from MSB to LSB:
 /// result = result*256 + h[i], then reduce mod l.
 ///
 /// After each shift, acc < l*257. Instead of subtracting l up to 256 times

@@ -91,14 +91,14 @@ CLI, in CI's three-backend matrix, and in the browser.
 - [Architecture](docs/ARCHITECTURE.md)
 - [Evidence Pack Specification](docs/spec/EVIDENCE_PACK_SPEC.md)
 - [Roadmap](docs/ROADMAP.md)
-- [Development Report](docs/report/DEVELOPMENT_REPORT.md)
+- Development Report (repo-only, [see GitHub](https://github.com/starlittle/MoonEvidence/blob/main/docs/report/DEVELOPMENT_REPORT.md))
 
 ### Engineering & Quality
 - [Project Index](docs/PROJECT_INDEX.md)
 - [Code Guidelines](docs/CODE_GUIDELINES.md)
-- [Results Log](docs/records/RESULTS_LOG.md)
-- [Acceptance Checklist](docs/records/ACCEPTANCE_CHECKLIST.md)
-- [Decision Log](docs/records/DECISION_LOG.md)
+- Results Log (repo-only, [see GitHub](https://github.com/starlittle/MoonEvidence/blob/main/docs/records/RESULTS_LOG.md))
+- Acceptance Checklist (repo-only, [see GitHub](https://github.com/starlittle/MoonEvidence/blob/main/docs/records/ACCEPTANCE_CHECKLIST.md))
+- Decision Log (repo-only, [see GitHub](https://github.com/starlittle/MoonEvidence/blob/main/docs/records/DECISION_LOG.md))
 
 ## Quick Start (CLI)
 
@@ -218,8 +218,8 @@ All 12 packages are implemented and fully tested across three backends.
 - **Browser** (`src/api`): esm bundle for client-side verification
 
 ### Test Coverage
-- **279 unit tests** passing on native / wasm-gc / js
-- **41-case black-box CLI suite**: 12 example packs + 10-pack tamper matrix + 19 error-code fixtures
+- **285 unit tests** passing on native / wasm-gc / js
+- **53-case black-box CLI suite**: 12 command-shape + 10-pack tamper matrix + 19 error-code fixtures + 9 create + 3 incremental
 - **Property tests**: canonicalization idempotence, Merkle proof soundness (mutation-verified)
 - **CI three-backend matrix**: native / wasm-gc / js build + test + browser smoke test
 
@@ -232,5 +232,5 @@ node tools/smoke-api.mjs
 moon bench --target js
 ```
 
-All commands pass locally as of 2026-07-04 Asia/Shanghai. Codebase is 10438
-effective MoonBit lines (implementation 4896 + tests 5542), well within the 4-10k competition range.
+All commands pass locally as of 2026-07-05 Asia/Shanghai. Codebase is 10923
+effective MoonBit lines (implementation 5193 + tests 5730), well within the 4-10k competition range.

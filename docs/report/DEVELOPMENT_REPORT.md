@@ -1,7 +1,7 @@
 # MoonEvidence 开发报告
 
 > MoonBit OSC2026 开源生态挑战赛 · 项目验收材料
-> 仓库：https://github.com/starlittle/MoonEvidence ｜ 规模：10438 行 MoonBit（实现 4896 + 测试 5542）｜ 提交：94 个 ｜ 包：12 个
+> 仓库：https://github.com/starlittle/MoonEvidence ｜ 规模：10923 行 MoonBit（实现 5193 + 测试 5730）｜ 提交：100 个 ｜ 包：12 个
 > 本报告为单一权威开发报告，合并了功能清单、AI 协作实践与工程质量三方面内容。
 
 ## 一、项目概述
@@ -157,7 +157,7 @@ tests/         -> 夹具与黑盒回归测试
 
 经 2026-07-04 健康体检后的第二轮根因修复进一步加固了密码学实现（详见 `SECURITY.md` 与 `CHANGELOG.md` 0.3.1）：
 
-- **Barrett reduction** 替换 `reduce_scalar_512` 的逐次减法，签名路径性能从 ~500K 次操作降至 ~50 次乘法
+- **Binary quotient decomposition** 替换 `reduce_scalar_512` 的逐次减法，签名路径性能从 ~500K 次操作降至 ~50 次乘法
 - **point_decode 拒绝低阶点与非规范编码**，补 cofactor 相关的小群攻击防护
 - **审计签名覆盖 canonical JSON**：audit 日志签名基于 RFC 8785 规范化序列化，确保签名输入字节稳定无歧义
 
@@ -167,15 +167,15 @@ tests/         -> 夹具与黑盒回归测试
 
 | 层 | 数量与内容 |
 | --- | --- |
-| 单元测试 | **279 个**，wasm-gc 与 js 双后端全绿；含 NIST/RFC 向量、JCS fixtures、版本链图语义、Merkle 树物化与路径 |
-| CLI 黑盒 | **41 用例**（`tools/cli-test.ps1` + `tools/cli-test.sh` 1:1 对等）：12 个命令形状 + 10 包篡改矩阵 + 19 个 manifest 错误码矩阵，逐 pack / 逐 fixture 断言**精确错误码集合**（禁止"至少包含"式宽松断言） |
+| 单元测试 | **285 个**，wasm-gc 与 js 双后端全绿；含 NIST/RFC 向量、JCS fixtures、版本链图语义、Merkle 树物化与路径 |
+| CLI 黑盒 | **53 用例**（`tools/cli-test.ps1` + `tools/cli-test.sh` 1:1 对等）：12 个命令形状 + 10 包篡改矩阵 + 19 个 manifest 错误码矩阵 + 9 create + 3 incremental，逐 pack / 逐 fixture 断言**精确错误码集合**（禁止"至少包含"式宽松断言） |
 | 篡改矩阵 | `tests/fixtures/packs/` 10 个 pack 由独立 Node 参考实现生成，覆盖每个错误码族；CI 设防腐化校验（重新生成后 `git diff` 必须为空） |
 | manifest 错误码矩阵 | `tests/fixtures/manifest/` 19 个夹具，覆盖 E1001/E1002/E1003/E2001/E2002 在 CLI 黑盒层的触发 |
 | 独立交叉验证 | `tools/cross-verify.mjs` 独立 Node 实现对 create/store/audit 产出重算对比，避免本库自验证盲区 |
-| Property 测试 | 规范化幂等、Merkle 证明可靠性——并经**变异验证**（`tools/mutation-check.mjs` 故意破坏实现确认测试会红，3/3 捕获，证明断言非恒真） |
+| Property 测试 | 规范化幂等、Merkle 证明可靠性——并经**变异验证**（`tools/mutation-check.mjs` 故意破坏实现确认测试会红，8/8 捕获，覆盖 Merkle 域分隔符、Ed25519 canonical S/identity/non-canonical-y、SHA-256 初始值/轮常数，证明断言非恒真） |
 | Fuzz | parser fuzz 400 轮随机字节不 panic |
 | 长链压测 | 1000 节点版本链性能数据 |
-| 浏览器适配器 | 18 个 wbtest + Node 烟测（`tools/smoke-api.mjs`）+ Playwright 实浏览器会话验证 |
+| 浏览器适配器 | 28 个 wbtest + Node 烟测（`tools/smoke-api.mjs`，28 断言覆盖 11 个 pub API）+ Playwright 实浏览器会话验证 |
 | 基准 | `moon bench`：SHA-256 ~58 MiB/s（js 后端），全量验证 ~26-28 µs/文件，10 倍文件量 → 11.05 倍耗时（近线性） |
 
 ### 测试覆盖分布
@@ -215,19 +215,19 @@ tests/         -> 夹具与黑盒回归测试
 
 ### 健康体检迭代
 
-项目在 2026-07-04 完成了一轮五阶段健康体检与改进（`docs/plans/2026-07-04-health-check-and-improvement-plan.md`），随后又进行了第二轮根因修复：把上一轮"归档加注释"式的两份开发报告合并为单一权威、把"核心矩阵移植"式的 bash CLI 测试补全为 1:1 对等，并对 crypto（Barrett reduction、cofactor 检查、canonical JSON 签名）与 verify/create（排序、symlink、valid.json、E3002 决定）做了根本性修复。这种"体检 → 根因 → 再体检"的迭代本身是 AI 协作工程治理的实践样本。
+项目在 2026-07-04 完成了一轮五阶段健康体检与改进（`docs/plans/2026-07-04-health-check-and-improvement-plan.md`），随后又进行了第二轮根因修复：把上一轮"归档加注释"式的两份开发报告合并为单一权威、把"核心矩阵移植"式的 bash CLI 测试补全为 1:1 对等，并对 crypto（binary quotient decomposition、cofactor 检查、canonical JSON 签名）与 verify/create（排序、symlink、valid.json、E3002 决定）做了根本性修复。这种"体检 → 根因 → 再体检"的迭代本身是 AI 协作工程治理的实践样本。
 
 ## 八、量化指标（本机实测）
 
 | 指标 | 实测值 |
 | --- | --- |
-| 提交数 | 94 |
-| 实现行数 | 4896 |
-| 测试行数 | 5542 |
-| 总行数 | **10438** |
-| 测试声明 | 279（275 测试 + 4 基准调用） |
-| 单元测试通过 | **275/275**（wasm-gc + js 双后端） |
-| CLI 黑盒通过 | **41/41** |
+| 提交数 | 100 |
+| 实现行数 | 5193 |
+| 测试行数 | 5730 |
+| 总行数 | **10923** |
+| 测试声明 | 285（281 测试 + 4 基准调用） |
+| 单元测试通过 | **281/281**（wasm-gc + js 双后端） |
+| CLI 黑盒通过 | **53/53** |
 | 包数 | **12** |
 | moon check warnings | 0 |
 | moon fmt --check | exit 0（无漂移） |

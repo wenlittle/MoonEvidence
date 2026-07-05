@@ -40,8 +40,8 @@
 ### Added
 
 - **cli-test.sh 完整 1:1 对等移植**：`tools/cli-test.sh` 与 `tools/cli-test.ps1` 用例完全对等——补齐 Part 3（19 个 manifest 错误码矩阵夹具），修正 Part 1 多模式断言（与 PowerShell MustMatch 数组 AND 语义一致），jq 缺失时明确报错退出而非静默跳过。bash 版与 PowerShell 版均覆盖 41 用例（12 命令形状 + 10 篡改矩阵 + 19 manifest 矩阵）。
-- **ARCHITECTURE.md 0.3.1 根因加固说明**：记录 crypto（Barrett reduction、point_decode 低阶点拒绝、审计签名覆盖 canonical JSON）与 E3002 错误码契约的根因修复说明。E3002 错误码契约已明确（详见 `DECISION_LOG` 最新条目）。
-- **SECURITY.md 密码学实现更新**：反映 Ed25519 现已具备 Barrett reduction、cofactor / 低阶点检查、恒定时间标量乘法、审计签名覆盖 canonical JSON 等防护；更新残留限制说明。
+- **ARCHITECTURE.md 0.3.1 根因加固说明**：记录 crypto（binary quotient decomposition、point_decode 低阶点拒绝、审计签名覆盖 canonical JSON）与 E3002 错误码契约的根因修复说明。E3002 错误码契约已明确（详见 `DECISION_LOG` 最新条目）。
+- **SECURITY.md 密码学实现更新**：反映 Ed25519 现已具备 binary quotient decomposition、cofactor / 低阶点检查、恒定时间标量乘法、审计签名覆盖 canonical JSON 等防护；更新残留限制说明。
 
 ## [0.3.0] - 2026-07-04
 

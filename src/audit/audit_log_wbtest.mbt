@@ -305,6 +305,34 @@ test "from_json returns None for invalid input" {
 }
 
 ///|
+test "from_json rejects malformed hash field" {
+  // Hash without "sha256:" prefix.
+  let bad1 = "[{\"timestamp\":\"t\",\"actor\":\"a\",\"action\":\"created\",\"subject_id\":\"s\",\"hash\":\"abcd\"}]"
+  assert_true(AuditLog::from_json(bad1) is None)
+  // Hash with prefix but wrong length (not 71 chars).
+  let bad2 = "[{\"timestamp\":\"t\",\"actor\":\"a\",\"action\":\"created\",\"subject_id\":\"s\",\"hash\":\"sha256:short\"}]"
+  assert_true(AuditLog::from_json(bad2) is None)
+}
+
+///|
+test "from_json rejects malformed prev_hash field" {
+  // Build a valid 2-entry log, then corrupt the prev_hash of the second
+  // entry before deserializing.
+  let log = AuditLog::new()
+  log.append("2026-06-18T19:00:00Z", "alice", Created, "dataset-v1")
+  log.append("2026-06-18T20:00:00Z", "bob", Verified, "dataset-v1")
+  let json_str = log.to_json()
+  // Replace the second entry's prev_hash with a non-sha256 string.
+  // The to_json output is canonical, so prev_hash appears as a value; we
+  // just inject a bad-format string in its place.
+  let tampered = json_str.replace(
+    old= log.entries[1].prev_hash.unwrap(),
+    new= "bad-hash-format",
+  )
+  assert_true(AuditLog::from_json(tampered) is None)
+}
+
+///|
 test "from_json of empty log produces empty log" {
   let log = AuditLog::new()
   let json_str = log.to_json()

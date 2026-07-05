@@ -77,8 +77,10 @@ pub fn AuditEntry::compute_hash(self : AuditEntry) -> String {
 }
 
 ///|
-/// Serializes an audit entry to canonical JSON.
-pub fn AuditEntry::to_json(self : AuditEntry) -> String {
+// Build the Json object for this entry. Shared by to_json (single-entry
+// serialization) and AuditLog::to_json (array assembly), so the log-level
+// serializer does not need to re-parse each entry's string output.
+fn AuditEntry::to_json_value(self : AuditEntry) -> Json {
   let digest_json : Json = match self.manifest_digest {
     Some(d) => Json::string(d)
     None => Json::null()
@@ -91,7 +93,7 @@ pub fn AuditEntry::to_json(self : AuditEntry) -> String {
     Some(s) => Json::string(s)
     None => Json::null()
   }
-  let entry_json = Json::object({
+  Json::object({
     "timestamp": Json::string(self.timestamp),
     "actor": Json::string(self.actor),
     "action": Json::string(self.action.to_string()),
@@ -101,6 +103,12 @@ pub fn AuditEntry::to_json(self : AuditEntry) -> String {
     "hash": Json::string(self.hash),
     "signature": sig_json,
   })
+}
+
+///|
+/// Serializes an audit entry to canonical JSON.
+pub fn AuditEntry::to_json(self : AuditEntry) -> String {
+  let entry_json = self.to_json_value()
   @canonjson.canonicalize(entry_json.stringify()) catch {
     _ => entry_json.stringify()
   }
@@ -216,8 +224,10 @@ pub fn AuditLog::verify_signatures(self : AuditLog, pk : Bytes) -> Bool {
 pub fn AuditLog::to_json(self : AuditLog) -> String {
   let entries_json : Array[Json] = []
   for entry in self.entries {
-    let parsed = @json.parse(entry.to_json()) catch { _ => Json::null() }
-    entries_json.push(parsed)
+    // Build Json directly instead of round-tripping through stringify →
+    // parse, avoiding both the wasted work and the fragile fallback to
+    // Json::null() on parse failure.
+    entries_json.push(entry.to_json_value())
   }
   let doc = Json::array(entries_json)
   @canonjson.canonicalize(doc.stringify()) catch {
@@ -247,6 +257,13 @@ pub fn AuditLog::from_json(json_str : String) -> AuditLog? {
     let action = AuditAction::parse(action_str)
     guard obj.get("subject_id") is Some(String(subject_id)) else { return None }
     guard obj.get("hash") is Some(String(hash)) else { return None }
+    // Validate hash format: must be "sha256:" + 64 hex chars (71 total).
+    // This rejects malformed input early rather than letting it through
+    // to verify_chain, which would reject it anyway but with a less
+    // clear failure mode.
+    if !hash.has_prefix("sha256:") || hash.length() != 71 {
+      return None
+    }
     // Optional string fields: Some(string) → Some(value), null/missing → None.
     let manifest_digest : String? = match obj.get("manifest_digest") {
       Some(String(s)) => Some(s)
@@ -255,6 +272,14 @@ pub fn AuditLog::from_json(json_str : String) -> AuditLog? {
     let prev_hash : String? = match obj.get("prev_hash") {
       Some(String(s)) => Some(s)
       _ => None
+    }
+    // When prev_hash is present, validate the same sha256 format.
+    match prev_hash {
+      Some(h) =>
+        if !h.has_prefix("sha256:") || h.length() != 71 {
+          return None
+        }
+      None => ()
     }
     let signature : String? = match obj.get("signature") {
       Some(String(s)) => Some(s)

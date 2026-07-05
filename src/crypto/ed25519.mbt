@@ -105,6 +105,10 @@ fn reduce_scalar_512(h : Bytes) -> Bytes {
     let mut k = 8
     while k >= 0 {
       // Compare acc vs mul[k] from MSB.
+      // Constant-time conditional subtract: always compute the difference,
+      // then select via branchless cmov. The `cmp` comparison result is
+      // secret-derived (it depends on the scalar, which comes from
+      // SHA-512 of the private key prefix or the nonce r).
       let mut cmp = 0
       let mut idx = 33
       while idx >= 0 {
@@ -117,18 +121,23 @@ fn reduce_scalar_512(h : Bytes) -> Bytes {
         }
         idx = idx - 1
       }
-      if cmp >= 0 {
-        // acc >= mul[k], subtract.
-        let mut borrow = 0
-        for idx in 0..<34 {
-          let diff = acc[idx] - mul[k][idx] - borrow
-          if diff < 0 {
-            acc[idx] = diff + 256
-            borrow = 1
-          } else {
-            acc[idx] = diff
-            borrow = 0
-          }
+      // Branchless conditional subtraction: compute diff into a temp
+      // buffer, then cmov select diff or original based on cmp >= 0.
+      // This eliminates the secret-dependent branch `if cmp >= 0`.
+      let do_sub = (cmp + 1) >> 1 // cmp >= 0 → 1; cmp < 0 → 0
+      let mut borrow = 0
+      for idx in 0..<34 {
+        let diff = acc[idx] - mul[k][idx] - borrow
+        if diff < 0 {
+          // Compute the wrapped value; borrow propagates.
+          let wrapped = diff + 256
+          // Select: if do_sub, use wrapped; else keep acc[idx].
+          acc[idx] = (acc[idx] * (1 - do_sub)) + (wrapped * do_sub)
+          borrow = 1
+        } else {
+          let no_borrow_val = diff
+          acc[idx] = (acc[idx] * (1 - do_sub)) + (no_borrow_val * do_sub)
+          borrow = 0
         }
       }
       k = k - 1

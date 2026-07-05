@@ -255,6 +255,14 @@ pub fn validate_entry_path(
         context, "null bytes are not allowed in paths",
       )
     }
+    // Control characters (0x01-0x1f) are rejected to prevent path
+    // confusion via terminal escape sequences, vertical tabs, and other
+    // non-printable bytes that filesystems may interpret inconsistently.
+    if unit < 0x20 {
+      raise ModelError::InvalidField(
+        context, "control characters are not allowed in paths",
+      )
+    }
     if unit == 0x5c {
       raise ModelError::InvalidField(
         context, "backslash separators are not allowed (use \"/\")",

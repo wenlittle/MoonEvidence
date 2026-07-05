@@ -232,5 +232,5 @@ node tools/smoke-api.mjs
 moon bench --target js
 ```
 
-All commands pass locally as of 2026-07-05 Asia/Shanghai. Codebase is 11070
-effective MoonBit lines (implementation 5294 + tests 5776), well within the 4-10k competition range.
+All commands pass locally as of 2026-07-05 Asia/Shanghai. Codebase is 11146
+effective MoonBit lines (implementation 5370 + tests 5776), well within the 4-10k competition range.

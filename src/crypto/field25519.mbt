@@ -173,10 +173,15 @@ pub fn Fe::to_bytes(self : Fe) -> Bytes {
       m[i] = v & 0xffffUL
       borrow = 1UL - (v >> 16)
     }
-    if borrow == 0UL {
-      for i in 0..<16 {
-        t[i] = m[i]
-      }
+    // Constant-time conditional copy: branchlessly select m[i] or keep
+    // t[i] based on borrow. When borrow == 0, the subtraction was valid
+    // (t >= p) so we commit m; when borrow == 1, t < p so we keep t.
+    // mask = all-ones when borrow=0 (do commit), all-zeros when borrow=1 (keep t).
+    let mask : UInt64 = (1UL - borrow) * 0xffffffffffffffffUL
+    let inv_mask : UInt64 = 0xffffffffffffffffUL - mask
+    for i in 0..<16 {
+      // t[i] = (t[i] & inv_mask) | (m[i] & mask)
+      t[i] = (t[i] & inv_mask) | (m[i] & mask)
     }
   }
   let output : Array[Byte] = []

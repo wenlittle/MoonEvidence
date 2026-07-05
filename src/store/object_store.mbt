@@ -114,7 +114,8 @@ pub fn DeduplicateResult::to_json(self : DeduplicateResult) -> String {
       "bytes_saved": Json::number(self.bytes_saved.to_double()),
     }),
   })
-  doc.stringify()
+  // Canonicalize so Map iteration order never affects the output bytes.
+  @canonjson.canonicalize(doc.stringify()) catch { _ => doc.stringify() }
 }
 
 ///|
@@ -140,6 +141,10 @@ pub fn DeduplicateResult::verify_integrity(self : DeduplicateResult) -> Bool {
 
 ///|
 /// Reconstructs original files from the index and store.
+///
+/// Silently skips entries whose content is missing from the store, but
+/// emits a warning log for each missing path. Callers who need to detect
+/// missing content programmatically should use `reconstruct_strict`.
 pub fn DeduplicateResult::reconstruct(
   self : DeduplicateResult,
 ) -> Map[String, Bytes] {
@@ -147,8 +152,33 @@ pub fn DeduplicateResult::reconstruct(
   for path, hash in self.index {
     match self.store.get(hash) {
       Some(content) => result[path] = content
-      None => ()
+      None =>
+        println(
+          "warning: reconstruct: object missing for path '\{path}' (hash: \{hash})",
+        )
     }
   }
   result
+}
+
+///|
+/// Strict variant of `reconstruct`: returns `Err(missing_paths)` listing
+/// every path whose content is absent from the store, instead of silently
+/// skipping them. Returns `Ok(result)` when all entries are present.
+pub fn DeduplicateResult::reconstruct_strict(
+  self : DeduplicateResult,
+) -> Result[Map[String, Bytes], Array[String]] {
+  let result : Map[String, Bytes] = {}
+  let missing : Array[String] = []
+  for path, hash in self.index {
+    match self.store.get(hash) {
+      Some(content) => result[path] = content
+      None => missing.push(path)
+    }
+  }
+  if missing.length() > 0 {
+    Err(missing)
+  } else {
+    Ok(result)
+  }
 }

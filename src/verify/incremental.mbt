@@ -115,7 +115,7 @@ pub fn verify_manifest_incremental(
           code: "E2003",
           severity: Error,
           path: entry.path,
-          message: "file listed in manifest but missing from pack",
+          message: "file content not provided by caller",
         })
         continue
       }
@@ -168,7 +168,7 @@ pub fn verify_manifest_incremental(
               code: "E3003",
               severity: Error,
               path: "merkle_root",
-              message: "merkle root mismatch",
+              message: "merkle root mismatch, expected \{expected_root.to_string()} got \{actual_str}",
             })
           }
         }
@@ -191,7 +191,7 @@ pub fn verify_manifest_incremental(
       }
   }
 
-  let ok = findings.iter().all(fn(f) { f.severity != @diag.Error })
+  let ok = !findings.iter().any(item => item.severity is @diag.Error)
   {
     report: {
       ok,

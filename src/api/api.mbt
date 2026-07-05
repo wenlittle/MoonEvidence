@@ -427,6 +427,7 @@ pub fn generate_proof(request_json : String) -> String {
         "proof": Json::array(proof_json),
         "leaf_hash": Json::string(@digest.bytes_to_lower_hex(leaf_hash)),
         "root": Json::string(root),
+        "algorithm": Json::string(manifest.algorithm.label()),
       }).stringify()
     }
   }
@@ -616,12 +617,29 @@ pub fn audit_verify(request_json : String) -> String {
   }
   let signatures_valid = if verify_sigs {
     match fields.get("public_key") {
+      None =>
+        return error_response(
+          "public_key required when verify_signatures is true",
+        )
       Some(String(pk_hex)) =>
         match @digest.hex_to_bytes(pk_hex) {
-          Some(pk) => log.verify_signatures(pk)
-          None => false
+          Some(pk) =>
+            if pk.length() != 32 {
+              return error_response(
+                "valid 32-byte public_key hex required when verify_signatures is true",
+              )
+            } else {
+              log.verify_signatures(pk)
+            }
+          None =>
+            return error_response(
+              "valid 32-byte public_key hex required when verify_signatures is true",
+            )
         }
-      _ => false
+      Some(_) =>
+        return error_response(
+          "valid 32-byte public_key hex required when verify_signatures is true",
+        )
     }
   } else {
     true
@@ -793,6 +811,12 @@ pub fn ed25519_verify(request_json : String) -> String {
   }
   guard @digest.hex_to_bytes(sig_hex) is Some(sig) else {
     return error_response("\"signature\" is not valid hex")
+  }
+  if pk.length() != 32 {
+    return error_response("public_key must be 32 bytes")
+  }
+  if sig.length() != 64 {
+    return error_response("signature must be 64 bytes")
   }
   let valid = @crypto.ed25519_verify(pk, msg, sig)
   Json::object({ "ok": Json::boolean(true), "valid": Json::boolean(valid) }).stringify()

@@ -244,8 +244,9 @@ fn run_verify_single(
 
   // Pure verification: incremental when a cache dir is provided, full
   // otherwise. Incremental skips rehashing files whose (path, digest)
-  // match the previous run — the Merkle root is always recomputed, so
-  // the security guarantee is identical to full verification.
+  // match a trusted previous run — the Merkle root is always recomputed,
+  // but per-file content integrity depends on cache trustworthiness.
+  // See verify/incremental.mbt for the trust model.
   let mut files_rehashed = 0
   let mut files_skipped = 0
   let report = match cache_dir {
@@ -635,8 +636,8 @@ fn run_create(args : Array[String]) -> Int {
   // directly — whatever layout create sees is what verify will check.
   let file_paths : Array[String] = []
   collect_create_files(pack_dir, "", file_paths)
-  if file_paths.length() > max_pack_files {
-    println("[E5002] \{pack_dir}: too many files (>\{max_pack_files})")
+  if file_paths.length() >= max_pack_files {
+    println("[E5002] \{pack_dir}: too many files (>=\{max_pack_files}), manifest creation aborted to avoid silent truncation")
     return 2
   }
   let files : Map[String, Bytes] = {}

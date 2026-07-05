@@ -36,6 +36,23 @@ pub fn create_manifest(
   files : Map[String, Bytes],
   options : CreateOptions,
 ) -> String {
+  // Validate metadata: empty fields would produce a manifest that fails
+  // verification, so reject early with a clear error.
+  if options.subject.id.length() == 0 {
+    abort("create_manifest: subject.id must not be empty")
+  }
+  if options.subject.kind.length() == 0 {
+    abort("create_manifest: subject.kind must not be empty")
+  }
+  if options.version_id.length() == 0 {
+    abort("create_manifest: version_id must not be empty")
+  }
+  match options.version_parent {
+    Some(parent) if parent.length() == 0 =>
+      abort("create_manifest: version_parent must not be empty if present")
+    _ => ()
+  }
+
   let sorted_paths : Array[String] = files.keys().collect()
   // Code-point order, NOT MoonBit's default shortlex (which is length-first
   // and would order "b" < "aa"). This keeps the Merkle root consistent with
@@ -46,6 +63,12 @@ pub fn create_manifest(
   let leaf_payloads : Array[Bytes] = []
 
   for path in sorted_paths {
+    // Defense in depth: validate each path before adding it to the manifest.
+    // This mirrors what Manifest::parse does on the verify side, ensuring
+    // create→verify round-trip safety even if the caller passes hostile paths.
+    try @model.validate_entry_path(path, "files") catch {
+      _ => abort("create_manifest: invalid file path: \{path}")
+    }
     let data = match files.get(path) {
       Some(d) => d
       None => continue

@@ -2,6 +2,7 @@ import {
   "starlittle/MoonEvidence/src/canonjson",
   "starlittle/MoonEvidence/src/digest",
   "starlittle/MoonEvidence/src/merkle",
+  "starlittle/MoonEvidence/src/model",
   "moonbitlang/core/json",
 }
 

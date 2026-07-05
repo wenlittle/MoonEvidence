@@ -77,15 +77,16 @@ const mutations = [
     expectHint: "S < l canonical encoding check",
   },
   {
-    id: "ed25519-identity-reject",
-    label: "ed25519 identity public key rejection removed",
+    id: "ed25519-low-order-reject",
+    label: "ed25519 low-order point rejection removed (cofactor=8 torsion)",
     file: join(repoRoot, "src", "crypto", "ed25519.mbt"),
-    find: "  if a_point.is_identity() {\n    return false\n  }",
-    replace: "  if a_point.is_identity() {\n    ()\n  }",
-    // The identity point (0, 1) has order 1; without rejection, an
-    // all-zero signature verifies against it (S*B = O = R + k*O).
-    // The explicit identity-rejection test must go red.
-    expectHint: "identity point rejection",
+    find: "  let a_doubled = a_point.double().double().double()\n  if a_doubled.is_identity() {\n    return false\n  }",
+    replace: "  let a_doubled = a_point.double().double().double()\n  if a_doubled.is_identity() {\n    ()\n  }",
+    // The 8*A check rejects all 8 small-order points (cofactor=8 torsion).
+    // Without it, an attacker using a low-order public key (e.g. (0,-1))
+    // can forge signatures with ~50% success probability per attempt.
+    // The low-order point test must go red.
+    expectHint: "low-order point (cofactor=8) rejection",
   },
   {
     id: "ed25519-noncanonical-y",

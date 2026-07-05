@@ -1,7 +1,15 @@
-// Incremental verification: skips re-hashing files whose digests are known
-// to be correct from a previous run. The Merkle root is always recomputed
-// from scratch (it's fast), so the security guarantee is identical to a
-// full verify — only the per-file I/O-bound hashing is amortized.
+// Incremental verification: skips re-hashing files whose (path, digest) pair
+// matches a trusted previous verification cache. The Merkle root is always
+// recomputed from scratch, but the per-file content hashing is skipped when
+// the cache is trusted.
+//
+// TRUST MODEL: The `previous` cache MUST come from a prior successful
+// verification run on the same pack. If an attacker can tamper with the
+// cache (e.g., by editing cache.json on disk), they can cause modified
+// files to skip content hashing. The manifest digest check (E2004) still
+// detects manifest tampering, and the Merkle root still catches structural
+// changes, but per-file content integrity is only as trustworthy as the
+// cache source. For adversarial environments, use full `verify_manifest`.
 
 ///|
 /// Result of incremental verification, extending the base report with stats

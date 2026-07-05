@@ -118,11 +118,21 @@ pub fn DeduplicateResult::to_json(self : DeduplicateResult) -> String {
 }
 
 ///|
-/// Verifies that all index entries have their content in the store.
+/// Verifies that all index entries have their content in the store AND
+/// that each stored content's SHA-256 digest matches the key it was
+/// stored under. This catches content tampering that a mere key-existence
+/// check would miss.
 pub fn DeduplicateResult::verify_integrity(self : DeduplicateResult) -> Bool {
   for _path, hash in self.index {
-    if self.store.has(hash) == false {
-      return false
+    match self.store.get(hash) {
+      Some(content) => {
+        // Re-hash the stored content and compare to the key.
+        let recomputed = "sha256:\{@digest.sha256_hex(content)}"
+        if recomputed != hash {
+          return false
+        }
+      }
+      None => return false
     }
   }
   true

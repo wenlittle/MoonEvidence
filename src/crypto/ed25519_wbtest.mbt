@@ -433,6 +433,52 @@ test "ed25519_verify explicitly rejects identity public key (RFC 8032 §5.1.3)" 
   assert_false(ed25519_verify(pk, msg, sig_bytes))
 }
 
+///|
+test "ed25519_verify rejects low-order points (cofactor=8 torsion)" {
+  // The point (0, -1) has order 2 on the Ed25519 curve. It is NOT the
+  // identity (0, 1), so the is_identity() check alone does not catch it.
+  // Only the cofactor check (8*A == identity) rejects it.
+  // y = -1 mod p = p - 1 in little-endian: 0xEC, 30x0xFF, 0x7F (sign bit clear).
+  let low_order_pk : Array[Byte] = [
+    b'\xec', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff',
+    b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff',
+    b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff',
+    b'\xff', b'\xff', b'\xff', b'\xff', b'\x7f',
+  ]
+  let pk = Bytes::from_array(low_order_pk)
+  // Forge a signature that would verify against the order-2 public key
+  // A = (0, -1) if the cofactor check were absent. For order-2 A:
+  //   k*A = O when k is even, A when k is odd.
+  //   If k is even: R + k*A = R + O = R, so S*B = R verifies.
+  //   We set S = 0 and R = O (identity encoding), then k = SHA-512(R||A||M).
+  //   ~50% chance k is even → forgery succeeds.
+  // Without the 8*A check, the verifier only tests the equation S*B == R + k*A,
+  // which holds when k is even. The cofactor check is the only gate.
+  // We use R = identity (0x01 + 31 zeros) and S = 0.
+  // If k happens to be odd for this (R, A, M), the equation fails naturally;
+  // we try a few messages to find an even-k case.
+  let mut caught = false
+  for i in 0..<10 {
+    let test_msg = @digest.string_to_utf8_bytes("forge attempt \{i}")
+    let sig : Array[Byte] = [b'\x01']
+    for _ in 0..<63 {
+      sig.push(b'\x00')
+    }
+    let sig_bytes = Bytes::from_array(sig)
+    // With the cofactor check present, verify must return false regardless.
+    // Without it, ~50% of attempts would return true (even k).
+    let result = ed25519_verify(pk, test_msg, sig_bytes)
+    if result {
+      // If verify returns true for a low-order key, the check is broken.
+      // This should NEVER happen with the cofactor check in place.
+      caught = true
+      break
+    }
+  }
+  // The cofactor check must prevent ANY forgery against low-order keys.
+  assert_false(caught)
+}
+
 // ---------------------------------------------------------------------------
 // Low-order / non-canonical encoding tests
 // ---------------------------------------------------------------------------

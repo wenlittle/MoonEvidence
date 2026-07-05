@@ -262,6 +262,15 @@ pub fn ed25519_verify(pk : Bytes, msg : Bytes, sig : Bytes) -> Bool {
   if a_point.is_identity() {
     return false
   }
+  // Reject all 8 small-order points (cofactor=8 subgroup torsion).
+  // 8*A = A.double().double().double(); if the result is the identity,
+  // A is in the torsion subgroup (order 1/2/4/8) and must be rejected.
+  // Without this check, an attacker using a low-order public key can
+  // forge signatures with ~50% success probability per attempt.
+  let a_doubled = a_point.double().double().double()
+  if a_doubled.is_identity() {
+    return false
+  }
   // Decode R
   let r_point = match point_decode(r_enc) {
     Some(p) => p

@@ -241,7 +241,7 @@ fn expect_size(
 /// colons, ".." segments) or alias another entry past the duplicate check
 /// ("." and empty segments) is rejected at parse time, so neither the pure
 /// pipeline nor the IO adapter ever sees a hostile path.
-fn validate_entry_path(
+pub fn validate_entry_path(
   path : String,
   context : String,
 ) -> Unit raise ModelError {

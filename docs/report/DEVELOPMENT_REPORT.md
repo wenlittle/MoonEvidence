@@ -1,7 +1,7 @@
 # MoonEvidence 开发报告
 
 > MoonBit OSC2026 开源生态挑战赛 · 项目验收材料
-> 仓库：https://github.com/starlittle/MoonEvidence ｜ 规模：10923 行 MoonBit（实现 5193 + 测试 5730）｜ 提交：100 个 ｜ 包：12 个
+> 仓库：https://github.com/starlittle/MoonEvidence ｜ 规模：11070 行 MoonBit（实现 5294 + 测试 5776）｜ 提交：103 个 ｜ 包：12 个
 > 本报告为单一权威开发报告，合并了功能清单、AI 协作实践与工程质量三方面内容。
 
 ## 一、项目概述
@@ -167,7 +167,7 @@ tests/         -> 夹具与黑盒回归测试
 
 | 层 | 数量与内容 |
 | --- | --- |
-| 单元测试 | **285 个**，wasm-gc 与 js 双后端全绿；含 NIST/RFC 向量、JCS fixtures、版本链图语义、Merkle 树物化与路径 |
+| 单元测试 | **286 个**，wasm-gc 与 js 双后端全绿；含 NIST/RFC 向量、JCS fixtures、版本链图语义、Merkle 树物化与路径 |
 | CLI 黑盒 | **53 用例**（`tools/cli-test.ps1` + `tools/cli-test.sh` 1:1 对等）：12 个命令形状 + 10 包篡改矩阵 + 19 个 manifest 错误码矩阵 + 9 create + 3 incremental，逐 pack / 逐 fixture 断言**精确错误码集合**（禁止"至少包含"式宽松断言） |
 | 篡改矩阵 | `tests/fixtures/packs/` 10 个 pack 由独立 Node 参考实现生成，覆盖每个错误码族；CI 设防腐化校验（重新生成后 `git diff` 必须为空） |
 | manifest 错误码矩阵 | `tests/fixtures/manifest/` 19 个夹具，覆盖 E1001/E1002/E1003/E2001/E2002 在 CLI 黑盒层的触发 |
@@ -221,12 +221,12 @@ tests/         -> 夹具与黑盒回归测试
 
 | 指标 | 实测值 |
 | --- | --- |
-| 提交数 | 100 |
-| 实现行数 | 5193 |
-| 测试行数 | 5730 |
-| 总行数 | **10923** |
-| 测试声明 | 285（281 测试 + 4 基准调用） |
-| 单元测试通过 | **281/281**（wasm-gc + js 双后端） |
+| 提交数 | 103 |
+| 实现行数 | 5294 |
+| 测试行数 | 5776 |
+| 总行数 | **11070** |
+| 测试声明 | 286（282 测试 + 4 基准调用） |
+| 单元测试通过 | **282/282**（wasm-gc + js 双后端） |
 | CLI 黑盒通过 | **53/53** |
 | 包数 | **12** |
 | moon check warnings | 0 |
@@ -239,7 +239,7 @@ tests/         -> 夹具与黑盒回归测试
 MoonBit 生态当前缺少数据完整性验证基础设施。MoonEvidence 填补了这一空白：
 
 1. **RFC 8785 生态首个实现**：`canonjson` 是 Mooncakes 生态中第一个 JSON Canonicalization Scheme 实现，含官方 Appendix B 数字向量全过
-2. **纯 MoonBit 密码学**：从 GF(2^255-19) 有限域到 Ed25519 签名验签，约 800 行，零外部密码学依赖——生态首个从底向上的椭圆曲线签名实现
+2. **纯 MoonBit 密码学**：完整的纯 MoonBit Ed25519 实现（从有限域到签名/验签），约 800 行，零外部密码学依赖——生态内已有 hustcer/ed25519 等同类实现
 3. **可解释诊断**：报告完备式输出（非 fail-fast），结构化错误码 + explain 命令，用户一轮修完所有问题；验证报告自身规范化可被存证
 4. **可发布的 Mooncakes 包**：12 个包均可独立复用，核心验证逻辑可作为独立库复用
 5. **跨平台演示**：同一代码在 CLI、CI、浏览器三种环境逐字节一致运行

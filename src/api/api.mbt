@@ -557,7 +557,9 @@ pub fn audit_append(request_json : String) -> String {
       return error_response("\"manifest_digest\" must be a string or null")
   }
   let timestamp = match fields.get("timestamp") {
-    None | Some(Null) => "2026-07-04T00:00:00Z"
+    // 演示用默认值：请求未携带 timestamp 时回退到固定时间戳，便于 demo 复现。
+    // 生产环境应始终由调用方传入真实时间戳（如 NTP/系统时钟），避免依赖此回退。
+    None | Some(Null) => "2026-07-05T00:00:00Z"
     Some(String(t)) => t
     Some(_) => return error_response("\"timestamp\" must be a string")
   }

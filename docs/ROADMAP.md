@@ -62,7 +62,7 @@
 - [x] **授权快照 / 审计日志**（287 行）：哈希链串联的追加式审计日志
   - `src/audit/audit_log.mbt` — 审计记录模型 + 哈希链验证 + JSON 序列化
   - 10 个测试（含 Ed25519 签名集成测试）
-- [x] **Ed25519 数字签名**（约 800 行）：纯 MoonBit 实现的椭圆曲线签名
+- [x] **Ed25519 数字签名**（约 800 行）：纯 MoonBit 实现（生态内已有 hustcer/ed25519 等同类实现）
   - `src/crypto/field25519.mbt` — GF(2^255-19) 有限域算术（16-limb TweetNaCl 风格）
   - `src/crypto/point25519.mbt` — 扩展坐标点运算（HWCD08 加法/倍点）
   - `src/crypto/ed25519.mbt` — RFC 8032 签名/验签 API + 点解码 + 标量模 l 算术

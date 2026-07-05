@@ -84,6 +84,7 @@ MVP：可信证据包验证核心，三后端全绿，可发布 Mooncakes。
 - **测试体系**：篡改矩阵 fixtures、独立 Node 参考实现交叉验证 golden 数据、property test、benchmark。
 - **双语 README** 与用户指南、证据包规范、架构文档、决策/结果双日志。
 
+[0.4.0]: https://github.com/starlittle/MoonEvidence/releases/tag/v0.4.0
 [0.3.1]: https://github.com/starlittle/MoonEvidence/releases/tag/v0.3.1
 [0.3.0]: https://github.com/starlittle/MoonEvidence/releases/tag/v0.3.0
 [0.2.0]: https://github.com/starlittle/MoonEvidence/releases/tag/v0.2.0

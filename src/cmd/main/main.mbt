@@ -399,7 +399,10 @@ fn save_incremental_cache(
   let cache_str = cache_json.stringify()
   // Ensure the cache directory exists, then write.
   if !@fs.path_exists(cache_dir) {
-    return // User must create the cache directory beforehand.
+    warn_stderr(
+      "warning: incremental cache directory '\{cache_dir}' does not exist; cache not saved. Create it beforehand (e.g. `mkdir -p \{cache_dir}`) to enable incremental verification.",
+    )
+    return
   }
   @fs.write_string_to_file("\{cache_dir}/cache.json", cache_str) catch {
     _ => ()

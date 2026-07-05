@@ -413,10 +413,11 @@
   function doVerify(manifestText, filesHex) {
     if (!mod) return alert("模块未加载");
     const req = JSON.stringify({ manifest: manifestText, files: filesHex });
+    let box;
     try {
       const resp = JSON.parse(mod.verify_evidence(req));
       const card = $("verify-result-card");
-      const box = $("verify-result");
+      box = $("verify-result");
       const badge = $("verify-badge");
       card.style.display = "block";
       if (resp.ok) {

@@ -120,6 +120,8 @@ console.log(JSON.stringify(actual, null, 2));
 
 // ---------------------------------------------------------------------------
 // Assertion rules: (file, regex, expectedGroup, actualValue, description)
+// `minimum: true` means the doc value must be >= actual (for monotonically
+// increasing metrics like commit count, which drift +1 on every commit).
 // ---------------------------------------------------------------------------
 const assertions = [
   // README.md
@@ -143,10 +145,13 @@ const assertions = [
     desc: "README.zh.md unit test count",
   },
   // DEVELOPMENT_REPORT.md
+  // Commit count uses `minimum` because it increases on every commit,
+  // including this check's own fix commit — exact match would endlessly drift.
   {
     file: "docs/report/DEVELOPMENT_REPORT.md",
     pattern: /规模：(\d+)\s+行\s+MoonBit（实现\s+(\d+)\s+\+\s+测试\s+(\d+)）｜\s+提交：(\d+)\s+个\s+｜\s+包：(\d+)\s+个/,
     expected: { 1: allMbtLines, 2: implOnly, 3: testLines, 4: commits, 5: pkgCount },
+    minimum: { 4: true },
     desc: "DEVELOPMENT_REPORT.md header stats",
   },
   {
@@ -159,6 +164,7 @@ const assertions = [
     file: "docs/report/DEVELOPMENT_REPORT.md",
     pattern: /提交数\s+\|\s+(\d+)/,
     expected: commits,
+    minimum: true,
     desc: "DEVELOPMENT_REPORT.md commit count",
   },
   {
@@ -178,6 +184,7 @@ const assertions = [
     file: "docs/records/ACCEPTANCE_CHECKLIST.md",
     pattern: /\*{2}(\d+)\s+个提交\*{2}/,
     expected: commits,
+    minimum: true,
     desc: "ACCEPTANCE_CHECKLIST.md commit count",
   },
   // STRUCTURE_TREE.md — CLI case count
@@ -228,10 +235,16 @@ for (const a of assertions) {
   }
 
   if (typeof a.expected === "object") {
+    const minMap = typeof a.minimum === "object" ? a.minimum : {};
     for (const [group, expectedVal] of Object.entries(a.expected)) {
       const found = parseInt(match[parseInt(group)], 10);
-      if (found !== expectedVal) {
-        console.log(`✗ FAIL ${a.desc}: found ${found}, expected ${expectedVal}`);
+      // For minimum checks: actual (expectedVal) must be >= doc (found),
+      // i.e. the repo meets the floor stated in docs. This prevents the
+      // chicken-and-egg where every commit increments the count.
+      const isMin = minMap[group] === true;
+      const pass = isMin ? expectedVal >= found : found === expectedVal;
+      if (!pass) {
+        console.log(`✗ FAIL ${a.desc}: found ${found}, ${isMin ? "minimum" : "expected"} ${expectedVal}`);
         failures++;
       } else {
         console.log(`✓ PASS ${a.desc} (group ${group})`);
@@ -239,8 +252,10 @@ for (const a of assertions) {
     }
   } else {
     const found = parseInt(match[1], 10);
-    if (found !== a.expected) {
-      console.log(`✗ FAIL ${a.desc}: found ${found}, expected ${a.expected}`);
+    const isMin = a.minimum === true;
+    const pass = isMin ? a.expected >= found : found === a.expected;
+    if (!pass) {
+      console.log(`✗ FAIL ${a.desc}: found ${found}, ${isMin ? "minimum" : "expected"} ${a.expected}`);
       failures++;
     } else {
       console.log(`✓ PASS ${a.desc}`);

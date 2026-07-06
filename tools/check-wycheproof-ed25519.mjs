@@ -45,15 +45,49 @@ function extractCasesBlock(testTitle) {
   return source.slice(casesIndex, endIndex);
 }
 
-function tupleLines(block) {
-  return block
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line.startsWith('("'));
+function tupleEntries(block) {
+  const entries = [];
+  let current = [];
+  let inTuple = false;
+
+  for (const rawLine of block.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (line.length === 0) continue;
+
+    if (!inTuple && line.startsWith('("')) {
+      entries.push(line);
+      continue;
+    }
+
+    if (!inTuple && line === "(") {
+      inTuple = true;
+      current = [line];
+      continue;
+    }
+
+    if (inTuple) {
+      current.push(line);
+      if (line === ")" || line === "),") {
+        entries.push(current.join(" "));
+        current = [];
+        inTuple = false;
+      }
+    }
+  }
+
+  if (inTuple) {
+    throw new Error("unterminated tuple in cases block");
+  }
+  return entries;
 }
 
-function parseTuple(line) {
-  const json = `[${line.replace(/^\(/, "").replace(/\),?$/, "")}]`;
+function parseTuple(entry) {
+  const fields = entry
+    .replace(/^\(/, "")
+    .replace(/\),?$/, "")
+    .trim()
+    .replace(/,\s*$/, "");
+  const json = `[${fields}]`;
   return JSON.parse(json);
 }
 
@@ -63,10 +97,10 @@ function assertEqual(label, actual, want) {
   }
 }
 
-const validLines = tupleLines(
+const validLines = tupleEntries(
   extractCasesBlock("wycheproof: all 88 valid vectors verify (independent oracle)"),
 );
-const invalidLines = tupleLines(
+const invalidLines = tupleEntries(
   extractCasesBlock("wycheproof: all 62 invalid vectors rejected (attack oracle)"),
 );
 

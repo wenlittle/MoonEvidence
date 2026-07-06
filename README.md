@@ -220,7 +220,7 @@ All 12 packages are implemented and fully tested across three backends.
 
 ### Test Coverage
 - **348 unit tests** declared (344 executable tests + 4 benchmark wrappers), with native/wasm-gc/js passing locally
-- **53-case black-box CLI suite**: 12 command-shape + 10-pack tamper matrix + 19 error-code fixtures + 9 create + 3 incremental, with native/js passing locally
+- **54-case black-box CLI suite**: 12 command-shape + 10-pack tamper matrix + 19 error-code fixtures + 10 create + 3 incremental, with native/js passing locally
 - **Property tests**: canonicalization idempotence, Merkle proof soundness (mutation-verified)
 - **CI three-backend matrix**: native / wasm-gc / js build + test + browser smoke test
 
@@ -239,6 +239,6 @@ moon bench --target js
 
 As of 2026-07-06 Asia/Shanghai, the local native/wasm-gc/js test baseline is
 green; native was verified on Windows with MSVC 19.44 and Windows SDK
-10.0.26100.0. Codebase is 13485
-effective MoonBit lines (implementation 5436 + tests 8049); the implementation
+10.0.26100.0. Codebase is 13499
+effective MoonBit lines (implementation 5450 + tests 8049); the implementation
 size remains within the 4-10k competition range.

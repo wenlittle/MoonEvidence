@@ -417,6 +417,26 @@ if ($p.Count -eq 0) {
   Write-Host "      output: $($r.Output.Trim())"
 }
 
+# Case 10: recursion depth cap must abort create instead of silently omitting files
+$dir10 = Join-Path $createTmp "too-deep"
+New-Item -ItemType Directory -Path $dir10 -Force | Out-Null
+$deep = $dir10
+for ($d = 0; $d -lt 33; $d++) {
+  $deep = Join-Path $deep "d$d"
+  New-Item -ItemType Directory -Path $deep -Force | Out-Null
+}
+New-TestFile $deep "leaf.txt" "deep"
+$r = Invoke-Cli -CliArgs @("create", $dir10, "--subject-id", "too-deep")
+$p = @()
+if ($r.ExitCode -ne 2) { $p += "exit: expected 2, got $($r.ExitCode)" }
+if ($r.Output -notmatch 'recursion depth limit') { $p += "output missing: recursion depth limit" }
+if (Test-Path (Join-Path $dir10 "manifest.json")) { $p += "manifest should not be written after depth-cap abort" }
+if ($p.Count -eq 0) { Write-Host "PASS  create: depth cap aborts" }
+else {
+  $failed += 1; Write-Host "FAIL  create: depth cap aborts"; $p | ForEach-Object { Write-Host "      $_" }
+  Write-Host "      output: $($r.Output.Trim())"
+}
+
 # Cleanup
 Remove-Item $createTmp -Recurse -Force -ErrorAction SilentlyContinue
 
@@ -467,7 +487,7 @@ if ($p.Count -eq 0) {
 # Cleanup
 Remove-Item $incCache -Recurse -Force -ErrorAction SilentlyContinue
 
-$total = @($cases).Count + @($matrix).Count + @($manifestMatrix).Count + 9 + 3
+$total = @($cases).Count + @($matrix).Count + @($manifestMatrix).Count + 10 + 3
 Write-Host ""
 Write-Host "cli-test ($Target): $($total - $failed)/$total passed"
 if ($failed -gt 0) { exit 1 }

@@ -440,6 +440,22 @@ if [ -z "$problems" ]; then
 fi
 record_result create "version chaining -> verify" "$problems" "$INVOKE_OUT"
 
+# Case 10: recursion depth cap must abort create instead of silently omitting files
+dir10="$CREATE_TMP/too-deep"
+mkdir -p "$dir10"
+deep="$dir10"
+for d in $(seq 0 32); do
+  deep="$deep/d$d"
+  mkdir -p "$deep"
+done
+new_test_file "$deep" "leaf.txt" "deep"
+invoke_cli create "$dir10" --subject-id too-deep
+problems=""
+[ "$INVOKE_RC" = "2" ] || problems+="exit: expected 2, got $INVOKE_RC; "
+printf '%s' "$INVOKE_OUT" | grep -Eq 'recursion depth limit' || problems+="output missing: recursion depth limit; "
+[ ! -f "$dir10/manifest.json" ] || problems+="manifest should not be written after depth-cap abort; "
+record_result create "depth cap aborts" "$problems" "$INVOKE_OUT"
+
 # --- Part 5: incremental verification ---------------------------------------
 #
 # Mirrors the PowerShell incremental cases. The first run has no cache and

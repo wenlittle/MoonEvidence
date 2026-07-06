@@ -61,8 +61,8 @@ Remove-Item -Recurse -Force $env:TEMP/live-demo
 
 ```powershell
 moon test --target wasm-gc,js    # 333/333 双后端
-powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target js   # 53/53 黑盒
-bash ./tools/cli-test.sh js      # 53/53 bash 对等黑盒
+powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target js   # 54/54 黑盒
+bash ./tools/cli-test.sh js      # 54/54 bash 对等黑盒
 ```
 
 讲解点（不必全跑，指着 CI 页面/README 说）：

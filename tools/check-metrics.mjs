@@ -198,7 +198,7 @@ const assertions = [
   {
     file: "docs/STRUCTURE_TREE.md",
     pattern: /(\d+)\s+用例黑盒 CLI/,
-    expected: 53, // CLI black-box is 53, not derived from grep
+    expected: 54, // CLI black-box is 54, not derived from grep
     desc: "STRUCTURE_TREE.md CLI case count",
   },
   // Version consistency

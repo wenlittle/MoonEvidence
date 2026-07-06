@@ -314,4 +314,4 @@ semantics and tamper rejection are covered by `tools/property-api-semantic.mjs`.
 
 | Priority | Item | Reason |
 | --- | --- | --- |
-| P2 | Run and record stress randomized-hardening profile before a final tag if time allows. | CI and release profiles have passed; `tools/randomized-hardening.mjs --profile stress` defines 10000-level sampling for broader pre-tag confidence when runtime budget allows. |
+| P2 | Run and record stress randomized-hardening profile before a final tag. | Done 2026-07-06 as captured split run: 10000 malformed, 1000 semantic, 5000 Ed25519 differential, 5000 digest differential all passed. |

@@ -1425,6 +1425,82 @@ Impact: delivery materials may now state that native, wasm-gc, and js are all
 locally verified. The CI/native lane is still required as remote environment
 confirmation, but it is no longer carrying the entire native proof burden.
 
+## 2026-07-06 Asia/Shanghai (Final hardening closure)
+
+### Stress Randomized Hardening
+
+The stress profile was run as four separately captured commands after one
+earlier whole-profile attempt exceeded the Codex command timeout and lost its
+stdout. Only the captured runs below are treated as evidence.
+
+| Suite | Command | Result |
+| --- | --- | --- |
+| JS API build | `moon build --target js --release src/api` | PASS: no work needed |
+| Malformed API fuzz | `node tools/fuzz-api-malformed.mjs --rounds 10000` | PASS: 10215 cases across 12 exports |
+| API semantic property | `node tools/property-api-semantic.mjs --rounds 1000` | PASS: 3000 closed-loop checks |
+| Ed25519 differential | `node tools/differential-crypto.mjs --rounds 5000` | PASS: 5000/5000 vectors matched Node.js crypto |
+| Digest differential | `node tools/differential-digest.mjs --rounds 5000` | PASS: 5000/5000 rounds matched Node.js crypto for SHA-256, SHA-512, and HMAC-SHA256 |
+
+Node emitted the existing `MODULE_TYPELESS_PACKAGE_JSON` warning for generated
+ESM artifacts. It did not affect pass/fail results.
+
+### Junction Traversal Probe And Fix
+
+The first Windows junction probe found a real cross-backend behavior gap:
+native `create` failed safely on a self-referential junction, but the stale JS
+release artifact showed that `create` could hit the recursion cap and still
+write a 32-file manifest. That is silent truncation, so the CLI was changed to
+turn `collect_create_files` depth-cap hits into E5002 and abort before writing
+`manifest.json`.
+
+| Command | Result |
+| --- | --- |
+| `powershell -ExecutionPolicy Bypass -File tools/symlink-junction-probe.ps1 -Target native` | PASS: create self-junction safe failure; verify files self-junction terminated with bounded W1001 warnings |
+| `powershell -ExecutionPolicy Bypass -File tools/symlink-junction-probe.ps1 -Target js` | PASS: create self-junction safe failure; verify files self-junction terminated with bounded W1001 warnings |
+| `powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target native` | PASS: 54/54 |
+| `powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target js` | PASS: 54/54 |
+| `bash ./tools/cli-test.sh native` | PASS: 54/54 |
+| `bash ./tools/cli-test.sh js` | PASS: 54/54 |
+| `node tools/check-wycheproof-ed25519.mjs` | PASS: 150 vectors; guard now parses MoonBit tuples after `moon fmt` expands them across lines |
+
+The remaining symlink boundary is unchanged and explicit: `@fs` still does not
+expose lstat/readlink, so MoonEvidence cannot prove that a pack tree is
+symlink-free. The enforced boundary is now stronger: verify traversal is
+bounded, and create refuses depth-cap truncation instead of sealing a partial
+tree.
+
+### Timing Probe
+
+| Command | Result |
+| --- | --- |
+| `node tools/timing-ed25519-verify.mjs --samples 10000` | PASS: 10000 total samples, class A mean 106.725626 ms, class B mean 106.950349 ms, Welch t -0.118306 |
+
+An attempted 50000-sample run was stopped after exceeding 20 minutes without a
+captured result. A 100-sample estimate took about 7.94 seconds, making 50000
+samples roughly hour-scale on this JS API path. The project therefore keeps
+10000 samples as the recorded manual timing probe and does not claim dudect or
+machine-code side-channel proof.
+
+### Updated Baseline
+
+| Field | Result |
+| --- | --- |
+| MoonBit line count | 13499 total: implementation 5450 + tests 8049 |
+| Test declarations | 348 declarations = 344 executable tests + 4 benchmark wrappers |
+| CLI black-box suite | 54 cases in both PowerShell and bash; native/js both pass |
+
+### Final Gate Run
+
+| Command | Result |
+| --- | --- |
+| `moon test --target native,wasm-gc,js` | PASS: 344/344 on native, 344/344 on wasm-gc, 344/344 on js |
+| `node tools/mutation-check.mjs` | PASS: 16/16 mutations caught, 0 slipped, 0 errored |
+| `node tools/cross-verify.mjs` | PASS: 10/10 packs; negative packs correctly rejected |
+| `node tools/check-metrics.mjs` | PASS: 20/20 |
+| `moon fmt --check` | PASS |
+| `node tools/check-branch-coverage-stale.mjs --base main` | PASS: audited source changes accompanied by branch coverage review |
+| `git diff --check` | PASS; only the existing line-ending normalization warning for `tools/cli-test.ps1` was printed |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

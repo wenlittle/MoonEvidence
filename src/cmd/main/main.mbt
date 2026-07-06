@@ -426,6 +426,11 @@ let max_pack_depth : Int = 32
 let max_pack_files : Int = 10000
 
 ///|
+struct CreateCollectState {
+  mut hit_depth_cap : Bool
+}
+
+///|
 /// Recursively collects files under `<root>/<rel_dir>` as pack-relative
 /// paths (`files/...`). Missing or unreadable directories yield nothing:
 /// a pack without a files/ tree is legal.
@@ -497,10 +502,12 @@ fn collect_create_files(
   root : String,
   rel_dir : String,
   out : Array[String],
+  state : CreateCollectState,
   depth? : Int = 0,
 ) -> Unit {
   // Depth cap: terminate symlink-to-directory cycles.
   if depth >= max_pack_depth {
+    state.hit_depth_cap = true
     return
   }
   // File cap: bound resource use against symlink bombs.
@@ -521,7 +528,7 @@ fn collect_create_files(
     let rel_path = if rel_dir.is_empty() { name } else { "\{rel_dir}/\{name}" }
     let is_subdir = @fs.is_dir("\{root}/\{rel_path}") catch { _ => false }
     if is_subdir {
-      collect_create_files(root, rel_path, out, depth=depth + 1)
+      collect_create_files(root, rel_path, out, state, depth=depth + 1)
     } else {
       out.push(rel_path)
     }
@@ -632,7 +639,14 @@ fn run_create(args : Array[String]) -> Int {
   // reads from the raw input directory and uses on-disk relative paths
   // directly — whatever layout create sees is what verify will check.
   let file_paths : Array[String] = []
-  collect_create_files(pack_dir, "", file_paths)
+  let collect_state : CreateCollectState = { hit_depth_cap: false }
+  collect_create_files(pack_dir, "", file_paths, collect_state)
+  if collect_state.hit_depth_cap {
+    println(
+      "[E5002] \{pack_dir}: directory recursion depth limit (>=\{max_pack_depth}) reached, manifest creation aborted to avoid silent truncation",
+    )
+    return 2
+  }
   if file_paths.length() >= max_pack_files {
     println(
       "[E5002] \{pack_dir}: too many files (>=\{max_pack_files}), manifest creation aborted to avoid silent truncation",

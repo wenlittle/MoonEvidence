@@ -229,6 +229,36 @@ fn add_l_to_s(sig : Bytes) -> Bytes {
   Bytes::from_array(arr)
 }
 
+///|
+fn bytes_prefix(data : Bytes, n : Int) -> Bytes {
+  let arr : Array[Byte] = []
+  for i in 0..<n {
+    arr.push(data[i])
+  }
+  Bytes::from_array(arr)
+}
+
+///|
+fn bytes_with_extra(data : Bytes, extra : Byte) -> Bytes {
+  let arr : Array[Byte] = []
+  for i in 0..<data.length() {
+    arr.push(data[i])
+  }
+  arr.push(extra)
+  Bytes::from_array(arr)
+}
+
+///|
+fn compressed_small_y(y : Int, sign : Int) -> Bytes {
+  let arr : Array[Byte] = []
+  arr.push((y & 0xff).to_byte())
+  for _ in 1..<31 {
+    arr.push(b'\x00')
+  }
+  arr.push((((sign & 1) << 7).to_uint64() & 0xffUL).to_byte())
+  Bytes::from_array(arr)
+}
+
 // ---------------------------------------------------------------------------
 // Determinism / round-trip tests
 // ---------------------------------------------------------------------------
@@ -287,6 +317,87 @@ test "point decode round-trip with base point" {
     Some(p) => assert_true(p.eq(b))
     None => assert_true(false)
   }
+}
+
+// ---------------------------------------------------------------------------
+// Exact branch tests for verify and point decoding guards.
+// ---------------------------------------------------------------------------
+
+///|
+test "ed25519_verify rejects non-32-byte public keys" {
+  let pk = rfc8032_test1_pk()
+  let msg = Bytes::make(0, b'\x00')
+  let sig = rfc8032_test1_sig()
+  assert_false(ed25519_verify(bytes_prefix(pk, 31), msg, sig))
+  assert_false(ed25519_verify(bytes_with_extra(pk, b'\x00'), msg, sig))
+}
+
+///|
+test "ed25519_verify rejects non-64-byte signatures" {
+  let pk = rfc8032_test1_pk()
+  let msg = Bytes::make(0, b'\x00')
+  let sig = rfc8032_test1_sig()
+  assert_false(ed25519_verify(pk, msg, bytes_prefix(sig, 63)))
+  assert_false(ed25519_verify(pk, msg, bytes_with_extra(sig, b'\x00')))
+}
+
+///|
+test "point_decode rejects non-32-byte encodings" {
+  let enc = Point::base_point().encode()
+  assert_true(point_decode(bytes_prefix(enc, 31)) is None)
+  assert_true(point_decode(bytes_with_extra(enc, b'\x00')) is None)
+}
+
+///|
+test "point_decode rejects x=0 with sign bit set" {
+  // Compressed Ed25519 points store y little-endian and the x sign in the
+  // high bit of byte 31. For the identity y=1 has x=0, so sign=1 is invalid.
+  let invalid = compressed_small_y(1, 1)
+  assert_true(point_decode(invalid) is None)
+}
+
+///|
+test "point_decode rejects small y that is not on the curve" {
+  // y=2 is canonical but makes (y^2 - 1) / (d*y^2 + 1) a non-square, so the
+  // second x^2 check must reject it after the sqrt(-1) correction attempt.
+  let invalid = compressed_small_y(2, 0)
+  assert_true(point_decode(invalid) is None)
+}
+
+///|
+test "point_decode accepts y=0 through sqrt_m1 correction path" {
+  // y=0 is on the curve, but the first square-root candidate needs the
+  // sqrt(-1) correction branch before x^2 matches the recovered value.
+  let enc = compressed_small_y(0, 0)
+  match point_decode(enc) {
+    Some(p) => assert_true(bytes_eq(p.encode(), enc))
+    None => assert_true(false)
+  }
+}
+
+///|
+test "ed25519_verify rejects invalid public key encoding" {
+  let bad_pk = compressed_small_y(2, 0)
+  let msg = Bytes::make(0, b'\x00')
+  let sig = rfc8032_test1_sig()
+  assert_false(ed25519_verify(bad_pk, msg, sig))
+}
+
+///|
+test "ed25519_verify rejects invalid R encoding" {
+  let valid_sig = rfc8032_test1_sig()
+  let bad_r = compressed_small_y(2, 0)
+  let sig_arr : Array[Byte] = []
+  for i in 0..<32 {
+    sig_arr.push(bad_r[i])
+  }
+  for i in 32..<64 {
+    sig_arr.push(valid_sig[i])
+  }
+  let bad_sig = Bytes::from_array(sig_arr)
+  let pk = rfc8032_test1_pk()
+  let msg = Bytes::make(0, b'\x00')
+  assert_false(ed25519_verify(pk, msg, bad_sig))
 }
 
 // ---------------------------------------------------------------------------

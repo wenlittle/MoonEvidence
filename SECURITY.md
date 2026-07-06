@@ -13,8 +13,8 @@ MoonEvidence 含**自实现的密码学原语**，未依赖任何外部经审计
 经 2026-07-04 两轮健康体检与根因修复，Ed25519 实现已具备以下防护：
 
 - **反可塑性**：`ed25519_verify` 拒绝 `S >= l` 的签名（RFC 8032 §8.4），攻击者无法用 `S + l` 伪造另一合法签名。
-- **恒定时间标量乘法**：`scalar_mul` 用 conditional select（cmov）替代 secret-dependent 分支，`Fe::eq` 改为 XOR 累加，降低侧信道泄露风险。
-- **Binary quotient decomposition**：标量归约（`reduce_scalar_512`）由逐次减法改为 binary quotient decomposition，签名路径从 ~500K 次操作降至 ~50 次乘法，同时消除归约路径的时序差异。
+- **恒定时间标量乘法（静态审计级）**：`scalar_mul` 用 conditional select（cmov）替代 secret-dependent 分支，`Fe::eq` 改为 XOR 累加，降低侧信道泄露风险。
+- **Binary quotient decomposition**：标量归约（`reduce_scalar_512`）由逐次减法改为 binary quotient decomposition，签名路径从 ~500K 次操作降至 ~50 次乘法。2026-07-06 已修复 CT-001：比较与 borrow 传播改为算术 mask/选择，源码层面不再包含该处 secret-derived 分支。
 - **非规范编码拒绝**：`point_decode` 通过 Fe::to_bytes() 往返规范化检查拒绝 y ≥ p 的非规范编码（RFC 8032 §5.1.3），防止非规范 y 坐标导致的编码歧义。
 - **Identity point 拒绝**：`ed25519_verify` 显式拒绝 identity 公钥（RFC 8032 §5.1.3），阻断 R = S·B 伪造路径。
 - **审计签名覆盖 canonical JSON**：`audit.sign_last` / `verify_signatures` 对 RFC 8785 规范化序列化后的条目签名，确保签名输入字节稳定、无歧义，杜绝等价 JSON 文本导致的签名漂移。
@@ -22,13 +22,13 @@ MoonEvidence 含**自实现的密码学原语**，未依赖任何外部经审计
 
 ## 安全审计状态
 
-**重要声明**：本项目的密码学实现（尤其是 Ed25519）**尚未经过外部专业安全审计**。它通过了 RFC 8032 已知答案测试（KAT）与交叉对拍，并已补齐反可塑性、恒定时间、binary quotient decomposition、低阶点拒绝等防护，但不应在生产环境或高价值资产保护场景中作为唯一的信任根使用。如需生产级保证，请替换为经审计的密码学库。
+**重要声明**：本项目的密码学实现（尤其是 Ed25519）**尚未经过外部专业安全审计**。它通过了 RFC 8032 已知答案测试（KAT）与交叉对拍，并已补齐反可塑性、恒定时间标量乘法、branch-free 源码级标量归约、binary quotient decomposition、低阶点拒绝等防护；但尚未经 dudect 等侧信道工具和后端产物审计验证，不应在生产环境或高价值资产保护场景中作为唯一的信任根使用。如需生产级保证，请替换为经审计的密码学库。
 
 ### 残留限制
 
 经两轮根因修复后残留的限制（详见 `docs/plans/2026-07-04-health-check-and-improvement-plan.md`）：
 
-- 恒定时间实现为代码审查级别，尚未经正式侧信道分析工具（如 dudect）量化验证。
+- 恒定时间实现为代码审查级别；`docs/CONST_TIME_AUDIT.md` 已记录 CT-001 的源码级修复，且尚未经正式侧信道分析工具（如 dudect）量化验证。
 - 标量乘法虽用 cmov，但 MoonBit 编译器未承诺消除所有 secret-dependent 内存访问；native 后端的 C 编译器可能重新引入分支。
 - 低阶点检查仅覆盖 identity point（显式拒绝），未实现完整 cofactor 8 乘法检查（7 个非 identity 低阶点仍可能通过 point_decode）。在 cofactorless Ed25519 验证中风险有限，但生产级实现应补齐完整 cofactor 检查。
 

@@ -8,26 +8,31 @@ Runs on every push and pull request to `main`. Two jobs:
 
 1. Install MoonBit CLI (`moon 0.1.20260529` via the official unix installer).
 2. `moon version --all` - record the toolchain in the log.
-3. **Fixture rot guard** - regenerate `tests/fixtures/packs` with
+3. **Metric drift guard** - `node tools/check-metrics.mjs`.
+4. **Fixture rot guard** - regenerate `tests/fixtures/packs` with
    `node tools/gen-fixtures.mjs` and `git diff --exit-code`. Any byte change
    means a generator/fixture mismatch and fails CI.
-4. `moon check` - type check, 0 warnings required.
-5. **`moon fmt --check`** - format gate. The codebase was once normalized by
+5. **Cross-verify / Wycheproof guards** - Node.js independent verification and
+   Ed25519 vector inventory checks.
+6. `moon check` - type check, 0 warnings required.
+7. **`moon fmt --check`** - format gate. The codebase was once normalized by
    `moon fmt` across all 38 source files (RESULTS_LOG "moon fmt
    Normalization"); this step makes any future fmt drift fail CI instead of
    silently accumulating. Run `moon fmt` locally to fix.
-6. `moon test --target wasm-gc,js` - unit tests on the two portable backends.
-7. `moon build --target native` - native build (ubuntu runners ship gcc, so
+8. `moon test --target wasm-gc,js` - unit tests on the two portable backends.
+9. `moon build --target native` - native build (ubuntu runners ship gcc, so
    linking succeeds where the local Windows machine cannot).
-8. **`moon test --target native`** - native unit tests now run on ubuntu CI.
+10. **`moon test --target native`** - native unit tests now run on ubuntu CI.
    Unit tests live in the pure packages (canonjson/digest/merkle/model/
    diag/verify) and are backend-agnostic; the `cmd/main` FFI paths stay
    covered by the black-box suite below. If a native-only failure surfaces,
    relax with `continue-on-error: true` and file an issue.
-9. CLI black-box tests (native) - `tools/cli-test.ps1 -Target native`.
-10. `moon build --target wasm-gc` / `moon build --target js`.
-11. CLI black-box tests (js) - `tools/cli-test.ps1 -Target js`.
-12. Browser adapter smoke - `node tools/smoke-api.mjs` over the js artifact.
+11. CLI black-box tests (native) - `tools/cli-test.ps1 -Target native`.
+12. `moon build --target wasm-gc` / `moon build --target js`.
+13. CLI black-box tests (js) - `tools/cli-test.ps1 -Target js`.
+14. Browser adapter smoke - `node tools/smoke-api.mjs` over the js artifact.
+15. Differential crypto - `node tools/differential-crypto.mjs --rounds 64`.
+16. Mutation testing - `node tools/mutation-check.mjs`.
 
 All commands in the workflow must pass locally before being added here, so a
 red main branch always signals a real regression instead of CI drift.

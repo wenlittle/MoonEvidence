@@ -1,12 +1,14 @@
 # MoonEvidence 测试计划
 
+> **治理口径**：`docs/TEST_GOVERNANCE.md` 是质量门禁和停手规则；本文档是详细测试 backlog 与执行计划。
+
 > **核心结论**：是的，必须先把测试计划完善并做好，再谈改进。具体而言——阶段1（P0高风险盲点）必须在任何密码学/安全路径改进之前完成，阶段2（P1安全网）在任何功能改进之前完成。
 >
 > **文档版本**：v1.0
 > **最后更新**：2026-07-06
 > **关联文档**：`docs/KNOWLEDGE_BASE.md` §8-§15
 
-> **2026-07-06 进度记录**：Phase 1 已启动并完成三项独立 oracle 加固：Wycheproof Ed25519 150 向量、store 完整性/严格重建 6 个独立 oracle、incremental golden manifest 5 个独立 oracle（含 Q3 缓存信任边界）。当前本地基线：`moon test --target wasm-gc` 与 `moon test --target js` 均为 304/304 passed；`check-metrics` 口径为 308 个测试声明（304 可执行测试 + 4 基准 wrapper）。
+> **2026-07-06 进度记录**：Phase 1 已完成七项加固：Wycheproof Ed25519 150 向量、Ed25519 精确分支 8 用例、store 完整性/严格重建 6 个独立 oracle、incremental golden manifest 5 个独立 oracle（含 Q3 缓存信任边界）、Ed25519 常量时间静态审计、create_manifest 5 个 panic 错误路径测试、CT-001 源码级修复。Phase 2 已开始：Ed25519 随机差分 oracle 入 CI，incremental 错误路径补齐 E1004/W1001/E3001。当前本地基线：`moon test --target js` 为 321/321 passed；`check-metrics` 口径为 325 个测试声明（321 可执行测试 + 4 基准 wrapper）。仍需注意：这是源码审计级常量时间结论，不等于 dudect/后端产物级证明。
 
 ---
 
@@ -63,7 +65,7 @@
 | 根因 | 涉及盲点 | 本质 |
 |---|---|---|
 | **A: Happy-path bias** | H1, H3, M1, L1, L7 | 测试用例从"功能说明书"正向生成（能做什么），而非从"输入空间划分"逆向生成（每种输入该返回什么） |
-| **B: 无分支覆盖率模型** | H2, H3, L2-L6 | MoonBit 缺乏成熟 coverage 工具，只能靠"308个测试声明"粗粒度指标，无法看到哪些分支从没被触达 |
+| **B: 无分支覆盖率模型** | H2, H3, L2-L6 | MoonBit 缺乏成熟 coverage 工具，只能靠"325个测试声明"粗粒度指标，无法看到哪些分支从没被触达 |
 | **C: 密码学测试未对标行业标准** | H2, H3, H4 | RFC 8032 §7.1 KAT + Wycheproof Ed25519 150 向量已覆盖签名 oracle；仍缺 dudect 侧信道验证 |
 | **D: 安全函数测试优先级被低估** | M2, M3 | 功能路径先测，防篡改/防绕过的安全函数后测甚至不测 |
 | **E: 测试资产双轨漂移** | 6项治理缺口 | cli-test.ps1(53例) vs cli-test.sh(41例) 人工移植，无共享用例源 |
@@ -75,7 +77,7 @@
 | 鲁棒性缺失占比 | 13/17 = **76%** | 76%的盲点都是"没测异常路径"，不是个别遗漏而是默认取向 |
 | 密码学测试三支柱 | 只剩1根（KAT） | 缺消极向量集 + 缺侧信道验证 = 结构性缺陷 |
 | 测试用例生成方式 | 仅3种（KAT+手工攻击+3个属性测试） | 缺差分测试 + 缺模糊测试 = 只能测"想到的" |
-| 覆盖率度量 | "308个测试声明" | 数量指标非覆盖指标，无法回答"39个分支里多少被执行过" |
+| 覆盖率度量 | "325个测试声明" | 数量指标非覆盖指标，无法回答"39个分支里多少被执行过" |
 
 ---
 
@@ -85,7 +87,7 @@
 
 | 层次 | 名称 | 现状 | 目标 | 优先级 |
 |---|---|---|---|---|
-| L0 | 单元测试（白盒） | 308个声明（304可执行+4基准wrapper） | 继续补剩余分支/错误路径 | P0/P1 |
+| L0 | 单元测试（白盒） | 325个声明（321可执行+4基准wrapper） | 继续补剩余分支/错误路径 | P0/P1 |
 | L1 | 集成测试 | ~15个 | +10（跨包闭环） | P1 |
 | L2 | 属性测试 | 3个 | +8（Ed25519/Fe/canonjson扩展） | P1 |
 | L3 | 差分测试 | 固定夹具 | +随机差分harness（Ed25519/SHA/HMAC） | P1 |
@@ -120,7 +122,7 @@
 - **目标**：用独立实现（Node.js crypto）交叉验证，捕获"自我验证自我"的盲区
 - **现状**：`cross-verify.mjs` 只对固定金色夹具做对拍
 - **目标**：升级为随机输入差分，覆盖 SHA-256/SHA-512/Ed25519/HMAC
-- **验收标准**：1000组随机向量字节级一致
+- **验收标准**：CI 固定轮次差分全绿；发布候选 1000 组随机向量字节级一致
 
 #### L4 CLI黑盒
 
@@ -166,17 +168,20 @@
 | 1.1 | Ed25519错误长度输入 | L0 | `ed25519_wbtest.mbt` | pk=31/33字节、sig=63/65字节，均 assert_false | 无 |
 | 1.2 | point_decode无效点 | L0 | `ed25519_wbtest.mbt` | 非曲线y值、x²≠x2路径、data长度≠32 | 无 |
 | 1.3 | x=0+sign=1 | L0 | `ed25519_wbtest.mbt` | 构造使x=0且sign=1的输入，assert None | 需计算满足条件的y值 |
-| 1.4 | 常量时间静态审计 | L8 | 新增审计文档 | 分支清单：scalar_mul/fe_cmov/Fe::eq/Fe::to_bytes/reduce_scalar_512 中所有涉及秘密数据的分支 | 无 |
-| 1.5 | create abort分支 | L0 | `create_wbtest.mbt` | 空subject.id、空subject.kind、空version_id、空version_parent、无效路径 | 需确认 abort 可测性 |
+| 1.4 | 常量时间静态审计 | L8 | `docs/CONST_TIME_AUDIT.md` | 分支清单：scalar_mul/fe_cmov/Fe::eq/Fe::to_bytes/reduce_scalar_512 中所有涉及秘密数据的分支；CT-001 已源码级修复 | 无 |
+| 1.5 | create abort分支 | L0 | `create_wbtest.mbt` | 空subject.id、空subject.kind、空version_id、空version_parent、无效路径 | 已用 `panic` 测试覆盖 |
 | 1.6 | store安全函数 | L0 | `object_store_wbtest.mbt` | verify_integrity内容篡改→false、reconstruct_strict缺失→Err、remove不存在→false | 无 |
 | 1.7 | 增量验证缓存篡改 | L1 | `incremental_wbtest.mbt` | 篡改缓存使坏文件跳过哈希、缓存指向不存在文件 | 无 |
 
 **已完成（2026-07-06）**：
 - `src/crypto/ed25519_wycheproof_wbtest.mbt`：150 条 Wycheproof Ed25519 向量（88 valid + 62 invalid），并补 `tools/check-wycheproof-ed25519.mjs` 清点门禁。
+- `src/crypto/ed25519_wbtest.mbt`：8 个精确分支测试，覆盖 pk/sig 长度 guard、`point_decode` 长度 guard、非曲线 y、`x=0 && sign=1`、sqrt(-1) 修正路径、verify 的 pk/R 解码失败分支。
 - `src/store/object_store_wbtest.mbt`：6 个 independent oracle，绕过 `put()`/`sha256_hex`，覆盖篡改、缺失、多缺失、严格重建成功/失败。
 - `src/verify/incremental_wbtest.mbt`：5 个 golden manifest independent oracle，覆盖全缓存、空缓存、E2004 正反例、Q3 恶意缓存信任边界。
+- `docs/CONST_TIME_AUDIT.md`：Ed25519 静态常量时间审计，区分 secret path 与 public-input rejection path；CT-001 已修复为 arithmetic mask/borrow selection。
+- `src/create/create_wbtest.mbt`：5 个 `panic` 测试覆盖 `create_manifest` 的空 subject.id、空 subject.kind、空 version_id、空 version_parent、非法路径 abort 分支。
 
-**仍需完成**：1.1/1.2/1.3 的 Ed25519 精确分支测试、1.4 常量时间静态审计、1.5 create abort 分支。
+**仍需完成**：Phase 1 测试项与 CT-001 源码级修复已收口；生产级侧信道声明仍需 dudect/后端产物审计。
 
 **工作量**：约15-20个测试用例，2-3天专注工作
 
@@ -193,7 +198,7 @@
 |---|---|---|---|
 | 2.1 | 大规模Merkle树（10000叶闭环） | L1/L7 | 无 |
 | 2.2 | SHA-512路径（merkle/verify/incremental） | L0/L3 | 阶段1 |
-| 2.3 | 增量验证错误路径（E1004/E2003/E2004/E3001/E3003/W1001） | L0 | 无 |
+| 2.3 | 增量验证错误路径（E1004/E2003/E2004/E3001/E3003/W1001） | L0 | Done: incremental_wbtest covers E1004, E2003, E2004, E3001 (missing root and empty tree), E3003, and W1001 |
 | 2.4 | bash cli-test补齐Part4+Part5（12例） | L4 | 无 |
 | 2.5 | CLI_VERSION CI门禁 | L4/治理 | 无 |
 | 2.6 | Ed25519属性测试（sign→verify往返60轮 + 篡改检测120轮） | L2 | 阶段1 |
@@ -201,7 +206,7 @@
 | 2.8 | 变异测试扩展（+5-8个变异点） | L5 | 阶段1 |
 | 2.9 | 基准测试扩展（native/wasm-gc + Ed25519基准） | L7 | 无 |
 | 2.10 | point_decode边界（y=p/p+1/2p-1 + sign=0/1组合） | L0 | 阶段1 |
-| 2.11 | Ed25519差分测试（Node.js crypto 1000组随机向量） | L3 | 无 |
+| 2.11 | Ed25519差分测试（Node.js crypto 随机向量；CI 64组，发布候选1000组） | L3 | 无 |
 | 2.12 | SHA/HMAC差分测试（随机长度0-65536字节） | L3 | 无 |
 
 **工作量**：约30-40个测试用例 + 12个CLI用例 + 5-8个变异点，4-6天
@@ -210,7 +215,7 @@
 - 变异测试捕获率 13-16/13-16 = 100%
 - bash 和 PowerShell CLI 用例数一致
 - CI 增加 CLI_VERSION 门禁步骤
-- 差分测试 1000 组向量全通过
+- Ed25519 差分测试 CI 64 组全通过；发布候选手动 `--rounds 1000` 全通过
 
 ### 阶段3（P2：技术债务，择机补）
 
@@ -298,28 +303,30 @@ test "point_decode rejects x=0 with sign=1 (RFC 8032 §5.1.3)" {
 | `fe_cmov` | field25519.mbt:214-227 | 条件拷贝 | Fe值+条件 | ✅ | OR掩码，无分支 |
 | `point_cmov` | point25519.mbt:129-136 | 条件拷贝 | Point值+条件 | ✅ | 逐limb cmov |
 | `scalar_mul` | point25519.mbt:144-161 | double-and-add | 标量 | ✅ | 每bit都执行add+double |
-| `reduce_scalar_512` | ed25519.mbt:106-144 | branchless cmov | 512位标量 | ✅ | binary quotient decomposition |
+| `reduce_scalar_512` | ed25519.mbt:81-153 | 算术 mask + 条件减法 | 512位标量 | ✅ | 比较用 `byte_gt_mask`/`byte_lt_mask`，borrow 用算术选择，无源码级 secret-dependent 分支 |
 | `Fe::to_bytes` | field25519.mbt:161-186 | 条件减p | Fe值 | ✅ | borrow计算无分支 |
-| `is_canonical_s` | ed25519.mbt:230-232 | **逐字节比较** | S字段 | ⚠️ | **有early return分支** |
+| `scalar_lt_l` | ed25519.mbt:223-239 | **逐字节比较** | verify 的公开 S 字段 | ⚠️ | 有 early return，但当前只用于公开签名输入 |
 | `point_decode` sign检查 | ed25519.mbt:371-375 | **sign bit分支** | 解码点 | ⚠️ | **有if分支** |
 
-**已知非常量时间路径**（需文档声明）：
-- `is_canonical_s` 的 `sv < lv` / `sv > lv` early return
-- `point_decode` 的 `x_sign != sign` 和 `x.eq(Fe::zero()) && sign == 1` 分支
+**已知非常量时间/需保守声明路径**：
+- `scalar_lt_l` 的 `sv < lv` / `sv > lv` early return（当前仅用于 verify 的公开 S 字段，可接受；不可复用到 secret scalar）。
+- `point_decode` 的 `x_sign != sign` 和 `x.eq(Fe::zero()) && sign == 1` 分支（当前仅用于 verify 的公开 pk/R，可接受）。
+- `reduce_scalar_512` 的 CT-001 已在源码级修复；仍需后端产物/动态时序验证，才能作生产级侧信道声明。
 
 #### 1.5 create abort分支（5例）
 
 ```moonbit
-test "create_manifest aborts on empty subject.id" {
-  let options = CreateOptions{ subject: SubjectInfo{id:"", kind:"test"}, ... }
-  // 预期: abort
+test "panic create_manifest rejects empty subject id" {
+  let options = CreateOptions::{ subject: SubjectInfo::{ id: "", kind: "test" }, ... }
+  ignore(create_manifest(options))
 }
 // 类似: 空 subject.kind、空 version_id、空 version_parent、非法路径
 ```
 
-**注意**：MoonBit 的 `abort` 会导致进程终止。两种处理方式：
-- 方式A：如果 MoonBit 支持 `try...catch abort`，直接捕获
-- 方式B：将 `abort` 改为 `Result` 返回类型（测试驱动的改进）
+**实际实现**：MoonBit 测试名以 `panic` 开头时，测试只有在触发 panic/abort 时才通过。当前已在
+`src/create/create_wbtest.mbt` 中落地 5 个 `panic` 测试，覆盖空 `subject.id`、空 `subject.kind`、
+空 `version_id`、空 `version_parent`、非法路径 5 条 abort/error-path 分支。此处没有改
+`create_manifest` API，也没有把 `abort` 临时重构成 `Result`，避免为了测试引入行为变更。
 
 #### 1.6 store安全函数（3例）
 
@@ -395,43 +402,17 @@ test "ed25519 tamper detection property (120 rounds)" {
 #### 2.11 Ed25519差分测试
 
 ```javascript
-// tools/diff-ed25519.mjs
-import { generateKeyPairSync, sign, createPrivateKey } from 'node:crypto';
-
-// 生成 1000 组随机测试向量
-const vectors = [];
-for (let i = 0; i < 1000; i++) {
-    const { privateKey, publicKey } = generateKeyPairSync('ed25519');
-    const pkDer = publicKey.export({ type: 'spki', format: 'der' });
-    const skDer = privateKey.export({ type: 'pkcs8', format: 'der' });
-    const seed = skDer.slice(-32);  // PKCS8 最后32字节是seed
-    const pk = pkDer.slice(-32);    // SPKI 最后32字节是pk
-    const msg = crypto.randomBytes(Math.floor(Math.random() * 256));
-    const sig = sign(null, msg, privateKey);
-    vectors.push({ sk: seed.toString('hex'), pk: pk.toString('hex'),
-                   msg: msg.toString('hex'), sig: sig.toString('hex') });
-}
-writeFileSync('tests/fixtures/ed25519/diff_vectors.json', JSON.stringify(vectors));
+// tools/differential-crypto.mjs
+// CI: node tools/differential-crypto.mjs --rounds 64
+// Release candidate: node tools/differential-crypto.mjs --rounds 1000
+//
+// Uses deterministic SplitMix64 seeds/messages and Node.js crypto Ed25519
+// as the independent oracle for the compiled MoonBit JS API.
 ```
 
-```moonbit
-// src/crypto/ed25519_diff_wbtest.mbt
-test "ed25519 differential: 1000 vectors match Node.js crypto" {
-  let vectors = load_diff_vectors("tests/fixtures/ed25519/diff_vectors.json")
-  for v in vectors {
-    let sk = hex_to_bytes(v["sk"])
-    let pk_expected = hex_to_bytes(v["pk"])
-    let msg = hex_to_bytes(v["msg"])
-    let sig_expected = hex_to_bytes(v["sig"])
-    // 差分检查: 公钥推导一致
-    assert_true(bytes_eq(ed25519_public_key(sk), pk_expected))
-    // 差分检查: 签名一致（Ed25519 确定性）
-    assert_true(bytes_eq(ed25519_sign(sk, msg), sig_expected))
-    // 差分检查: 验证一致
-    assert_true(ed25519_verify(pk_expected, msg, sig_expected))
-  }
-}
-```
+**实际检查**：公钥推导一致、确定性签名逐字节一致、Node 接受 MoonBit 签名、MoonBit 接受
+Node 签名、篡改消息被 MoonBit 拒绝。该脚本不把向量固化进仓库，避免 fixture 腐化；随机源是
+固定种子 PRNG，所以失败可复现。
 
 ---
 
@@ -551,3 +532,6 @@ test "ed25519 differential: 1000 vectors match Node.js crypto" {
 |---|---|---|
 | 2026-07-06 | 初始版本：基于3个子线程深度分析，确定"先测试后改进"策略，设计9层测试模型和3阶段实施计划 | TRAE AI |
 | 2026-07-06 | Phase 1 部分落地：Wycheproof Ed25519、store independent oracle、incremental golden oracle；记录 304/304 实跑与 308 声明口径差异 | Codex |
+| 2026-07-06 | Phase 1 Ed25519 精确分支收口：新增 8 个白盒测试，记录 312/312 实跑与 316 声明口径差异 | Codex |
+| 2026-07-06 | Phase 1 create abort 收口：新增 5 个 panic 测试，记录 317/317 实跑与 321 声明口径差异；CT-001 保持为实现风险 | Codex |
+| 2026-07-06 | CT-001 源码级修复：`reduce_scalar_512` 比较/borrow 改为 arithmetic mask/selection；Phase 1 源码与测试治理收口 | Codex |

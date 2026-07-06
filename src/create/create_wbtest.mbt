@@ -107,6 +107,66 @@ test "create_manifest with empty files produces valid output" {
 }
 
 ///|
+test "panic create_manifest rejects empty subject id" {
+  let files : Map[String, Bytes] = { "ok.txt": b"ok" }
+  let options : CreateOptions = {
+    subject: { id: "", kind: "test" },
+    algorithm: @digest.Sha256,
+    version_id: "v1",
+    version_parent: None,
+  }
+  let _ = create_manifest(files, options)
+}
+
+///|
+test "panic create_manifest rejects empty subject kind" {
+  let files : Map[String, Bytes] = { "ok.txt": b"ok" }
+  let options : CreateOptions = {
+    subject: { id: "subject-1", kind: "" },
+    algorithm: @digest.Sha256,
+    version_id: "v1",
+    version_parent: None,
+  }
+  let _ = create_manifest(files, options)
+}
+
+///|
+test "panic create_manifest rejects empty version id" {
+  let files : Map[String, Bytes] = { "ok.txt": b"ok" }
+  let options : CreateOptions = {
+    subject: { id: "subject-1", kind: "test" },
+    algorithm: @digest.Sha256,
+    version_id: "",
+    version_parent: None,
+  }
+  let _ = create_manifest(files, options)
+}
+
+///|
+test "panic create_manifest rejects empty version parent" {
+  let files : Map[String, Bytes] = { "ok.txt": b"ok" }
+  let options : CreateOptions = {
+    subject: { id: "subject-1", kind: "test" },
+    algorithm: @digest.Sha256,
+    version_id: "v2",
+    version_parent: Some(""),
+  }
+  let _ = create_manifest(files, options)
+}
+
+///|
+test "panic create_manifest rejects invalid file path" {
+  let files : Map[String, Bytes] = { "../escape.txt": b"escape" }
+  let options : CreateOptions = {
+    subject: { id: "subject-1", kind: "test" },
+    algorithm: @digest.Sha256,
+    version_id: "v1",
+    version_parent: None,
+  }
+  let _ = create_manifest(files, options)
+}
+
+///|
 test "create → tamper → verify detects mismatch" {
   let files : Map[String, Bytes] = { "secret.txt": b"original content" }
   let options : CreateOptions = {

@@ -190,6 +190,85 @@ test "incremental verify reports e2004 when manifest digest mismatches" {
 }
 
 ///|
+test "incremental verify reports e1004 for unsupported ignored number" {
+  // The model ignores unknown fields, but canonicalization covers the whole
+  // manifest. A JSON number that overflows IEEE 754 has no RFC 8785 canonical
+  // form, so the incremental path must surface E1004 just like full verify.
+  let manifest_json = golden_manifest.replace(
+    old="\"hash_algorithm\": \"sha256\",",
+    new="\"hash_algorithm\": \"sha256\", \"annotation\": 1e999,",
+  )
+  let previous = golden_cache_from_manifest()
+  let result = verify_manifest_incremental(
+    manifest_json,
+    golden_files(),
+    previous,
+    expected_manifest_digest=None,
+  )
+  assert_false(result.report.ok)
+  assert_true(incremental_error_codes(result.report).contains("E1004"))
+}
+
+///|
+test "incremental verify reports w1001 for unlisted file but remains ok" {
+  let files = golden_files()
+  files["files/extra.bin"] = b"\x01\x02"
+  let previous = golden_cache_from_manifest()
+  let result = verify_manifest_incremental(
+    golden_manifest,
+    files,
+    previous,
+    expected_manifest_digest=None,
+  )
+  assert_true(result.report.ok)
+  @debug.assert_eq(incremental_error_codes(result.report), ["W1001"])
+  assert_eq(result.report.warning_count(), 1)
+  assert_eq(result.report.error_count(), 0)
+  assert_eq(result.files_skipped, 2)
+  assert_eq(result.files_rehashed, 0)
+}
+
+///|
+test "incremental verify reports e3001 when merkle_root is missing" {
+  let manifest_json = golden_manifest.replace(
+    old="\"merkle_root\": \"sha256:07a4f4bf0c83169b056f07acbf3483a5e418e58e09e942a3f06421f9cca316a5\",",
+    new="",
+  )
+  let previous = golden_cache_from_manifest()
+  let result = verify_manifest_incremental(
+    manifest_json,
+    golden_files(),
+    previous,
+    expected_manifest_digest=None,
+  )
+  assert_false(result.report.ok)
+  @debug.assert_eq(incremental_error_codes(result.report), ["E3001"])
+  assert_false(result.report.checked.merkle_checked)
+}
+
+///|
+test "incremental verify reports e3001 when merkle_root attests empty files" {
+  let manifest_json =
+    #|{
+    #|  "schema": "moon-evidence/v0",
+    #|  "subject": { "id": "empty-with-root", "type": "dataset" },
+    #|  "hash_algorithm": "sha256",
+    #|  "files": [],
+    #|  "merkle_root": "sha256:07a4f4bf0c83169b056f07acbf3483a5e418e58e09e942a3f06421f9cca316a5",
+    #|  "version": { "id": "v1", "parent": null }
+    #|}
+  let result = verify_manifest_incremental(
+    manifest_json,
+    {},
+    {},
+    expected_manifest_digest=None,
+  )
+  assert_false(result.report.ok)
+  @debug.assert_eq(incremental_error_codes(result.report), ["E3001"])
+  assert_eq(result.report.checked.files_total, 0)
+}
+
+///|
 test "incremental verify passes when manifest digest matches" {
   // Same setup, but the expected digest is the real canonical digest.
   let files : Map[String, Bytes] = { "a.txt": b"alpha" }

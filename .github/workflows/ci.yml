@@ -92,6 +92,13 @@ jobs:
       - name: Browser adapter smoke (node over js artifact)
         run: node tools/smoke-api.mjs
 
+      # Differential crypto: compares the compiled MoonBit JS Ed25519 API
+      # against Node.js crypto on deterministic random seeds/messages.
+      # Use a bounded CI round count; run `--rounds 1000` manually for release
+      # candidates when deeper sampling is needed.
+      - name: Differential crypto (MoonBit JS vs Node crypto)
+        run: node tools/differential-crypto.mjs --rounds 64
+
       # Mutation testing: rewrites one source byte at a time, runs the test
       # suite, and confirms at least one test went red. If a mutation slips
       # through (tests stay green), the test suite has a blind spot. This is

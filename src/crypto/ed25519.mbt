@@ -56,6 +56,18 @@ fn clamp_scalar(h : Bytes) -> Bytes {
 }
 
 ///|
+// Returns 1 iff a > b for byte-sized Int values, else 0.
+fn byte_gt_mask(a : Int, b : Int) -> Int {
+  ((b - a) >> 31) & 1
+}
+
+///|
+// Returns 1 iff a < b for byte-sized Int values, else 0.
+fn byte_lt_mask(a : Int, b : Int) -> Int {
+  ((a - b) >> 31) & 1
+}
+
+///|
 /// Reduce a 64-byte hash modulo the group order l using binary quotient
 /// decomposition. Process 64 bytes from MSB to LSB:
 /// result = result*256 + h[i], then reduce mod l.
@@ -104,41 +116,29 @@ fn reduce_scalar_512(h : Bytes) -> Bytes {
     // Reduce: subtract l*2^k for k=8 downto 0. Each step halves max remainder.
     let mut k = 8
     while k >= 0 {
-      // Compare acc vs mul[k] from MSB.
-      // Constant-time conditional subtract: always compute the difference,
-      // then select via branchless cmov. The `cmp` comparison result is
-      // secret-derived (it depends on the scalar, which comes from
-      // SHA-512 of the private key prefix or the nonce r).
-      let mut cmp = 0
+      // Compare acc vs mul[k] from MSB. The greater/less flags are built with
+      // arithmetic masks so the source has no secret-dependent compare branch.
+      let mut gt = 0
+      let mut lt = 0
       let mut idx = 33
       while idx >= 0 {
         let a = acc[idx]
         let m = mul[k][idx]
-        if a > m && cmp == 0 {
-          cmp = 1
-        } else if a < m && cmp == 0 {
-          cmp = -1
-        }
+        let undecided = 1 - (gt | lt)
+        gt = gt | (byte_gt_mask(a, m) * undecided)
+        lt = lt | (byte_lt_mask(a, m) * undecided)
         idx = idx - 1
       }
       // Branchless conditional subtraction: compute diff into a temp
-      // buffer, then cmov select diff or original based on cmp >= 0.
-      // This eliminates the secret-dependent branch `if cmp >= 0`.
-      let do_sub = (cmp + 1) >> 1 // cmp >= 0 → 1; cmp < 0 → 0
+      // buffer, then cmov select diff or original based on acc >= mul[k].
+      let do_sub = 1 - lt
       let mut borrow = 0
       for idx in 0..<34 {
         let diff = acc[idx] - mul[k][idx] - borrow
-        if diff < 0 {
-          // Compute the wrapped value; borrow propagates.
-          let wrapped = diff + 256
-          // Select: if do_sub, use wrapped; else keep acc[idx].
-          acc[idx] = (acc[idx] * (1 - do_sub)) + (wrapped * do_sub)
-          borrow = 1
-        } else {
-          let no_borrow_val = diff
-          acc[idx] = (acc[idx] * (1 - do_sub)) + (no_borrow_val * do_sub)
-          borrow = 0
-        }
+        let next_borrow = (diff >> 31) & 1
+        let reduced = diff + next_borrow * 256
+        acc[idx] = acc[idx] * (1 - do_sub) + reduced * do_sub
+        borrow = next_borrow
       }
       k = k - 1
     }

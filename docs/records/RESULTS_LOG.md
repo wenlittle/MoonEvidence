@@ -745,6 +745,175 @@ paths. No production verification logic was changed in this round.
 | `moon test --target js` | 304/304 passed |
 | `moon test --target native` | env error: no system C compiler found (`cl`, `cc`, `gcc`, `clang` absent); CI ubuntu covers native |
 
+## 2026-07-06 Asia/Shanghai (test-governance + Ed25519 exact branch baseline)
+
+### Test governance and Phase 1 Ed25519 exact branch execution
+
+This round turned the open-ended test-hardening work into a bounded governance
+process, then applied it to the remaining Ed25519 exact branch blind spots. No
+production verification logic was changed.
+
+| Field | Result |
+| --- | --- |
+| Governance | Added `docs/TEST_GOVERNANCE.md`: P0/P1/P2 risk classes, Definition of Done, release gate commands, stop rule, anti-patterns, and references to NIST SSDF, OWASP ASVS, Google test sizing, Fowler test pyramid, and mutation testing practice. |
+| Ed25519 exact branches | Added 8 white-box tests in `src/crypto/ed25519_wbtest.mbt`: pk length 31/33, signature length 63/65, `point_decode` length 31/33, non-curve `y=2`, `x=0 && sign=1`, sqrt(-1) correction on `y=0`, invalid public-key decode in verify, and invalid R decode in verify. |
+| Encoding correction | The `x=0 && sign=1` case uses the actual Ed25519 compressed-point encoding: little-endian `y=1` with the sign bit set in byte 31 (`0x80`), not a first-byte `0x81` shortcut. |
+| Documentation | Updated `README.md`, `README.zh.md`, `docs/report/DEVELOPMENT_REPORT.md`, `docs/records/ACCEPTANCE_CHECKLIST.md`, `docs/KNOWLEDGE_BASE.md`, `docs/TEST_PLAN.md`, and `docs/TEST_GOVERNANCE.md` to the new baseline. |
+| Metrics distinction | `moon test` reports 312 executable tests. `tools/check-metrics.mjs` counts 316 test declarations because the 4 benchmark wrappers are written as `test "bench: ..."` declarations. |
+| Current metrics | 107 commits / 12088 MoonBit lines (impl 5395 + tests 6693) / 316 test declarations / 12 packages / moon.mod 0.4.0 == CHANGELOG 0.4.0 |
+| Remaining Phase 1 work | Constant-time static audit; create abort/error-path tests. |
+
+### Verification Run
+
+| Command | Result |
+| --- | --- |
+| `moon check` | exit 0 |
+| `moon test --target js` | 312/312 passed |
+| `moon test --target wasm-gc` | 312/312 passed |
+
+## 2026-07-06 Asia/Shanghai (Ed25519 constant-time static audit)
+
+### Phase 1 L8 Static Audit
+
+This round completed the static constant-time audit required by Phase 1. It
+did not change production cryptographic logic. The important result is a
+truthful boundary: scalar multiplication is written with branch-free cmov at
+source level, but full Ed25519 signing is not constant-time because scalar
+reduction still branches on secret-derived values.
+
+| Field | Result |
+| --- | --- |
+| Scope | `src/crypto/field25519.mbt`, `src/crypto/point25519.mbt`, `src/crypto/ed25519.mbt` |
+| New artifact | `docs/CONST_TIME_AUDIT.md` |
+| Source-reviewed OK | `Fe::to_bytes`, `Fe::eq`, `fe_cmov`, `point_cmov`, `Point::scalar_mul`, `Point::encode` |
+| Public-input branches | `scalar_lt_l` and `point_decode` early returns are acceptable in `ed25519_verify` because they depend on public/adversarial `S`, `pk`, and `R`, not on secrets |
+| Finding | CT-001: `reduce_scalar_512` still has secret-derived compare and borrow branches (`ed25519.mbt:117-120`, `ed25519.mbt:131`), so complete constant-time Ed25519 signing must not be claimed |
+| Documentation correction | `SECURITY.md`, `docs/TEST_PLAN.md`, `docs/TEST_GOVERNANCE.md`, and `docs/KNOWLEDGE_BASE.md` now distinguish constant-time scalar multiplication from incomplete constant-time signing |
+| Remaining Phase 1 work | `create_manifest` abort/error-path testing was still open at this point and is closed by the next log entry; CT-001 remediation remains required before any release or material claims production-grade constant-time signing |
+
+## 2026-07-06 Asia/Shanghai (create abort panic tests)
+
+### Phase 1 Create Error-Path Execution
+
+This round completed the `create_manifest` abort/error-path item without
+changing production API behavior. MoonBit panic tests are enabled by test names
+starting with `panic`, so the tests prove the abort branches are live while
+keeping `create_manifest(files, options) -> String` unchanged.
+
+| Field | Result |
+| --- | --- |
+| Scope | `src/create/create_wbtest.mbt`, `src/create/create.mbt` validation guards |
+| New tests | 5 `panic` wbtests: empty `subject.id`, empty `subject.kind`, empty `version_id`, empty `version_parent`, and invalid path `../escape.txt` |
+| Test design | Each test mutates exactly one input while keeping all other fields valid, so a passing panic test maps to the intended guard rather than an unrelated earlier abort |
+| Current metrics | 107 commits / 12148 MoonBit lines (impl 5395 + tests 6753) / 321 test declarations / 12 packages / moon.mod 0.4.0 == CHANGELOG 0.4.0 |
+| Phase 1 status | Test-hardening items are closed. CT-001 remains an implementation/security-risk item before any full constant-time Ed25519 signing claim. |
+
+### Verification Run
+
+| Command | Result |
+| --- | --- |
+| `moon test --target js src/create` | 15/15 passed |
+| `moon check` | exit 0 |
+| `moon test --target js` | 317/317 passed |
+| `moon test --target wasm-gc` | 317/317 passed |
+| `node tools/check-metrics.mjs` | PASS: 19/19 metric assertions; current metrics 12148 lines / 321 declarations |
+| `node tools/check-wycheproof-ed25519.mjs` | PASS: 150 vectors, all 7 category counts match |
+| `node tools/cross-verify.mjs` | PASS: 10/10 packs; negative packs print expected mismatch details and are correctly rejected |
+| `node tools/mutation-check.mjs` | PASS: 8/8 mutations caught |
+| `git diff --check` | PASS; only CRLF normalization warning for `README.zh.md` |
+| `moon fmt --check` | FAIL due existing package-wide formatting drift outside this change (`src/cmd/main`, `src/store`, `src/crypto/ed25519_wycheproof_wbtest.mbt`, `src/create/create.mbt`, `src/audit`, `src/digest`) |
+
+## 2026-07-06 Asia/Shanghai (CT-001 source-level fix)
+
+### Ed25519 Scalar Reduction Constant-Time Source Review Closure
+
+This round fixed the CT-001 source-level branch issue in `reduce_scalar_512`
+without changing the public API or test counts. The fix keeps the existing
+binary quotient decomposition but replaces secret-derived compare/borrow
+branches with arithmetic masks and selection.
+
+| Field | Result |
+| --- | --- |
+| Scope | `src/crypto/ed25519.mbt`, `docs/CONST_TIME_AUDIT.md`, `SECURITY.md`, `docs/TEST_PLAN.md`, `docs/TEST_GOVERNANCE.md`, `docs/KNOWLEDGE_BASE.md` |
+| Code change | Added byte comparison masks (`byte_gt_mask`, `byte_lt_mask`) and changed `reduce_scalar_512` to compute greater/less and subtraction borrow without source-level secret-derived branches. |
+| Security status | CT-001 is fixed at source-review level. Remaining caveat is backend/runtime/timing assurance, not the original explicit branch issue. |
+| Metrics | 107 commits / 12148 MoonBit lines (impl 5395 + tests 6753) / 321 test declarations / 12 packages / moon.mod 0.4.0 == CHANGELOG 0.4.0 |
+| Phase 1 status | Source/test-governance Phase 1 is closed. Next work should move to Phase 2 safety net unless the user explicitly wants backend timing analysis first. |
+
+### Verification Run
+
+| Command | Result |
+| --- | --- |
+| `moon test --target js src/crypto` | 47/47 passed |
+| `moon check` | exit 0 |
+| `moon test --target js` | 317/317 passed |
+| `moon test --target wasm-gc` | 317/317 passed |
+| `node tools/check-metrics.mjs` | PASS: 19/19 metric assertions; current metrics unchanged |
+| `node tools/check-wycheproof-ed25519.mjs` | PASS: 150 vectors, all 7 category counts match |
+| `node tools/cross-verify.mjs` | PASS: 10/10 packs; negative packs print expected mismatch details and are correctly rejected |
+| `node tools/mutation-check.mjs` | PASS: 8/8 mutations caught |
+| `git diff --check` | PASS; only CRLF normalization warning for `README.zh.md` |
+| `moon fmt --check` | FAIL due existing package-wide formatting drift outside this change; `moon fmt --check src/crypto` still fails because pre-existing `ed25519_wycheproof_wbtest.mbt` formatting is generated/long-vector style |
+
+## 2026-07-06 Asia/Shanghai (Phase 2 Ed25519 differential crypto gate)
+
+### Node.js crypto differential check for compiled JS API
+
+This round started Phase 2 by adding an independent randomized Ed25519
+differential harness. It compares the compiled MoonBit JS API against Node.js
+`crypto` for public-key derivation, deterministic signatures, cross-verification,
+and tamper rejection.
+
+| Field | Result |
+| --- | --- |
+| New artifact | `tools/differential-crypto.mjs` |
+| CI | Added `node tools/differential-crypto.mjs --rounds 64` after `moon build --target js` and `tools/smoke-api.mjs` |
+| Oracle | Node.js `crypto` Ed25519 using PKCS#8 private keys built from the same 32-byte seed |
+| Coverage | Deterministic random seeds/messages via SplitMix64; checks Moon public key == Node public key, Moon signature == Node signature, Node accepts Moon signature, Moon accepts Node signature, Moon rejects tampered message |
+| Scope decision | CI uses 64 rounds to keep runtime bounded; release candidates can run `--rounds 1000` for deeper sampling |
+
+### Verification Run
+
+| Command | Result |
+| --- | --- |
+| `moon build --target js` | exit 0 |
+| `node tools/differential-crypto.mjs --rounds 8` | 8/8 vectors matched Node.js crypto |
+| `node tools/differential-crypto.mjs` | 64/64 vectors matched Node.js crypto |
+| `node tools/differential-crypto.mjs` | 256/256 vectors matched Node.js crypto before default was reduced to CI-friendly 64 |
+| `node tools/check-metrics.mjs` | PASS: 19/19 metric assertions; current metrics unchanged |
+| `moon check` | exit 0 |
+| `git diff --check` | PASS; only CRLF normalization warning for `README.zh.md` |
+
+## 2026-07-06 Asia/Shanghai (Phase 2 incremental error-path closure)
+
+### Incremental Verification Negative-Path Coverage
+
+This round closed Phase 2 item 2.3 for the incremental verifier. No production
+verification logic changed; the work adds focused white-box tests that prove
+the incremental path now reports the same error classes as the full verifier
+for canonicalization, missing files, manifest digest mismatch, Merkle failures,
+and unlisted-file warnings.
+
+| Field | Result |
+| --- | --- |
+| Scope | `src/verify/incremental_wbtest.mbt`, docs metrics |
+| New tests | 4 wbtests: E1004 unsupported number in ignored field, W1001 unlisted file remains warning-only, E3001 missing `merkle_root`, E3001 `merkle_root` over empty `files[]` |
+| Existing coverage reused | E2003 missing file, E2004 manifest digest mismatch, E3003 tampered Merkle root were already present in `incremental_wbtest.mbt` |
+| Phase 2 status | Item 2.3 is closed for the documented error set: E1004/E2003/E2004/E3001/E3003/W1001 |
+| Metrics | 107 commits / 12227 MoonBit lines (impl 5395 + tests 6832) / 325 test declarations / 12 packages / moon.mod 0.4.0 == CHANGELOG 0.4.0 |
+
+### Verification Run
+
+| Command | Result |
+| --- | --- |
+| `moon test --target js src/verify` | 42/42 passed |
+| `moon check` | exit 0 |
+| `moon test --target js` | 321/321 passed |
+| `moon test --target wasm-gc` | 321/321 passed |
+| `node tools/check-metrics.mjs` | PASS: 19/19 metric assertions; current metrics 12227 lines / 325 declarations |
+| `node tools/differential-crypto.mjs` | 64/64 Ed25519 vectors matched Node.js crypto; Node emitted the existing MODULE_TYPELESS_PACKAGE_JSON warning for the generated JS artifact |
+| `git diff --check` | PASS; only CRLF normalization warning for `README.zh.md` |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

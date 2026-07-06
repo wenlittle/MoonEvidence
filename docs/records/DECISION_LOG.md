@@ -1,5 +1,26 @@
 # Decision Log
 
+## 2026-07-06: Test governance controls further test work
+
+Decision: Add `docs/TEST_GOVERNANCE.md` as the controlling quality-gate and
+stop-rule document for test work. `docs/TEST_PLAN.md` remains the backlog and
+implementation plan, but governance decisions now use explicit P0/P1/P2 risk
+classes, Definition of Done, release gate commands, and anti-pattern checks.
+
+Reason:
+
+- The project had accumulated detailed test plans, but the missing layer was a
+  bounded decision process for "enough for now" versus "release-blocking".
+- External guidance points in the same direction: NIST SSDF asks projects to
+  define security-check criteria and document testing/triage; OWASP ASVS uses
+  explicit verification requirements; Google review guidance asks whether tests
+  are useful and would fail when code is broken; mutation testing validates
+  test quality instead of relying on counts.
+- For MoonEvidence, the practical rule is: P0 trust-boundary gaps block the
+  affected change/release, P1 blocks release/submission, and P2 is real backlog
+  with a trigger. This prevents anxiety-driven patching while keeping security
+  work honest.
+
 ## 2026-06-11: Number Serialization L2 via Core Double::to_string (step 8)
 
 Decision: canonjson numbers upgrade from the L1 safe subset to the full
@@ -249,4 +270,3 @@ Reason:
 - Also asserts `moon.mod version == CHANGELOG latest version` to prevent the round-2 moon.mod/CHANGELOG version desynchronization from recurring.
 
 > **2026-07-05 update (round 4):** The original entry above claimed check-metrics was a CI gate, but `.github/workflows/ci.yml` did not actually reference it — the "gate" was manual-only. This has been corrected: ci.yml now runs `check-metrics.mjs`, `cross-verify.mjs`, and `mutation-check.mjs` as blocking steps. `cross-verify.mjs` was also updated to recognize negative test packs (bad-*/tampered-*/missing-*) so their expected verification failures count as PASS. `mutation-check.mjs` mutation targets were updated to match the post-SHA-512 multi-algorithm code structure.
-

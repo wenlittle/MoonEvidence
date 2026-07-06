@@ -231,7 +231,7 @@
 | 3.1 | diag单复数分支 | L0 |
 | 3.2 | parse_digest失败分支（无冒号/未知算法/非hex） | L0 |
 | 3.3 | Fe::from_small / Fe::to_bytes条件减p 直接测试 | L0 |
-| 3.4 | 模糊测试harness（10000轮随机输入不崩溃） | L6（部分完成：API malformed fuzz + API semantic property 已入 CI；`randomized-hardening --profile stress` 已定义 10000 级别手动 profile，实际长跑结果待发布候选记录） |
+| 3.4 | 模糊测试harness（10000轮随机输入不崩溃） | L6（部分完成：API malformed fuzz + API semantic property 已入 CI；`randomized-hardening --profile release` 已实跑通过；`--profile stress` 已定义 10000 级别手动 profile，待真正发布前按需长跑） |
 | 3.5 | 动态时序测量（Ed25519验证10000次采样+统计） | L8 |
 | 3.6 | E3002覆盖（实现proof CLI 或记录为保留码） | L4 |
 | 3.7 | 符号链接缓解验证 | L8 |
@@ -549,3 +549,4 @@ Node 签名、篡改消息被 MoonBit 拒绝。该脚本不把向量固化进仓
 | 2026-07-06 | Phase 2 API semantic property 门禁：新增 `tools/property-api-semantic.mjs`，覆盖公共 JS adapter 的 valid-request 闭环不变量与篡改拒绝，并接入 CI 16 轮 | Codex |
 | 2026-07-06 | Phase 2 CLI_VERSION 门禁：`check-metrics.mjs` 新增 `CLI_VERSION == moon.mod version` 断言，版本漂移会阻断 CI | Codex |
 | 2026-07-06 | Phase 2 随机化加固 profile：新增 `tools/randomized-hardening.mjs`，固化 `ci`/`release`/`stress` 三档 fuzz/property/differential 轮次 | Codex |
+| 2026-07-06 | Release 随机化加固实跑：`node tools/randomized-hardening.mjs --profile release` 通过，记录 1000 malformed fuzz / 256 semantic property / 1000 crypto differential / 1000 digest differential | Codex |

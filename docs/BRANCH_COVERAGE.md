@@ -309,4 +309,4 @@ semantics and tamper rejection are covered by `tools/property-api-semantic.mjs`.
 
 | Priority | Item | Reason |
 | --- | --- | --- |
-| P2 | Run and record release/stress randomized-hardening profiles before tagging. | CI now has malformed API fuzz plus bounded semantic property checks; `tools/randomized-hardening.mjs` defines higher round-count profiles, but release/stress results should be recorded when used for a release candidate. |
+| P2 | Run and record stress randomized-hardening profile before a final tag if time allows. | CI and release profiles have passed; `tools/randomized-hardening.mjs --profile stress` defines 10000-level sampling for broader pre-tag confidence when runtime budget allows. |

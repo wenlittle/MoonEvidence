@@ -1276,6 +1276,25 @@ same four randomized suites.
 | `node tools/randomized-hardening.mjs --profile ci --malformed 1 --semantic 1 --crypto 1 --digest 1` | PASS: build + smoke-sized randomized suite |
 | `node tools/randomized-hardening.mjs --profile ci --skip-build` | PASS: 64 malformed rounds, 16 semantic rounds, 64 crypto rounds, 64 digest rounds |
 
+## 2026-07-06 Asia/Shanghai (Release randomized hardening run)
+
+### Release Profile Result
+
+The release randomized hardening profile was run end-to-end on the current
+branch. This records that the higher round-count profile is not only defined,
+but has passed once on the release candidate baseline.
+
+| Field | Result |
+| --- | --- |
+| Command | `node tools/randomized-hardening.mjs --profile release` |
+| Build | `moon build --target js --release src/api` completed with no work needed |
+| Malformed API fuzz | PASS: 1215 cases across 12 exports, 1000 random rounds |
+| API semantic property | PASS: 768 closed-loop checks across 256 rounds |
+| Ed25519 differential | PASS: 1000/1000 vectors matched Node.js crypto |
+| Digest differential | PASS: 1000/1000 rounds matched Node.js crypto for SHA-256, SHA-512, and HMAC-SHA256 |
+| Total wall time | About 4.5 minutes on the local Windows workstation |
+| Note | Node emitted the existing `MODULE_TYPELESS_PACKAGE_JSON` warning for the generated ESM artifact; it did not affect pass/fail results |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

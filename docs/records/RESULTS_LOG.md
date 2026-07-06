@@ -1122,6 +1122,12 @@ branch map in the same diff, forcing an explicit review instead of silent drift.
 | --- | --- |
 | `node tools/check-branch-coverage-stale.mjs --self-test` | PASS: 3/3 cases |
 | `node tools/check-branch-coverage-stale.mjs --base HEAD~1` | PASS: no audited source files changed |
+| `node tools/check-metrics.mjs` | PASS: 19/19 metric assertions |
+| `moon check` | exit 0 |
+| `moon test --target js src/api` | 39/39 passed |
+| `node tools/fuzz-api-malformed.mjs --rounds 64` | PASS: 279 cases across 12 exports |
+| `node tools/smoke-api.mjs` | PASS: 34/34 checks |
+| `git diff --check` | PASS; no whitespace errors |
 | `moon check` | exit 0 |
 | `moon test --target js` | 340/340 passed |
 | `moon test --target wasm-gc` | 340/340 passed |
@@ -1161,6 +1167,30 @@ a JSON object with a boolean `ok` field.
 | `node tools/check-metrics.mjs` | PASS: 19/19 metric assertions |
 | `node tools/check-branch-coverage-stale.mjs --base HEAD~1` | PASS: no audited source files changed |
 | `git diff --check` | PASS; no whitespace errors |
+
+## 2026-07-06 Asia/Shanghai (API branch coverage audit)
+
+### Public API Branch Map
+
+This round extended the manual branch coverage map to the public JS adapter
+package. The audit records request-shape validation, semantic closed loops, and
+defensive fallbacks for `src/api/api.mbt`. The stale-check guard now includes
+`src/api/api.mbt`, so future adapter changes must review the branch map.
+
+| Field | Result |
+| --- | --- |
+| Scope | `src/api/api.mbt`, `docs/BRANCH_COVERAGE.md`, `tools/check-branch-coverage-stale.mjs` |
+| Audited branches | 194 total: previous 145 core lifecycle branches + 49 API adapter branches |
+| API evidence | `api_wbtest` semantic tests, `tools/smoke-api.mjs` closed loops, `tools/fuzz-api-malformed.mjs` malformed envelope fuzz |
+| Open gaps | 0 for the expanded audited scope |
+| Accepted risk | Defensive parse/canonicalization fallbacks that consume in-process generated JSON are recorded explicitly |
+
+### Verification Run
+
+| Command | Result |
+| --- | --- |
+| `node tools/check-branch-coverage-stale.mjs --self-test` | PASS: 3/3 cases |
+| `node tools/check-branch-coverage-stale.mjs --base HEAD~1` | PASS: no audited source files changed |
 
 ## Logging Rule
 

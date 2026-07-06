@@ -28,6 +28,7 @@ const AUDITED_SOURCE_FILES = new Set([
   "src/create/create.mbt",
   "src/store/object_store.mbt",
   "src/audit/audit_log.mbt",
+  "src/api/api.mbt",
 ]);
 
 function normalizePath(path) {
@@ -91,7 +92,7 @@ function runSelfTest() {
   const cases = [
     { name: "no audited source", files: ["README.md"], ok: true },
     { name: "audited source with coverage doc", files: ["src/verify/verify.mbt", COVERAGE_FILE], ok: true },
-    { name: "audited source without coverage doc", files: ["src/create/create.mbt"], ok: false },
+    { name: "audited source without coverage doc", files: ["src/api/api.mbt"], ok: false },
   ];
   let failed = 0;
   for (const tc of cases) {

@@ -8,7 +8,7 @@
 > **最后更新**：2026-07-06
 > **关联文档**：`docs/KNOWLEDGE_BASE.md` §8-§15；`docs/BRANCH_COVERAGE.md` 记录逐分支审计清单
 
-> **2026-07-06 进度记录**：Phase 1 已完成七项加固：Wycheproof Ed25519 150 向量、Ed25519 精确分支 8 用例、store 完整性/严格重建 6 个独立 oracle、incremental golden manifest 5 个独立 oracle（含 Q3 缓存信任边界）、Ed25519 常量时间静态审计、create_manifest 5 个 panic 错误路径测试、CT-001 源码级修复。Phase 2 已开始：Ed25519 随机差分 oracle 入 CI，incremental 错误路径补齐 E1004/W1001/E3001，SHA/HMAC 随机差分 oracle 入 CI，Merkle 大规模/边界测试完成，mutation 扩展至 16/16 捕获，verify/incremental/merkle/digest/crypto/create/store/audit 分支审计完成并记录在 `docs/BRANCH_COVERAGE.md`，branch-coverage stale-check 已接入 CI，公共 JS API malformed-request fuzz 已接入 CI。当前本地基线：`moon test --target js` 为 340/340 passed；`check-metrics` 口径为 344 个测试声明（340 可执行测试 + 4 基准 wrapper）。仍需注意：这是源码审计级常量时间结论，不等于 dudect/后端产物级证明。
+> **2026-07-06 进度记录**：Phase 1 已完成七项加固：Wycheproof Ed25519 150 向量、Ed25519 精确分支 8 用例、store 完整性/严格重建 6 个独立 oracle、incremental golden manifest 5 个独立 oracle（含 Q3 缓存信任边界）、Ed25519 常量时间静态审计、create_manifest 5 个 panic 错误路径测试、CT-001 源码级修复。Phase 2 已开始：Ed25519 随机差分 oracle 入 CI，incremental 错误路径补齐 E1004/W1001/E3001，SHA/HMAC 随机差分 oracle 入 CI，Merkle 大规模/边界测试完成，mutation 扩展至 16/16 捕获，verify/incremental/merkle/digest/crypto/create/store/audit/api 分支审计完成并记录在 `docs/BRANCH_COVERAGE.md`，branch-coverage stale-check 已接入 CI，公共 JS API malformed-request fuzz 已接入 CI。当前本地基线：`moon test --target js` 为 340/340 passed；`check-metrics` 口径为 344 个测试声明（340 可执行测试 + 4 基准 wrapper）。仍需注意：这是源码审计级常量时间结论，不等于 dudect/后端产物级证明。
 
 ---
 
@@ -87,7 +87,7 @@
 
 | 层次 | 名称 | 现状 | 目标 | 优先级 |
 |---|---|---|---|---|
-| L0 | 单元测试（白盒） | 344个声明（340可执行+4基准wrapper）+ verify/incremental/merkle/digest/crypto/create/store/audit 分支图 + stale-check gate + API malformed fuzz gate | 继续补 API 分支图与 CLI_VERSION gate | P0/P1 |
+| L0 | 单元测试（白盒） | 344个声明（340可执行+4基准wrapper）+ verify/incremental/merkle/digest/crypto/create/store/audit/api 分支图 + stale-check gate + API malformed fuzz gate | 继续补 CLI_VERSION gate 与 API semantic property | P0/P1 |
 | L1 | 集成测试 | ~15个 | +10（跨包闭环） | P1 |
 | L2 | 属性测试 | 3个 | +8（Ed25519/Fe/canonjson扩展） | P1 |
 | L3 | 差分测试 | 固定夹具 | +随机差分harness（Ed25519/SHA/HMAC） | P1 |
@@ -208,7 +208,7 @@
 | 2.10 | point_decode边界（y=p/p+1/2p-1 + sign=0/1组合） | L0 | 阶段1 |
 | 2.11 | Ed25519差分测试（Node.js crypto 随机向量；CI 64组，发布候选1000组） | L3 | Done: `tools/differential-crypto.mjs` compares key derivation, signatures, cross-verification, and tamper rejection against Node.js crypto |
 | 2.12 | SHA/HMAC差分测试（随机长度0-65536字节） | L3 | Done: `tools/differential-digest.mjs` compares SHA-256/SHA-512/HMAC-SHA256 against Node.js crypto; CI runs 64 rounds, release candidates can run 1000 |
-| 2.13 | 分支清单审计（verify/incremental/merkle/digest/crypto/create/store/audit） | L0/L8 | Done: `docs/BRANCH_COVERAGE.md` maps 145 audited branches with 0 open gaps for the first pass |
+| 2.13 | 分支清单审计（verify/incremental/merkle/digest/crypto/create/store/audit/api） | L0/L8 | Done: `docs/BRANCH_COVERAGE.md` maps 194 audited branches with 0 open gaps for the first pass |
 | 2.14 | 分支清单 stale-check gate | L0/L8/治理 | Done: `tools/check-branch-coverage-stale.mjs` and CI step require audited source edits to review `docs/BRANCH_COVERAGE.md` |
 | 2.15 | 公共 JS API malformed-request fuzz | L6/治理 | Done: `tools/fuzz-api-malformed.mjs` calls all 12 exported string adapters with invalid JSON, non-object JSON, wrong field types, invalid hex, malformed proof/audit/signature/key shapes; CI runs 64 deterministic random rounds |
 
@@ -543,3 +543,4 @@ Node 签名、篡改消息被 MoonBit 拒绝。该脚本不把向量固化进仓
 | 2026-07-06 | Phase 2 分支清单审计扩展：`docs/BRANCH_COVERAGE.md` 覆盖 verify/incremental/merkle/digest/crypto/create/store/audit 145 个关键分支，0 个 open gap | Codex |
 | 2026-07-06 | Phase 2 分支清单防漂移门禁：新增 `tools/check-branch-coverage-stale.mjs` 并接入 CI，已审计源码变更必须同步 review `docs/BRANCH_COVERAGE.md` | Codex |
 | 2026-07-06 | Phase 2 API fuzz 门禁：新增 `tools/fuzz-api-malformed.mjs`，覆盖 12 个 JS string adapter 的 malformed request 不崩溃/JSON envelope 契约，并接入 CI 64 轮 | Codex |
+| 2026-07-06 | Phase 2 API 分支审计：`docs/BRANCH_COVERAGE.md` 新增 `src/api/api.mbt` 49 个公共 adapter 分支，stale-check 纳入 `src/api/api.mbt` | Codex |

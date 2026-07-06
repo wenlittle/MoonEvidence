@@ -8,7 +8,7 @@
 > **最后更新**：2026-07-06
 > **关联文档**：`docs/KNOWLEDGE_BASE.md` §8-§15；`docs/BRANCH_COVERAGE.md` 记录逐分支审计清单
 
-> **2026-07-06 进度记录**：Phase 1 已完成七项加固：Wycheproof Ed25519 150 向量、Ed25519 精确分支 8 用例、store 完整性/严格重建 6 个独立 oracle、incremental golden manifest 5 个独立 oracle（含 Q3 缓存信任边界）、Ed25519 常量时间静态审计、create_manifest 5 个 panic 错误路径测试、CT-001 源码级修复。Phase 2 已开始：Ed25519 随机差分 oracle 入 CI，incremental 错误路径补齐 E1004/W1001/E3001，SHA/HMAC 随机差分 oracle 入 CI，Merkle 大规模/边界测试完成，mutation 扩展至 16/16 捕获，verify/incremental/merkle/digest/crypto/create/store/audit/api 分支审计完成并记录在 `docs/BRANCH_COVERAGE.md`，branch-coverage stale-check 已接入 CI，公共 JS API malformed-request fuzz 已接入 CI。当前本地基线：`moon test --target js` 为 340/340 passed；`check-metrics` 口径为 344 个测试声明（340 可执行测试 + 4 基准 wrapper）。仍需注意：这是源码审计级常量时间结论，不等于 dudect/后端产物级证明。
+> **2026-07-06 进度记录**：Phase 1 已完成七项加固：Wycheproof Ed25519 150 向量、Ed25519 精确分支 8 用例、store 完整性/严格重建 6 个独立 oracle、incremental golden manifest 5 个独立 oracle（含 Q3 缓存信任边界）、Ed25519 常量时间静态审计、create_manifest 5 个 panic 错误路径测试、CT-001 源码级修复。Phase 2 已开始：Ed25519 随机差分 oracle 入 CI，incremental 错误路径补齐 E1004/W1001/E3001，SHA/HMAC 随机差分 oracle 入 CI，Merkle 大规模/边界测试完成，mutation 扩展至 16/16 捕获，verify/incremental/merkle/digest/crypto/create/store/audit/api 分支审计完成并记录在 `docs/BRANCH_COVERAGE.md`，branch-coverage stale-check 已接入 CI，公共 JS API malformed-request fuzz 已接入 CI，CLI_VERSION 一致性已纳入 `check-metrics`。当前本地基线：`moon test --target js` 为 340/340 passed；`check-metrics` 口径为 344 个测试声明（340 可执行测试 + 4 基准 wrapper）。仍需注意：这是源码审计级常量时间结论，不等于 dudect/后端产物级证明。
 
 ---
 
@@ -87,7 +87,7 @@
 
 | 层次 | 名称 | 现状 | 目标 | 优先级 |
 |---|---|---|---|---|
-| L0 | 单元测试（白盒） | 344个声明（340可执行+4基准wrapper）+ verify/incremental/merkle/digest/crypto/create/store/audit/api 分支图 + stale-check gate + API malformed fuzz gate | 继续补 CLI_VERSION gate 与 API semantic property | P0/P1 |
+| L0 | 单元测试（白盒） | 344个声明（340可执行+4基准wrapper）+ verify/incremental/merkle/digest/crypto/create/store/audit/api 分支图 + stale-check gate + API malformed fuzz gate + CLI_VERSION gate | 继续补 API semantic property | P0/P1 |
 | L1 | 集成测试 | ~15个 | +10（跨包闭环） | P1 |
 | L2 | 属性测试 | 3个 | +8（Ed25519/Fe/canonjson扩展） | P1 |
 | L3 | 差分测试 | 固定夹具 | +随机差分harness（Ed25519/SHA/HMAC） | P1 |
@@ -200,7 +200,7 @@
 | 2.2 | SHA-512路径（merkle/verify/incremental） | L0/L3 | 阶段1 |
 | 2.3 | 增量验证错误路径（E1004/E2003/E2004/E3001/E3003/W1001） | L0 | Done: incremental_wbtest covers E1004, E2003, E2004, E3001 (missing root and empty tree), E3003, and W1001 |
 | 2.4 | bash cli-test补齐Part4+Part5（12例） | L4 | Done: `cli-test.sh` now covers 53/53 cases and CI runs bash parity for native/js |
-| 2.5 | CLI_VERSION CI门禁 | L4/治理 | 无 |
+| 2.5 | CLI_VERSION CI门禁 | L4/治理 | Done: `tools/check-metrics.mjs` now asserts `CLI_VERSION` in `src/cmd/main/main.mbt` equals `moon.mod` version; CI already runs the gate |
 | 2.6 | Ed25519属性测试（sign→verify往返60轮 + 篡改检测120轮） | L2 | 阶段1 |
 | 2.7 | Fe域运算属性（分配律/交换律/可逆性60轮） | L2 | 无 |
 | 2.8 | 变异测试扩展（已扩展到16个变异点） | L5 | 阶段1 |
@@ -217,7 +217,7 @@
 **验收门禁**：
 - 变异测试捕获率 16/16 = 100%
 - bash 和 PowerShell CLI 用例数一致（53/53）
-- CI 增加 CLI_VERSION 门禁步骤
+- CI 已通过 `check-metrics.mjs` 覆盖 CLI_VERSION 门禁
 - Ed25519 差分测试 CI 64 组全通过；发布候选手动 `--rounds 1000` 全通过
 
 ### 阶段3（P2：技术债务，择机补）
@@ -544,3 +544,4 @@ Node 签名、篡改消息被 MoonBit 拒绝。该脚本不把向量固化进仓
 | 2026-07-06 | Phase 2 分支清单防漂移门禁：新增 `tools/check-branch-coverage-stale.mjs` 并接入 CI，已审计源码变更必须同步 review `docs/BRANCH_COVERAGE.md` | Codex |
 | 2026-07-06 | Phase 2 API fuzz 门禁：新增 `tools/fuzz-api-malformed.mjs`，覆盖 12 个 JS string adapter 的 malformed request 不崩溃/JSON envelope 契约，并接入 CI 64 轮 | Codex |
 | 2026-07-06 | Phase 2 API 分支审计：`docs/BRANCH_COVERAGE.md` 新增 `src/api/api.mbt` 49 个公共 adapter 分支，stale-check 纳入 `src/api/api.mbt` | Codex |
+| 2026-07-06 | Phase 2 CLI_VERSION 门禁：`check-metrics.mjs` 新增 `CLI_VERSION == moon.mod version` 断言，版本漂移会阻断 CI | Codex |

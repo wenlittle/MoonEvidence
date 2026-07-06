@@ -270,3 +270,5 @@ Reason:
 - Also asserts `moon.mod version == CHANGELOG latest version` to prevent the round-2 moon.mod/CHANGELOG version desynchronization from recurring.
 
 > **2026-07-05 update (round 4):** The original entry above claimed check-metrics was a CI gate, but `.github/workflows/ci.yml` did not actually reference it — the "gate" was manual-only. This has been corrected: ci.yml now runs `check-metrics.mjs`, `cross-verify.mjs`, and `mutation-check.mjs` as blocking steps. `cross-verify.mjs` was also updated to recognize negative test packs (bad-*/tampered-*/missing-*) so their expected verification failures count as PASS. `mutation-check.mjs` mutation targets were updated to match the post-SHA-512 multi-algorithm code structure.
+>
+> **2026-07-06 update:** `check-metrics.mjs` now also asserts `src/cmd/main/main.mbt` `CLI_VERSION == moon.mod version`, closing the remaining hard-coded CLI version drift gap.

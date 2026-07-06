@@ -308,5 +308,4 @@ covered by `tools/fuzz-api-malformed.mjs`.
 
 | Priority | Item | Reason |
 | --- | --- | --- |
-| P1 | Add a `CLI_VERSION` consistency gate. | `main.mbt`, `moon.mod`, and changelog version drift is still manually controlled. |
 | P2 | Add deeper API semantic property/differential checks. | Current API fuzz proves envelope robustness; it does not exhaustively prove every semantically valid-but-adversarial request shape. |

@@ -15,6 +15,7 @@
 //   3. Test count (grep '^test ' in *_wbtest.mbt) matches numbers in docs
 //   4. Package count (find src -name 'moon.pkg') matches numbers in docs
 //   5. moon.mod version matches CHANGELOG latest version
+//   6. CLI_VERSION in the native adapter matches moon.mod version
 
 import { execSync } from "child_process";
 import { readFileSync, readdirSync, statSync } from "fs";
@@ -104,6 +105,11 @@ const changelog = readFileSync(join(repoRoot, "CHANGELOG.md"), "utf-8");
 const clMatch = changelog.match(/^##\s*\[([^\]]+)\]/m);
 const changelogVersion = clMatch ? clMatch[1] : "UNKNOWN";
 
+// CLI_VERSION in native CLI adapter
+const cmdMain = readFileSync(join(repoRoot, "src", "cmd", "main", "main.mbt"), "utf-8");
+const cliVersionMatch = cmdMain.match(/^const\s+CLI_VERSION\s*:\s*String\s*=\s*"([^"]+)"/m);
+const cliVersion = cliVersionMatch ? cliVersionMatch[1] : "UNKNOWN";
+
 const actual = {
   commits,
   totalLines: allMbtLines,
@@ -113,6 +119,7 @@ const actual = {
   pkgCount,
   moonModVersion,
   changelogVersion,
+  cliVersion,
 };
 
 console.log("Actual metrics:");
@@ -202,12 +209,20 @@ const assertions = [
     desc: `moon.mod version (${moonModVersion}) == CHANGELOG latest (${changelogVersion})`,
     isVersion: true,
   },
+  {
+    file: "src/cmd/main/main.mbt",
+    pattern: /^const\s+CLI_VERSION\s*:\s*String\s*=\s*"([^"]+)"/m,
+    expected: moonModVersion,
+    desc: `CLI_VERSION (${cliVersion}) == moon.mod version (${moonModVersion})`,
+    isVersion: true,
+  },
 ];
 
 // ---------------------------------------------------------------------------
 // Run assertions
 // ---------------------------------------------------------------------------
 let failures = 0;
+let checks = 0;
 
 for (const a of assertions) {
   let content;
@@ -225,6 +240,7 @@ for (const a of assertions) {
 
   if (a.isVersion) {
     const found = match[1];
+    checks++;
     if (found !== a.expected) {
       console.log(`✗ FAIL ${a.desc}: found "${found}", expected "${a.expected}"`);
       failures++;
@@ -238,6 +254,7 @@ for (const a of assertions) {
     const minMap = typeof a.minimum === "object" ? a.minimum : {};
     for (const [group, expectedVal] of Object.entries(a.expected)) {
       const found = parseInt(match[parseInt(group)], 10);
+      checks++;
       // For minimum checks: actual (expectedVal) must be >= doc (found),
       // i.e. the repo meets the floor stated in docs. This prevents the
       // chicken-and-egg where every commit increments the count.
@@ -252,6 +269,7 @@ for (const a of assertions) {
     }
   } else {
     const found = parseInt(match[1], 10);
+    checks++;
     const isMin = a.minimum === true;
     const pass = isMin ? a.expected >= found : found === a.expected;
     if (!pass) {
@@ -265,9 +283,9 @@ for (const a of assertions) {
 
 console.log("");
 if (failures === 0) {
-  console.log("✅ All metric assertions pass.");
+  console.log(`✅ All metric assertions pass (${checks}/${checks}).`);
   process.exit(0);
 } else {
-  console.log(`❌ ${failures} assertion(s) failed. Update the docs to match actual metrics.`);
+  console.log(`❌ ${failures}/${checks} assertion(s) failed. Update the docs to match actual metrics.`);
   process.exit(1);
 }

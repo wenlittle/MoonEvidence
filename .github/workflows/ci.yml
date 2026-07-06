@@ -27,9 +27,9 @@ jobs:
         run: moon version --all
 
       # Metric drift guard: asserts that quantified numbers in docs (test
-      # count, line count, commit count, package count) match the actual
-      # repository state. Prevents "docs claim 265 tests, repo has 277"
-      # drift. Exit 1 on mismatch.
+      # count, line count, commit count, package count, moon.mod/CHANGELOG,
+      # and CLI_VERSION) match the actual repository state. Prevents
+      # "docs claim 265 tests, repo has 277" drift. Exit 1 on mismatch.
       - name: Metric drift guard (check-metrics)
         run: node tools/check-metrics.mjs
 

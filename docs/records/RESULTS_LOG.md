@@ -1192,6 +1192,29 @@ defensive fallbacks for `src/api/api.mbt`. The stale-check guard now includes
 | `node tools/check-branch-coverage-stale.mjs --self-test` | PASS: 3/3 cases |
 | `node tools/check-branch-coverage-stale.mjs --base HEAD~1` | PASS: no audited source files changed |
 
+## 2026-07-06 Asia/Shanghai (CLI_VERSION drift gate)
+
+### Version Consistency Guard
+
+This round extended the existing metric drift guard so the CLI's hard-coded
+version cannot silently drift from `moon.mod`. `check-metrics.mjs` already runs
+as a blocking CI step, so the new assertion is automatically enforced.
+
+| Field | Result |
+| --- | --- |
+| Scope | `tools/check-metrics.mjs`, `.github/workflows/ci.yml`, `src/cmd/main/main.mbt` |
+| New assertion | `CLI_VERSION` in `src/cmd/main/main.mbt` must equal `moon.mod` version |
+| Current values | `CLI_VERSION = "0.4.0"`, `moon.mod version = "0.4.0"`, latest CHANGELOG = `0.4.0` |
+| CI behavior | A future version bump that updates `moon.mod` but forgets CLI output will fail the metric drift guard |
+
+### Verification Run
+
+| Command | Result |
+| --- | --- |
+| `node tools/check-metrics.mjs` | PASS: 20/20 metric assertions; includes `CLI_VERSION (0.4.0) == moon.mod version (0.4.0)` |
+| `moon check` | exit 0 |
+| `git diff --check` | PASS; no whitespace errors |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

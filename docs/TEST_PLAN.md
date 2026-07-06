@@ -533,6 +533,23 @@ Node 签名、篡改消息被 MoonBit 拒绝。该脚本不把向量固化进仓
 
 ---
 
+## 9.5 发布候选总验收基线
+
+Phase 1-3 收口后，测试体系的阶段性完成点不再用“还想补哪些单测”判断，而用一组可重复的发布候选门禁判断：
+
+| 门禁 | 命令 | 当前结果 | 使用时机 |
+|---|---|---|---|
+| 静态/指标治理 | `moon check`; `node tools/check-metrics.mjs`; `node tools/check-branch-coverage-stale.mjs --self-test`; `node tools/check-branch-coverage-stale.mjs --base HEAD~1`; `git diff --check` | PASS：`check-metrics` 20/20，stale self-test 3/3 | 每次 PR / 发布候选 |
+| 双后端单元回归 | `moon test --target js`; `moon test --target wasm-gc` | PASS：344/344 + 344/344 | 每次 PR / 发布候选 |
+| CLI 黑盒合同 | `powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target js`; `bash ./tools/cli-test.sh js` | PASS：53/53 + 53/53 | 每次 PR / 发布候选；native 由 CI 编译器环境补齐 |
+| 发布随机化加固 | `node tools/randomized-hardening.mjs --profile release` | PASS：1000 malformed fuzz、256 semantic property、1000 Ed25519 differential、1000 digest differential | 发布候选 |
+| 变异反向证明 | `node tools/mutation-check.mjs` | PASS：16/16 caught，0 slipped，0 errored | 发布候选 / 安全关键变更 |
+| 动态时序探针 | `node tools/timing-ed25519-verify.mjs --samples 10000` | 已在 Phase 3 记录 PASS；信息性结果，不是 dudect 证明 | 手动安全审计 |
+
+剩余边界也固定为文档化风险：本地 Windows 缺 C 编译器，native 后端以 CI 为准；Ed25519 侧信道仍缺 dudect/后端产物级证明；`@fs` 无 lstat/symlink API，符号链接语义只能靠 depth/file cap 缓解；随机测试是高强度抽样，不是全输入证明。
+
+---
+
 ## 10. 变更历史
 
 | 日期 | 变更内容 | 变更人 |
@@ -551,3 +568,4 @@ Node 签名、篡改消息被 MoonBit 拒绝。该脚本不把向量固化进仓
 | 2026-07-06 | Phase 2 随机化加固 profile：新增 `tools/randomized-hardening.mjs`，固化 `ci`/`release`/`stress` 三档 fuzz/property/differential 轮次 | Codex |
 | 2026-07-06 | Release 随机化加固实跑：`node tools/randomized-hardening.mjs --profile release` 通过，记录 1000 malformed fuzz / 256 semantic property / 1000 crypto differential / 1000 digest differential | Codex |
 | 2026-07-06 | Phase 3 收口：补 `diag` 单复数、`Fe::from_small`/`Fe::to_bytes` 边界测试，新增 Ed25519 verify 10000 次 timing sampler，并将 E3002/符号链接项记录为 policy/mitigation 完成 | Codex |
+| 2026-07-06 | 发布候选总验收：release 随机化、JS/wasm-gc 单测、PowerShell/bash CLI、mutation、metrics、branch stale-check、diff check 全部通过；剩余风险固定为 native 本地环境、dudect、symlink API 边界和 bounded fuzz | Codex |

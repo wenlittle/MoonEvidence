@@ -1322,6 +1322,44 @@ surface.
 | `moon test --target wasm-gc src/diag src/digest src/crypto` | 102/102 passed |
 | `node tools/timing-ed25519-verify.mjs --samples 10000` | PASS: 5000/5000 samples per class; mean A 43.777016ms, mean B 43.732392ms, Welch t 0.406313 |
 
+## 2026-07-06 Asia/Shanghai (Release readiness gate)
+
+### Phase 1-3 Consolidated Acceptance
+
+This round ran the release-candidate gate over the Phase 1-3 hardened baseline.
+No new production behavior or test cases were added; the purpose was to prove
+that the fixed-oracle, randomized, differential, mutation, CLI, and governance
+checks are green together on one clean commit line.
+
+| Field | Result |
+| --- | --- |
+| Baseline | 12668 MoonBit lines: implementation 5448 + tests 7220; 348 test declarations = 344 executable tests + 4 benchmark wrappers |
+| Release randomized hardening | PASS: 1000 malformed API fuzz rounds, 256 API semantic property rounds, 1000 Ed25519 differential vectors, 1000 digest differential rounds |
+| Unit/regression tests | PASS: `moon test --target js` 344/344; `moon test --target wasm-gc` 344/344 |
+| CLI black-box tests | PASS: PowerShell JS target 53/53; bash JS target 53/53 |
+| Mutation testing | PASS: `node tools/mutation-check.mjs` caught 16/16 mutations; 0 slipped, 0 errored |
+| Governance gates | PASS: `moon check`; `check-metrics` 20/20; branch-coverage stale self-test 3/3; stale-check against `HEAD~1`; `git diff --check` |
+| Working tree | Clean before documentation update |
+
+### Gate Map
+
+| Gate class | Command | Cadence |
+| --- | --- | --- |
+| Fast CI baseline | `moon check`; `moon test --target js`; `moon test --target wasm-gc`; API smoke/fuzz/property at CI profile; metrics/stale gates | Every PR / push |
+| CLI contract | `tools/cli-test.ps1 -Target js`; `bash tools/cli-test.sh js`; CI additionally runs native when compiler exists | Every PR / push |
+| Release randomized gate | `node tools/randomized-hardening.mjs --profile release` | Release candidate |
+| Mutation reverse-proof gate | `node tools/mutation-check.mjs` | Release candidate and security-sensitive changes |
+| Timing probe | `node tools/timing-ed25519-verify.mjs --samples 10000` | Manual release/security audit; informational only |
+
+### Remaining Risk Register
+
+| Risk | Status |
+| --- | --- |
+| Native backend local validation | Not locally verified in this Windows environment because a usable C compiler is absent; CI/native environment remains the authoritative native gate. |
+| Side-channel proof | Static constant-time audit and timing sampler exist, but this is not a dudect or backend-machine-code proof. |
+| Symlink semantics | Current `@fs` surface has no lstat/symlink API; mitigation is bounded traversal by depth/file caps, not symlink-target proof. |
+| Randomized testing completeness | Release profile materially expands sampling, but random fuzz/differential tests are still bounded and cannot prove all inputs. |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

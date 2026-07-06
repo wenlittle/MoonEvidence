@@ -714,6 +714,37 @@ User asked for a fresh 5-round "competitiveness / innovation / usability / testi
 | Why score dropped | Round 3 focused on "engineering core" (SHA-512/API/CI/security), score rose to 6.3. Round 4 focused on "user/judge actual experience", found demo main flow broken + create half-done + features unreachable — invisible in engineering-core view, blocking in user-experience view. Project is "strong core, unpolished surface" |
 | Confidence | High — every P0/P1 has file:line evidence from direct source read |
 
+## 2026-07-06 Asia/Shanghai (test-oracle hardening baseline)
+
+### Phase 1 Partial Execution: independent oracles for security-critical tests
+
+The current round continues the "test before improvement" plan by replacing
+self-referential tests with independent oracles on three security-critical
+paths. No production verification logic was changed in this round.
+
+| Field | Result |
+| --- | --- |
+| Scope | Ed25519 verification, incremental verification, object-store integrity |
+| Ed25519 | Added `src/crypto/ed25519_wycheproof_wbtest.mbt`: 150 Google Wycheproof Ed25519 vectors embedded as wbtests (88 valid + 62 invalid). Invalid vectors cover InvalidSignature, TruncatedSignature, SignatureWithGarbage, CompressedSignature, InvalidEncoding, SignatureMalleability, and InvalidKtv. |
+| Wycheproof guard | Added `tools/check-wycheproof-ed25519.mjs` and wired it into CI. The guard checks vector inventory: 150 total, 88 valid, 62 invalid, and all 7 category counts. |
+| Incremental | Added 5 independent-oracle tests in `src/verify/incremental_wbtest.mbt` using `golden_manifest` / `GOLDEN_MANIFEST_DIGEST` from the Node-generated reference path, not `@create.create_manifest`. Includes the Q3 trust-boundary test proving a malicious matching cache can hide content tampering from incremental verification while full verification rejects it. |
+| Store | Added 6 independent-oracle tests in `src/store/object_store_wbtest.mbt` using hardcoded Node-computed SHA-256 keys and direct `store.objects` writes, bypassing `put()` / `sha256_hex`. Covers untampered integrity, tampered content, missing content, all-missing strict reconstruction, and byte-for-byte reconstruction. |
+| Documentation | Synced `README.md`, `README.zh.md`, `docs/report/DEVELOPMENT_REPORT.md`, `docs/records/ACCEPTANCE_CHECKLIST.md`, `docs/KNOWLEDGE_BASE.md`, and `docs/TEST_PLAN.md` to the new baseline. |
+| Metrics distinction | `moon test` reports 304 executable tests. `tools/check-metrics.mjs` counts 308 test declarations because the 4 benchmark wrappers are written as `test "bench: ..."` declarations. Both numbers are now documented explicitly. |
+| Current metrics | 106 commits / 11977 MoonBit lines (impl 5395 + tests 6582) / 308 test declarations / 12 packages / moon.mod 0.4.0 == CHANGELOG 0.4.0 |
+| Remaining Phase 1 work | Ed25519 exact branch tests for bad pk/sig length, invalid point decode, and x=0+sign=1; constant-time static audit; create abort/error-path tests. |
+
+### Verification Run
+
+| Command | Result |
+| --- | --- |
+| `node tools/check-wycheproof-ed25519.mjs` | PASS: 150 vectors (88 valid + 62 invalid), all 7 category counts match |
+| `node tools/check-metrics.mjs` | 19/19 metric assertions PASS |
+| `moon check` | exit 0 |
+| `moon test --target wasm-gc` | 304/304 passed |
+| `moon test --target js` | 304/304 passed |
+| `moon test --target native` | env error: no system C compiler found (`cl`, `cc`, `gcc`, `clang` absent); CI ubuntu covers native |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

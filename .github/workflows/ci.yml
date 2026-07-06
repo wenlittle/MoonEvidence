@@ -45,6 +45,12 @@ jobs:
       - name: Cross-verify golden packs (Node crypto vs MoonBit)
         run: node tools/cross-verify.mjs
 
+      # Wycheproof vector guard: the Ed25519 test vectors are embedded in a
+      # MoonBit wbtest file. This checks vector counts and attack-category
+      # distribution so manual edits cannot silently drop oracle coverage.
+      - name: Wycheproof Ed25519 vector guard
+        run: node tools/check-wycheproof-ed25519.mjs
+
       - name: Type check
         run: moon check
 

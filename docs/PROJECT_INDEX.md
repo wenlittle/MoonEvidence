@@ -31,6 +31,8 @@ Build a reusable MoonBit library and CLI for trusted evidence pack verification:
 | `docs/CODE_GUIDELINES.md` | Code style, comments, tests, and public API rules |
 | `docs/ROADMAP.md` | Phased implementation plan and future directions |
 | `docs/STRUCTURE_TREE.md` | Current project file structure tree |
+| `docs/KNOWLEDGE_BASE.md` | **项目知识库（新会话首选入口）**：完整架构/API/数据流/错误码/常量/测试覆盖/CI/工具链/安全治理/测试盲点/深度测试计划 |
+| `docs/TEST_PLAN.md` | **测试计划（改进前置条件）**：策略决策/系统性缺陷诊断/9层测试模型/3阶段实施/用例清单/覆盖率度量/改进安全检查清单 |
 | `docs/PROJECT_INDEX.md` | This index |
 | `docs/records/RESULTS_LOG.md` | Timestamped research, verification, and environment results |
 | `docs/records/DECISION_LOG.md` | Stable decisions and why they were made |

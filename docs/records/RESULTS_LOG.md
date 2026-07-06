@@ -1481,7 +1481,7 @@ samples roughly hour-scale on this JS API path. The project therefore keeps
 10000 samples as the recorded manual timing probe and does not claim dudect or
 machine-code side-channel proof.
 
-### Updated Baseline
+### Final Hardening Baseline Before Native Timing Package
 
 | Field | Result |
 | --- | --- |
@@ -1500,6 +1500,75 @@ machine-code side-channel proof.
 | `moon fmt --check` | PASS |
 | `node tools/check-branch-coverage-stale.mjs --base main` | PASS: audited source changes accompanied by branch coverage review |
 | `git diff --check` | PASS; only the existing line-ending normalization warning for `tools/cli-test.ps1` was printed |
+
+## 2026-07-07 Asia/Shanghai (Native Ed25519 timing evidence)
+
+### Native Dudect-Style Harness
+
+This round moved the Ed25519 side-channel boundary from documentation-only
+caveat to a reproducible local native timing experiment. The harness calls the
+project's own MoonBit `@crypto.ed25519_verify` and `@crypto.ed25519_sign`
+implementation; the C stub only provides the monotonic timer and environment
+printout.
+
+| Field | Result |
+| --- | --- |
+| New MoonBit package | `src/timing` (`main.mbt`, `main_non_native.mbt`, `native_timing_stub.c`, `moon.pkg`) |
+| New runner | `tools/timing-ed25519-native.ps1` |
+| Targets | `verify` (two valid public-input classes), `sign-message` (fixed secret + two public messages), `sign-secret` (two secret-key classes + fixed message) |
+| Method controls | native release build, A/B order randomized per pair, warmup before sampling, checksum accumulation, online mean/variance, Welch t statistic |
+| Interpretation rule | `|t| < 4.5` = no obvious timing difference observed in this local run; not proof. `|t| >= 4.5` must stop for investigation |
+
+### Calibration Runs
+
+| Command | Result |
+| --- | --- |
+| `powershell -ExecutionPolicy Bypass -File tools/timing-ed25519-native.ps1 -Target both -Samples 1000 -Warmup 128 -Config release` | PASS: verify t=0.337026; sign-message t=0.204850; sign-secret t=-0.629734 |
+| `powershell -ExecutionPolicy Bypass -File tools/timing-ed25519-native.ps1 -Target both -Samples 10000 -Warmup 512 -Config release` | PASS: verify t=-0.102413; sign-message t=0.014762; sign-secret t=-0.888839 |
+
+### Long Run
+
+| Field | Result |
+| --- | --- |
+| Command | `powershell -ExecutionPolicy Bypass -File tools/timing-ed25519-native.ps1 -Target both -Samples 50000 -Warmup 1024 -Config release` |
+| MoonBit | `moon 0.1.20260529 (3e1c753 2026-05-29)` |
+| Compiler | `D:\software\VStudio2022\VC\Tools\MSVC\14.44.35207\bin\Hostx64\x64\cl.exe`; native macro `MSVC 1944` |
+| OS / arch | Windows / x86_64 |
+| Timer | `timer_ticks_per_second: 10000000` |
+| CPU | `Intel64 Family 6 Model 154 Stepping 3, GenuineIntel` |
+| Runtime | About 20 minutes |
+
+| Target | Samples | Class A mean | Class B mean | Welch t | Result |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `verify` | 50000 total, 25000/25000 | 7872487.156 ns | 7874280.820 ns | -0.147045 | No obvious timing difference observed |
+| `sign-message` | 50000 total, 25000/25000 | 8132600.592 ns | 8131544.048 ns | 0.090476 | No obvious timing difference observed |
+| `sign-secret` | 50000 total, 25000/25000 | 7752745.632 ns | 7753546.544 ns | -0.040215 | No obvious timing difference observed |
+
+### Updated Baseline
+
+| Field | Result |
+| --- | --- |
+| MoonBit line count | 13925 total: implementation 5876 + tests 8049 |
+| Test declarations | 348 declarations = 344 executable tests + 4 benchmark wrappers |
+| Package count | 13 packages = 12 product packages + 1 native timing tool package |
+| Commit count at measurement | 128 |
+| Side-channel boundary | Native timing evidence exists; formal proof, professional dudect, and backend-machine-code audit remain out of scope |
+
+### Post-Documentation Verification
+
+| Command | Result |
+| --- | --- |
+| `moon fmt --check` | PASS |
+| `moon check` | PASS |
+| `node tools/check-metrics.mjs` | PASS: 20/20 metric assertions; 13925 total lines = 5876 implementation + 8049 tests; 13 packages; 348 test declarations |
+| `cmd /v:on /d /s /c "call ""D:\software\VStudio2022\VC\Auxiliary\Build\vcvars64.bat"" >nul && moon build --target native --release src/timing"` | PASS |
+| `powershell -ExecutionPolicy Bypass -File tools\timing-ed25519-native.ps1 -Target verify -Samples 100 -Warmup 10 -Config release` | PASS: verify 100 samples, Welch t=-1.142239; functional checksum retained |
+| `cmd /v:on /d /s /c "call ""D:\software\VStudio2022\VC\Auxiliary\Build\vcvars64.bat"" >nul && moon test --target native"` | PASS: 344/344 |
+| `moon test --target wasm-gc,js` | PASS: 344/344 on wasm-gc and 344/344 on js |
+| `node tools/check-branch-coverage-stale.mjs --self-test` | PASS: 3/3 |
+| `node tools/check-branch-coverage-stale.mjs --base HEAD~1` | PASS: no audited source files changed |
+| `node tools/check-wycheproof-ed25519.mjs` | PASS: 150 vectors (88 valid + 62 invalid) |
+| `git diff --check` | PASS |
 
 ## Logging Rule
 

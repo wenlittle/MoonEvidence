@@ -198,7 +198,9 @@ is expected to be faster. Methodology and raw output:
 
 ## Current Status
 
-All 12 packages are implemented and fully tested across three backends.
+All 12 product packages are implemented and fully tested across three backends;
+`src/timing` is a native-only measurement package for local Ed25519 timing
+experiments.
 
 ### Core Packages (zero IO)
 - `canonjson` — RFC 8785 escaping, code-unit key order, full ECMAScript number serialization (Appendix B vectors)
@@ -222,6 +224,7 @@ All 12 packages are implemented and fully tested across three backends.
 - **348 unit tests** declared (344 executable tests + 4 benchmark wrappers), with native/wasm-gc/js passing locally
 - **54-case black-box CLI suite**: 12 command-shape + 10-pack tamper matrix + 19 error-code fixtures + 10 create + 3 incremental, with native/js passing locally
 - **Property tests**: canonicalization idempotence, Merkle proof soundness (mutation-verified)
+- **Native timing probe**: dudect-style Ed25519 verify/sign sampler for local native release builds; reports Welch t and is recorded as empirical evidence, not a formal proof
 - **CI three-backend matrix**: native / wasm-gc / js build + test + browser smoke test
 
 ```powershell
@@ -237,8 +240,8 @@ node tools/smoke-api.mjs
 moon bench --target js
 ```
 
-As of 2026-07-06 Asia/Shanghai, the local native/wasm-gc/js test baseline is
+As of 2026-07-07 Asia/Shanghai, the local native/wasm-gc/js test baseline is
 green; native was verified on Windows with MSVC 19.44 and Windows SDK
-10.0.26100.0. Codebase is 13499
-effective MoonBit lines (implementation 5450 + tests 8049); the implementation
+10.0.26100.0. Codebase is 13925
+effective MoonBit lines (implementation 5876 + tests 8049); the implementation
 size remains within the 4-10k competition range.

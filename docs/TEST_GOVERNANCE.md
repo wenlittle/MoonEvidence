@@ -253,14 +253,16 @@ As of 2026-07-06:
   and incremental golden-manifest behavior.
 - Ed25519 exact branch tests now cover length guards, invalid point decoding,
   `x=0 && sign=1`, sqrt(-1) correction, and invalid pk/R decode paths.
-- Constant-time static audit exists in `docs/CONST_TIME_AUDIT.md`. CT-001 in
-  `reduce_scalar_512` has been fixed at source level with arithmetic masks and
-  borrow selection; production-grade side-channel claims still require backend
-  review and dudect-style timing analysis.
+- Constant-time static audit and native timing evidence exist in
+  `docs/CONST_TIME_AUDIT.md`. CT-001 in `reduce_scalar_512` has been fixed at
+  source level with arithmetic masks and borrow selection; production-grade
+  side-channel claims still require backend review and formal/professional
+  dudect-style analysis.
 - `create_manifest` abort/error paths are covered by 5 `panic` wbtests in
   `src/create/create_wbtest.mbt`.
 - Remaining Phase 1 risk is no longer "missing tests"; the remaining
-  constant-time caveat is measurement/backend assurance beyond source review.
+  constant-time caveat is formal/backend assurance beyond source review and
+  local native timing evidence.
 - Current release-governance caveats are P1 unless the affected release depends
   on them: release tags rely on prior CI success, and fixture drift coverage
   should stay aligned with every generated fixture family.

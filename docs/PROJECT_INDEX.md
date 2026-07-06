@@ -33,7 +33,7 @@ Build a reusable MoonBit library and CLI for trusted evidence pack verification:
 | `docs/STRUCTURE_TREE.md` | Current project file structure tree |
 | `docs/KNOWLEDGE_BASE.md` | **项目知识库（新会话首选入口）**：完整架构/API/数据流/错误码/常量/测试覆盖/CI/工具链/安全治理/测试盲点/深度测试计划 |
 | `docs/TEST_GOVERNANCE.md` | Quality gate and stop-rule: P0/P1/P2 risk classes, Definition of Done, release gate commands, and anti-patterns for test quality |
-| `docs/CONST_TIME_AUDIT.md` | Ed25519 constant-time static audit: source-level branch inventory, public-vs-secret input classification, and CT-001 scalar-reduction fix record |
+| `docs/CONST_TIME_AUDIT.md` | Ed25519 constant-time audit: source-level branch inventory, public-vs-secret input classification, CT-001 scalar-reduction fix record, and native timing evidence |
 | `docs/BRANCH_COVERAGE.md` | Manual branch coverage audit for security-relevant accept/reject/skip/warn paths; current pass covers verify/incremental/merkle/digest/crypto/create/store/audit/api |
 | `docs/TEST_PLAN.md` | **测试计划（改进前置条件）**：策略决策/系统性缺陷诊断/9层测试模型/3阶段实施/用例清单/覆盖率度量/改进安全检查清单 |
 | `docs/PROJECT_INDEX.md` | This index |
@@ -51,7 +51,14 @@ Build a reusable MoonBit library and CLI for trusted evidence pack verification:
 | `tools/property-api-semantic.mjs` | Deterministic semantic property guard for valid public JS API closed loops and tamper rejection |
 | `tools/randomized-hardening.mjs` | Named CI/release/stress profiles for randomized API and differential hardening |
 | `tools/timing-ed25519-verify.mjs` | Informational Ed25519 verify timing sampler for release/security audit notes |
+| `tools/timing-ed25519-native.ps1` | Native Ed25519 dudect-style verify/sign timing runner for Windows/MSVC release builds |
 | `tools/symlink-junction-probe.ps1` | Windows junction traversal probe for CLI create/verify depth-cap behavior |
+
+Important source packages:
+
+| Source | Purpose |
+| --- | --- |
+| `src/timing` | Native-only timing experiment package; calls project MoonBit Ed25519 verify/sign and reports Welch t |
 
 ## Source Traceability Rule
 
@@ -67,7 +74,7 @@ Use `docs/records/RESULTS_LOG.md` for measured facts and `docs/records/DECISION_
 
 ## Next Actions
 
-1. **Mooncakes 发布**：`moon login` 后发布 0.3.0 到 Mooncakes（碰撞检查已清、package 已构建，仅缺凭证）。
+1. **Mooncakes 发布**：`moon login` 后发布 0.4.0 到 Mooncakes（碰撞检查已清、package 已构建，仅缺凭证）。
 2. **演示视频**：按 `docs/DEMO_SCRIPT.md` 录制 5 分钟比赛展示视频。
 3. **流式哈希**：把流式 SHA-256 接入适配层，将大包内存峰值从 Σ(全部文件) 降到 max(单文件)。
 4. 仓库双推 GitHub + Gitlink，确认 CI 首跑绿，勾掉 `ACCEPTANCE_CHECKLIST.md` 第 2 条。

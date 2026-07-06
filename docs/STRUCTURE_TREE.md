@@ -137,6 +137,11 @@ moon-evidence/
       moon.pkg
       object_store.mbt
       object_store_wbtest.mbt
+    timing/                    # native-only Ed25519 timing 实验
+      main.mbt
+      main_non_native.mbt
+      moon.pkg
+      native_timing_stub.c
     verify/                    # 七步验证流水线 + 版本链
       README.md
       chain.mbt
@@ -184,6 +189,7 @@ moon-evidence/
     property-api-semantic.mjs  # JS API valid-request 闭环 property 门禁
     randomized-hardening.mjs   # ci/release/stress 随机化加固 profile
     timing-ed25519-verify.mjs  # Ed25519 verify 动态时序采样探针
+    timing-ed25519-native.ps1  # Ed25519 native verify/sign dudect-style timing runner
     mutation-check.mjs         # 变异验证（故意破坏实现确认测试会红）
     check-fixtures.mjs         # fixtures 防腐化校验
     check-metrics.mjs          # CI 数字对齐门禁（提交/行/测试/包/版本一致性断言）
@@ -191,11 +197,12 @@ moon-evidence/
 
 ## Package Summary
 
-`src/` 下共 **12 个包**（6 核心 + 4 扩展 + 2 适配）：
+`src/` 下共 **13 个包**（12 个产品包 + 1 个 native timing 工具包）：
 
 - **核心包（零 IO）**：`canonjson` / `digest` / `merkle` / `model` / `verify` / `diag`
 - **扩展包**：`create`（证据包创建）/ `store`（内容寻址存储）/ `audit`（审计日志）/ `crypto`（Ed25519 签名）
 - **适配器**：`cmd/main`（native CLI）/ `api`（浏览器 ESM）
+- **实验工具包**：`timing`（native-only Ed25519 verify/sign timing evidence，不作为产品 API）
 
 ## Tracking Rule
 

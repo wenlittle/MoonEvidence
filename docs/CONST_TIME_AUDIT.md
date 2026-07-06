@@ -1,10 +1,12 @@
-# Ed25519 Constant-Time Static Audit
+# Ed25519 Constant-Time Audit And Native Timing Evidence
 
-Date: 2026-07-06 Asia/Shanghai
+Date: 2026-07-07 Asia/Shanghai
 
-This audit records the static control-flow review for the pure MoonBit
-Ed25519 implementation. It is not a formal side-channel proof and it does not
-replace backend disassembly review or dudect-style timing analysis.
+This audit records the source-level control-flow review for the pure MoonBit
+Ed25519 implementation plus one reproducible native dudect-style timing
+experiment. It is not a formal side-channel proof, and it does not replace
+backend disassembly review, professional constant-time review, or a dedicated
+dudect harness.
 
 ## Verdict
 
@@ -22,9 +24,11 @@ state in `reduce_scalar_512`.
 - `ed25519_sign` now uses reviewed scalar multiplication and branch-free
   source-level scalar reduction for the signing reductions.
 
-The project may claim source-reviewed constant-time Ed25519 signing logic, but
-must still avoid any stronger production-grade side-channel claim until backend
-lowering, runtime behavior, and dudect-style timing analysis are completed.
+The project may claim source-reviewed constant-time Ed25519 signing logic plus
+local native timing evidence with no obvious timing difference observed in the
+recorded run. It must still avoid any stronger production-grade side-channel
+claim until backend lowering, runtime behavior, and dedicated dudect-style
+analysis are reviewed by specialists.
 
 ## Secret Model
 
@@ -90,10 +94,52 @@ Impact:
 
 Follow-up before making a production-grade side-channel claim:
 
-1. Add a focused timing smoke test for `reduce_scalar_512` / signing on
-   `js`, `wasm-gc`, and native backends.
-2. Review generated backend code for reintroduced branches or table lookups.
-3. Keep RFC 8032 KAT, Wycheproof, cross-verify, and mutation checks green.
+1. Review generated backend code for reintroduced branches or table lookups.
+2. Add a dedicated dudect/native harness if the implementation will protect
+   production-value secrets.
+3. Keep RFC 8032 KAT, Wycheproof, cross-verify, native timing, and mutation
+   checks green.
+
+## Native Timing Evidence
+
+The native timing harness is `src/timing`, driven by
+`tools/timing-ed25519-native.ps1`. It directly calls the project's MoonBit
+`@crypto.ed25519_verify` and `@crypto.ed25519_sign` implementation; the C stub
+only supplies a high-resolution timer and prints native environment data.
+
+Method controls:
+
+- Native release build via MSVC, not a C/C++ reimplementation of Ed25519.
+- A/B inputs are same-shape classes and are randomly order-interleaved.
+- Warmup samples run before measurement.
+- Each timed call contributes to a checksum so the compiler cannot discard it.
+- Output includes sample counts, means, variances, Welch t, timer frequency,
+  compiler, OS, arch, and CPU identifier.
+
+Recorded long run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/timing-ed25519-native.ps1 -Target both -Samples 50000 -Warmup 1024 -Config release
+```
+
+Environment:
+
+- MoonBit: `moon 0.1.20260529 (3e1c753 2026-05-29)`
+- Compiler: `D:\software\VStudio2022\VC\Tools\MSVC\14.44.35207\bin\Hostx64\x64\cl.exe`, native macro `MSVC 1944`
+- OS/arch: Windows x86_64
+- Timer frequency: `10000000`
+- CPU: `Intel64 Family 6 Model 154 Stepping 3, GenuineIntel`
+
+| Target | Samples | Class A mean | Class B mean | Welch t | Assessment |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `verify` | 50000 | 7872487.156 ns | 7874280.820 ns | -0.147045 | No obvious timing difference observed |
+| `sign-message` | 50000 | 8132600.592 ns | 8131544.048 ns | 0.090476 | No obvious timing difference observed |
+| `sign-secret` | 50000 | 7752745.632 ns | 7753546.544 ns | -0.040215 | No obvious timing difference observed |
+
+Interpretation: all three recorded targets are comfortably below the common
+`|t| >= 4.5` suspicion threshold in this local run. This is empirical evidence
+for this machine/toolchain/build, not proof that every backend, optimizer,
+runtime, or CPU will preserve constant-time behavior.
 
 ## Non-Goals And Caveats
 
@@ -102,5 +148,6 @@ Follow-up before making a production-grade side-channel claim:
   machine code.
 - MoonBit runtime behavior, allocation, GC, integer arithmetic lowering, and
   CPU microarchitecture can still affect timing.
-- Dynamic timing checks are still useful, but they are noisy and belong after
-  the source-level secret branches are removed.
+- The recorded dynamic timing check is useful but noisy; it only supports a
+  "no obvious timing difference observed" statement for the recorded native
+  environment.

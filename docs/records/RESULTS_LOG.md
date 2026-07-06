@@ -1036,6 +1036,31 @@ same 9 create cases and 3 incremental cases, so both scripts assert the same
 | `node tools/check-metrics.mjs` | PASS: 19/19 metric assertions |
 | `git diff --check` | PASS; only line-ending normalization warnings for `README.zh.md` and `tools/cli-test.ps1` |
 
+## 2026-07-06 Asia/Shanghai (Phase 2 branch coverage audit)
+
+### First-Pass Manual Branch Map
+
+MoonBit does not currently give this repo a mature branch coverage report, so
+this round added a manual branch map for the highest-risk verification surface.
+No production code or executable tests changed.
+
+| Field | Result |
+| --- | --- |
+| New artifact | `docs/BRANCH_COVERAGE.md` |
+| Scope | `src/verify/verify.mbt`, `src/verify/incremental.mbt`, `src/merkle/merkle.mbt` |
+| Audited branches | 45 total: verify 12, incremental 15, merkle 18 |
+| Open gaps | 0 for this first-pass scope |
+| Accepted risk | Defensive fallback branches that current constructors/model validation should not expose are recorded explicitly instead of hidden |
+| Next scope | Extend the same audit method to `digest`, `crypto`, `create`, `store`, and `audit`; then add a stale-check workflow gate |
+
+### Verification Run
+
+| Command | Result |
+| --- | --- |
+| `node tools/check-metrics.mjs` | PASS |
+| `moon check` | exit 0 |
+| `git diff --check` | PASS; no whitespace errors |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

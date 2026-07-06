@@ -6,9 +6,9 @@
 >
 > **文档版本**：v1.0
 > **最后更新**：2026-07-06
-> **关联文档**：`docs/KNOWLEDGE_BASE.md` §8-§15
+> **关联文档**：`docs/KNOWLEDGE_BASE.md` §8-§15；`docs/BRANCH_COVERAGE.md` 记录逐分支审计清单
 
-> **2026-07-06 进度记录**：Phase 1 已完成七项加固：Wycheproof Ed25519 150 向量、Ed25519 精确分支 8 用例、store 完整性/严格重建 6 个独立 oracle、incremental golden manifest 5 个独立 oracle（含 Q3 缓存信任边界）、Ed25519 常量时间静态审计、create_manifest 5 个 panic 错误路径测试、CT-001 源码级修复。Phase 2 已开始：Ed25519 随机差分 oracle 入 CI，incremental 错误路径补齐 E1004/W1001/E3001，SHA/HMAC 随机差分 oracle 入 CI，Merkle 大规模/边界测试完成，mutation 扩展至 16/16 捕获。当前本地基线：`moon test --target js` 为 327/327 passed；`check-metrics` 口径为 331 个测试声明（327 可执行测试 + 4 基准 wrapper）。仍需注意：这是源码审计级常量时间结论，不等于 dudect/后端产物级证明。
+> **2026-07-06 进度记录**：Phase 1 已完成七项加固：Wycheproof Ed25519 150 向量、Ed25519 精确分支 8 用例、store 完整性/严格重建 6 个独立 oracle、incremental golden manifest 5 个独立 oracle（含 Q3 缓存信任边界）、Ed25519 常量时间静态审计、create_manifest 5 个 panic 错误路径测试、CT-001 源码级修复。Phase 2 已开始：Ed25519 随机差分 oracle 入 CI，incremental 错误路径补齐 E1004/W1001/E3001，SHA/HMAC 随机差分 oracle 入 CI，Merkle 大规模/边界测试完成，mutation 扩展至 16/16 捕获，verify/incremental/merkle 首批分支审计完成并记录在 `docs/BRANCH_COVERAGE.md`。当前本地基线：`moon test --target js` 为 327/327 passed；`check-metrics` 口径为 331 个测试声明（327 可执行测试 + 4 基准 wrapper）。仍需注意：这是源码审计级常量时间结论，不等于 dudect/后端产物级证明。
 
 ---
 
@@ -77,7 +77,7 @@
 | 鲁棒性缺失占比 | 13/17 = **76%** | 76%的盲点都是"没测异常路径"，不是个别遗漏而是默认取向 |
 | 密码学测试三支柱 | 只剩1根（KAT） | 缺消极向量集 + 缺侧信道验证 = 结构性缺陷 |
 | 测试用例生成方式 | 仅3种（KAT+手工攻击+3个属性测试） | 缺差分测试 + 缺模糊测试 = 只能测"想到的" |
-| 覆盖率度量 | "331个测试声明" | 数量指标非覆盖指标，无法回答"39个分支里多少被执行过" |
+| 覆盖率度量 | "331个测试声明" + `docs/BRANCH_COVERAGE.md` 首批分支图 | 数量指标只能说明测试规模；分支图回答 verify/incremental/merkle 的关键分支是否有证据覆盖 |
 
 ---
 
@@ -87,7 +87,7 @@
 
 | 层次 | 名称 | 现状 | 目标 | 优先级 |
 |---|---|---|---|---|
-| L0 | 单元测试（白盒） | 331个声明（327可执行+4基准wrapper） | 继续补剩余分支/错误路径 | P0/P1 |
+| L0 | 单元测试（白盒） | 331个声明（327可执行+4基准wrapper）+ verify/incremental/merkle 首批分支图 | 扩展分支审计到 digest/crypto/create/store/audit | P0/P1 |
 | L1 | 集成测试 | ~15个 | +10（跨包闭环） | P1 |
 | L2 | 属性测试 | 3个 | +8（Ed25519/Fe/canonjson扩展） | P1 |
 | L3 | 差分测试 | 固定夹具 | +随机差分harness（Ed25519/SHA/HMAC） | P1 |
@@ -208,6 +208,7 @@
 | 2.10 | point_decode边界（y=p/p+1/2p-1 + sign=0/1组合） | L0 | 阶段1 |
 | 2.11 | Ed25519差分测试（Node.js crypto 随机向量；CI 64组，发布候选1000组） | L3 | Done: `tools/differential-crypto.mjs` compares key derivation, signatures, cross-verification, and tamper rejection against Node.js crypto |
 | 2.12 | SHA/HMAC差分测试（随机长度0-65536字节） | L3 | Done: `tools/differential-digest.mjs` compares SHA-256/SHA-512/HMAC-SHA256 against Node.js crypto; CI runs 64 rounds, release candidates can run 1000 |
+| 2.13 | 分支清单审计（verify/incremental/merkle 首批） | L0/L8 | Done: `docs/BRANCH_COVERAGE.md` maps 45 audited branches with 0 open gaps for the first pass |
 
 **工作量**：约30-40个测试用例 + 12个CLI用例 + 已完成的变异点扩展，4-6天
 
@@ -424,7 +425,7 @@ Node 签名、篡改消息被 MoonBit 拒绝。该脚本不把向量固化进仓
 |---|---|---|---|
 | **MoonBit覆盖率** | `moon test --enable-coverage` | 行覆盖 >90% | 未测量 |
 | **变异测试得分** | `mutation-check.mjs` | 100%捕获 | 16/16 (100%) |
-| **分支清单审计** | 人工逐包建立分支清单 | 100%分支有触发测试 | 部分（17个盲点） |
+| **分支清单审计** | `docs/BRANCH_COVERAGE.md` 人工逐包建立分支清单 | 100%关键分支有触发测试或明确 accepted-risk | verify/incremental/merkle 首批 45 个分支，0 个 open gap |
 | **错误码触发覆盖** | CLI黑盒断言 | 100%（除E3002保留） | ~95% |
 | **指标漂移守卫** | `check-metrics.mjs` | 0 mismatch | 0 |
 
@@ -535,3 +536,4 @@ Node 签名、篡改消息被 MoonBit 拒绝。该脚本不把向量固化进仓
 | 2026-07-06 | Phase 1 Ed25519 精确分支收口：新增 8 个白盒测试，记录 312/312 实跑与 316 声明口径差异 | Codex |
 | 2026-07-06 | Phase 1 create abort 收口：新增 5 个 panic 测试，记录 317/317 实跑与 321 声明口径差异；CT-001 保持为实现风险 | Codex |
 | 2026-07-06 | CT-001 源码级修复：`reduce_scalar_512` 比较/borrow 改为 arithmetic mask/selection；Phase 1 源码与测试治理收口 | Codex |
+| 2026-07-06 | Phase 2 首批分支清单审计：新增 `docs/BRANCH_COVERAGE.md`，覆盖 verify/incremental/merkle 45 个关键分支，0 个 open gap | Codex |

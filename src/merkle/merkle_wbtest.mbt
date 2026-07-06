@@ -223,6 +223,41 @@ test "domain separation keeps leaf and node hashes apart" {
 }
 
 ///|
+test "sha512 leaf hash uses 0x00 domain separator" {
+  let data = b"sha512-leaf-domain"
+  let ctx = @digest.Sha512Ctx::new()
+  ctx.update(b"\x00")
+  ctx.update(data)
+  let expected = ctx.finalize()
+  assert_eq(leaf_hash(data, algorithm=@digest.Sha512), expected)
+
+  let wrong = @digest.Sha512Ctx::new()
+  wrong.update(b"\x01")
+  wrong.update(data)
+  assert_true(leaf_hash(data, algorithm=@digest.Sha512) != wrong.finalize())
+}
+
+///|
+test "sha512 node hash uses 0x01 domain separator" {
+  let left = leaf_hash(b"left", algorithm=@digest.Sha512)
+  let right = leaf_hash(b"right", algorithm=@digest.Sha512)
+  let ctx = @digest.Sha512Ctx::new()
+  ctx.update(b"\x01")
+  ctx.update(left)
+  ctx.update(right)
+  let expected = ctx.finalize()
+  assert_eq(node_hash(left, right, algorithm=@digest.Sha512), expected)
+
+  let wrong = @digest.Sha512Ctx::new()
+  wrong.update(b"\x00")
+  wrong.update(left)
+  wrong.update(right)
+  assert_true(
+    node_hash(left, right, algorithm=@digest.Sha512) != wrong.finalize(),
+  )
+}
+
+///|
 test "sha512 merkle root and proofs round trip" {
   let leaves = make_leaves(9)
   let root = must_root_with(leaves, @digest.Sha512)

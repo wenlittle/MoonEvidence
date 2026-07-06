@@ -55,6 +55,27 @@ const mutations = [
     expectHint: "0x01 domain separator",
   },
   {
+    id: "merkle-sha512-leaf-prefix",
+    label: "merkle SHA-512 leaf domain separator 0x00 -> 0x01",
+    file: join(repoRoot, "src", "merkle", "merkle.mbt"),
+    find: '@digest.Sha512 => {\n      let ctx = @digest.Sha512Ctx::new()\n      ctx.update(b"\\x00")\n      ctx.update(data)',
+    replace: '@digest.Sha512 => {\n      let ctx = @digest.Sha512Ctx::new()\n      ctx.update(b"\\x01")\n      ctx.update(data)',
+    // Guards the multi-algorithm branch added for SHA-512. SHA-256 prefix
+    // mutations do not prove that the SHA-512 branch uses the same RFC 6962
+    // leaf domain separation.
+    expectHint: "SHA-512 leaf 0x00 domain separator",
+  },
+  {
+    id: "merkle-sha512-node-prefix",
+    label: "merkle SHA-512 node domain separator 0x01 -> 0x00",
+    file: join(repoRoot, "src", "merkle", "merkle.mbt"),
+    find: '@digest.Sha512 => {\n      let ctx = @digest.Sha512Ctx::new()\n      ctx.update(b"\\x01")\n      ctx.update(left)',
+    replace: '@digest.Sha512 => {\n      let ctx = @digest.Sha512Ctx::new()\n      ctx.update(b"\\x00")\n      ctx.update(left)',
+    // Same invariant as the SHA-256 node mutation, but on the SHA-512 branch
+    // used by the newer boundary tree tests.
+    expectHint: "SHA-512 node 0x01 domain separator",
+  },
+  {
     id: "merkle-self-pair",
     label: "odd node promoted via self-pairing (CVE-2012-2459 regression)",
     file: join(repoRoot, "src", "merkle", "merkle.mbt"),
@@ -64,6 +85,17 @@ const mutations = [
     // root of [a, b, c] equals node_hash(node_hash(a, b), leaf_hash(c));
     // self-pairing c would change that root.
     expectHint: "unpaired nodes are promoted",
+  },
+  {
+    id: "merkle-tree-self-pair",
+    label: "materialized merkle tree odd node promoted via self-pairing",
+    file: join(repoRoot, "src", "merkle", "merkle.mbt"),
+    find: "    if index < current.length() {\n      // Odd node out: promote unchanged (never self-pair, CVE-2012-2459).\n      next.push(current[index])\n    }",
+    replace: "    if index < current.length() {\n      // MUTANT: self-pair the odd node instead of promoting it.\n      next.push(node_hash(current[index], current[index], algorithm=algo))\n    }",
+    // compute_tree is a separate materialization path for visualization/API
+    // callers. It must keep the same odd-node promotion invariant as
+    // compute_root; otherwise the displayed tree can disagree with the root.
+    expectHint: "materialized tree root equals compute_root",
   },
   {
     id: "ed25519-canonical-s",
@@ -99,6 +131,25 @@ const mutations = [
     expectHint: "non-canonical y round-trip check",
   },
   {
+    id: "hmac-ipad-constant",
+    label: "hmac ipad constant bit-flipped (0x36 -> 0x37)",
+    file: join(repoRoot, "src", "digest", "hmac.mbt"),
+    find: "  let ipad_key = xor_pad(k_prime, 0x36)",
+    replace: "  let ipad_key = xor_pad(k_prime, 0x37)",
+    // HMAC is not just SHA(key || message): RFC 2104 depends on the exact
+    // ipad/opad constants. The RFC vectors must catch a one-bit drift.
+    expectHint: "RFC 2104 ipad constant",
+  },
+  {
+    id: "hmac-opad-constant",
+    label: "hmac opad constant bit-flipped (0x5c -> 0x5d)",
+    file: join(repoRoot, "src", "digest", "hmac.mbt"),
+    find: "  let opad_key = xor_pad(k_prime, 0x5c)",
+    replace: "  let opad_key = xor_pad(k_prime, 0x5d)",
+    // Complements the ipad mutation so both HMAC pads are falsified directly.
+    expectHint: "RFC 2104 opad constant",
+  },
+  {
     id: "sha256-initial-h0",
     label: "sha256 initial hash H0 bit-flipped (0x6a09e667 -> 0x6a09e668)",
     file: join(repoRoot, "src", "digest", "sha256.mbt"),
@@ -117,6 +168,36 @@ const mutations = [
     // Flips the LSB of the first FIPS 180-4 §4.2.2 round constant.
     // The NIST "abc" KAT must produce a different digest.
     expectHint: "FIPS 180-4 round constant",
+  },
+  {
+    id: "sha512-initial-h0",
+    label: "sha512 initial hash H0 bit-flipped",
+    file: join(repoRoot, "src", "digest", "sha512.mbt"),
+    find: "0x6a09e667f3bcc908UL, 0xbb67ae8584caa73bUL",
+    replace: "0x6a09e667f3bcc909UL, 0xbb67ae8584caa73bUL",
+    // Flips the LSB of the first FIPS 180-4 SHA-512 initial value. SHA-256
+    // mutations cannot prove that the SHA-512 implementation is guarded.
+    expectHint: "FIPS 180-4 SHA-512 initial hash state",
+  },
+  {
+    id: "sha512-round-k0",
+    label: "sha512 round constant K0 bit-flipped",
+    file: join(repoRoot, "src", "digest", "sha512.mbt"),
+    find: "0x428a2f98d728ae22UL, 0x7137449123ef65cdUL",
+    replace: "0x428a2f98d728ae23UL, 0x7137449123ef65cdUL",
+    // Flips the first SHA-512 round constant, complementing the SHA-256 K0
+    // mutation and pinning the second digest core.
+    expectHint: "FIPS 180-4 SHA-512 round constant",
+  },
+  {
+    id: "incremental-e2004-disabled",
+    label: "incremental manifest digest mismatch check disabled",
+    file: join(repoRoot, "src", "verify", "incremental.mbt"),
+    find: "    if actual != expected {\n      findings.push({\n        code: \"E2004\",",
+    replace: "    if false {\n      findings.push({\n        code: \"E2004\",",
+    // Proves the independent golden-manifest tests really enforce the trust
+    // boundary: expected_manifest_digest must reject a changed manifest.
+    expectHint: "incremental E2004 manifest digest mismatch",
   },
 ];
 

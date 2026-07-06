@@ -979,6 +979,34 @@ inclusion proofs and tamper rejection.
 | `node tools/check-metrics.mjs` | PASS: 19/19 metric assertions; current metrics 12429 lines / 329 declarations |
 | `git diff --check` | PASS; only CRLF normalization warning for `README.zh.md` |
 
+## 2026-07-06 Asia/Shanghai (Phase 2 mutation expansion)
+
+### Reverse-Proof Mutation Coverage
+
+This round expanded mutation testing from "fixed oracle says green" to
+"deliberately break production code and prove tests go red" across the security
+core. The first run exposed a real blind spot: SHA-512 Merkle leaf/node domain
+separator mutations slipped. Two direct SHA-512 domain-separator tests were
+added, then the full mutation suite caught every mutant.
+
+| Field | Result |
+| --- | --- |
+| Scope | `tools/mutation-check.mjs`, `src/merkle/merkle_wbtest.mbt` |
+| Mutation count | 16/16 caught: Merkle SHA-256/SHA-512 prefixes, compute_root odd promotion, compute_tree odd promotion, Ed25519 canonical S/low-order/non-canonical-y, HMAC ipad/opad, SHA-256/SHA-512 initial state and K0, incremental E2004 |
+| New executable tests | 2 wbtests pin SHA-512 Merkle leaf prefix 0x00 and node prefix 0x01 against direct `Sha512Ctx` calculations |
+| Blind spot found and closed | Initial `node tools/mutation-check.mjs --merkle` caught 4/6; `merkle-sha512-leaf-prefix` and `merkle-sha512-node-prefix` slipped. After adding tests, `--merkle` caught 6/6 |
+| Metrics | 110 commits / 12464 MoonBit lines (impl 5448 + tests 7016) / 331 test declarations / 12 packages / moon.mod 0.4.0 == CHANGELOG 0.4.0 |
+
+### Verification Run
+
+| Command | Result |
+| --- | --- |
+| `node tools/mutation-check.mjs --merkle` | first run 4/6 caught, 2 slipped; after test fix 6/6 caught |
+| `node tools/mutation-check.mjs` | 16/16 mutations caught, 0 slipped, 0 errored |
+| `moon check` | exit 0 |
+| `moon test --target js` | 327/327 passed |
+| `moon test --target wasm-gc` | 327/327 passed |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

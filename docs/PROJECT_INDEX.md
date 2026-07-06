@@ -34,7 +34,7 @@ Build a reusable MoonBit library and CLI for trusted evidence pack verification:
 | `docs/KNOWLEDGE_BASE.md` | **项目知识库（新会话首选入口）**：完整架构/API/数据流/错误码/常量/测试覆盖/CI/工具链/安全治理/测试盲点/深度测试计划 |
 | `docs/TEST_GOVERNANCE.md` | Quality gate and stop-rule: P0/P1/P2 risk classes, Definition of Done, release gate commands, and anti-patterns for test quality |
 | `docs/CONST_TIME_AUDIT.md` | Ed25519 constant-time static audit: source-level branch inventory, public-vs-secret input classification, and CT-001 scalar-reduction fix record |
-| `docs/BRANCH_COVERAGE.md` | Manual branch coverage audit for security-relevant accept/reject/skip/warn paths; first pass covers verify/incremental/merkle |
+| `docs/BRANCH_COVERAGE.md` | Manual branch coverage audit for security-relevant accept/reject/skip/warn paths; first pass covers verify/incremental/merkle/digest/crypto |
 | `docs/TEST_PLAN.md` | **测试计划（改进前置条件）**：策略决策/系统性缺陷诊断/9层测试模型/3阶段实施/用例清单/覆盖率度量/改进安全检查清单 |
 | `docs/PROJECT_INDEX.md` | This index |
 | `docs/records/RESULTS_LOG.md` | Timestamped research, verification, and environment results |

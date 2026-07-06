@@ -22,6 +22,13 @@ test "SHA-512 448-bit message" {
 }
 
 ///|
+test "SHA-512 padding boundary at 112 bytes spills into second tail block" {
+  let data = Bytes::make(112, b'a')
+  let expected = "c01d080efd492776a1c43bd23dd99d0a2e626d481e16782e75d54c2503b5dc32bd05f0f1ba33e568b88fd2d970929b719ecbb152f58f130a407c8830604b70ca"
+  assert_eq(sha512_hex(data), expected)
+}
+
+///|
 test "SHA-512 digest produces 64 bytes" {
   let ctx = Sha512Ctx::new()
   ctx.update(b"test")
@@ -37,6 +44,15 @@ test "SHA-512 incremental update matches single-shot" {
   ctx.update(b"world")
   let incremental = bytes_to_lower_hex(ctx.finalize())
   assert_eq(single, incremental)
+}
+
+///|
+test "SHA-512 finalize is idempotent" {
+  let ctx = Sha512Ctx::new()
+  ctx.update(b"abc")
+  let first = ctx.finalize()
+  let second = ctx.finalize()
+  assert_eq(first, second)
 }
 
 ///|

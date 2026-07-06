@@ -1,7 +1,7 @@
 # Branch Coverage Audit
 
-> Last updated: 2026-07-06 Asia/Shanghai. Scope for this first pass:
-> `verify`, `incremental`, and `merkle` trust boundaries.
+> Last updated: 2026-07-06 Asia/Shanghai. Scope covered so far:
+> `verify`, `incremental`, `merkle`, `digest`, and `crypto` trust boundaries.
 
 MoonBit does not currently give this repository a mature line/branch coverage
 report, so this file is the manual substitute. It records the security-relevant
@@ -25,11 +25,13 @@ Status vocabulary:
 | `verify` | 12 | 0 | Direct/oracle coverage for live branches; one defensive accepted-risk guard. |
 | `incremental` | 15 | 0 | Direct/oracle/mutation coverage for live branches; explicit cache trust-boundary test; one defensive accepted-risk guard. |
 | `merkle` | 18 | 0 | Direct/oracle/mutation coverage for live branches; one defensive accepted-risk guard. |
+| `digest` | 24 | 0 | Direct, RFC/NIST, mutation, and Node.js differential coverage for hash/HMAC/digest parsing branches. |
+| `crypto` | 24 | 0 | Direct, RFC 8032, Wycheproof, mutation, differential, and static-audit evidence for Ed25519/field/point branches. |
 
 The current audited surface has no open `gap` items. This does not mean the
-whole project is fully covered; it means these three trust boundaries now have
-an explicit branch map. The next pass should extend the same table to
-`digest`, `crypto`, `create`, `store`, and `audit`.
+whole project is fully covered; it means these trust boundaries now have an
+explicit branch map. The next pass should extend the same table to `create`,
+`store`, and `audit`, then add a stale-check gate.
 
 ## Verify
 
@@ -97,10 +99,74 @@ File: `src/merkle/merkle.mbt`
 | M-17 | Golden roots/proofs match independent Node reference | `merkle.mbt:82` | `merkle_golden_wbtest`: roots/proofs from `tests/fixtures/merkle/golden.json` | `oracle-covered` | |
 | M-18 | `MerkleTree::root` empty top guard | `merkle.mbt:128` | No direct trigger | `accepted-risk` | `compute_tree([])` returns `None`, and no public constructor creates an empty-top non-empty tree. Defensive branch. |
 
+## Digest
+
+Files: `src/digest/digest.mbt`, `src/digest/sha256.mbt`,
+`src/digest/sha512.mbt`, `src/digest/hmac.mbt`
+
+| ID | Branch / Invariant | Source | Evidence | Status | Notes |
+| --- | --- | --- | --- | --- | --- |
+| D-01 | `HashAlgorithm::label` renders SHA-256 and SHA-512 canonical labels | `digest.mbt:35` | `digest_wbtest`: parse/render round trips for both algorithms | `covered` | |
+| D-02 | `normalize_algorithm` accepts `sha256` and `SHA-256` spellings | `digest.mbt:46` | `digest_wbtest`: normalize algorithm accepts sha256 forms | `covered` | |
+| D-03 | `normalize_algorithm` accepts `sha512` and `SHA-512` spellings | `digest.mbt:48` | `digest_wbtest`: normalize algorithm accepts sha512 forms | `covered` | |
+| D-04 | `normalize_algorithm` rejects unknown algorithms | `digest.mbt:51` | `digest_wbtest`: `md5` and parse-digest unknown algorithm cases | `covered` | |
+| D-05 | `is_hex` accepts non-empty ASCII hex | `digest.mbt:61` | `digest_wbtest`: uppercase/lowercase hex normalization and decoding | `covered` | |
+| D-06 | `is_hex` rejects empty and non-hex strings | `digest.mbt:61` | `digest_wbtest`: empty, `xyz`, and `zz` rejection cases | `covered` | |
+| D-07 | `hex_to_bytes` rejects odd-length input | `digest.mbt:91` | `digest_wbtest`: `hex_to_bytes("abc")` returns `None` | `covered` | |
+| D-08 | `hex_to_bytes` rejects non-hex nibbles | `digest.mbt:98` | `digest_wbtest`: `hex_to_bytes("00xz")` returns `None` | `covered` | |
+| D-09 | `hex_to_bytes` decodes mixed-case valid nibbles | `digest.mbt:95` | `digest_wbtest`: `0aFf` decodes to `0a ff` | `covered` | |
+| D-10 | `normalize_hex` lowercases valid input | `digest.mbt:108` | `digest_wbtest`: `A0B1C2` -> `a0b1c2` | `covered` | |
+| D-11 | `normalize_hex` rejects empty/non-hex input | `digest.mbt:111` | `digest_wbtest`: empty and `xyz` return `None` | `covered` | |
+| D-12 | `parse_digest` rejects wrong colon shape | `digest.mbt:121` | `digest_wbtest`: no-colon and extra-colon cases return `None` | `covered` | |
+| D-13 | `parse_digest` rejects unknown algorithm | `digest.mbt:122` | `digest_wbtest`: `md5:abcd` returns `None` | `covered` | |
+| D-14 | `parse_digest` rejects invalid/empty hex | `digest.mbt:125` | `digest_wbtest`: `sha256:` and `sha256:zz` return `None` | `covered` | |
+| D-15 | `parse_digest` normalizes valid algorithm and hex | `digest.mbt:120` | `digest_wbtest`: `SHA-256:ABCD` -> `sha256:abcd` | `covered` | |
+| D-16 | `Digest::of_bytes` dispatches SHA-256 | `digest.mbt:134` | `digest_wbtest` and `sha256_wbtest`: FIPS/NIST `abc` vector | `oracle-covered` | |
+| D-17 | `Digest::of_bytes` dispatches SHA-512 | `digest.mbt:135` | `digest_wbtest` and `sha512_wbtest`: FIPS `abc` and million-`a` vectors | `oracle-covered` | |
+| D-18 | `same_digest` compares normalized valid digest strings | `digest.mbt:151` | `digest_wbtest`: mixed-case equivalent strings compare true | `covered` | |
+| D-19 | `same_digest` rejects malformed input | `digest.mbt:153` | `digest_wbtest`: malformed right-hand value returns false | `covered` | |
+| D-20 | SHA-256 one-shot/streaming padding and block boundaries match NIST | `sha256.mbt` | `sha256_wbtest`: empty, 55/56-class examples, 112-byte class, million-`a`, chunk invariance | `oracle-covered` | Mutations cover H0/K0. |
+| D-21 | SHA-512 one-shot/streaming padding and block boundaries match FIPS/Node | `sha512.mbt` | `sha512_wbtest`: empty, `abc`, 112-byte spill boundary, incremental/idempotent finalize | `oracle-covered` | Mutations cover H0/K0. |
+| D-22 | HMAC derives short/equal-block keys by zero-padding | `hmac.mbt:38` | `hmac_wbtest`: RFC 4231 cases 1-4 and empty message | `oracle-covered` | |
+| D-23 | HMAC hashes keys longer than the block size | `hmac.mbt:38` | `hmac_wbtest`: RFC 4231 case 6; mutation tests catch ipad/opad constants | `mutation-covered` | |
+| D-24 | SHA/HMAC JS API agrees with Node.js random differential oracle | `tools/differential-digest.mjs` | CI runs 64 rounds; release candidates can run 1000 | `oracle-covered` | Covers random lengths including padding boundaries. |
+
+## Crypto
+
+Files: `src/crypto/ed25519.mbt`, `src/crypto/field25519.mbt`,
+`src/crypto/point25519.mbt`
+
+| ID | Branch / Invariant | Source | Evidence | Status | Notes |
+| --- | --- | --- | --- | --- | --- |
+| C-01 | Ed25519 public-key derivation matches RFC/Node | `ed25519.mbt:156` | RFC 8032 KATs; `tools/differential-crypto.mjs` | `oracle-covered` | |
+| C-02 | Ed25519 signing is deterministic and matches RFC/Node | `ed25519.mbt:165` | RFC 8032 KATs; randomized Node differential oracle | `oracle-covered` | |
+| C-03 | Ed25519 verify accepts valid signatures | `ed25519.mbt:244` | RFC 8032 KATs and 88 valid Wycheproof vectors | `oracle-covered` | |
+| C-04 | `ed25519_verify` rejects bad public-key/signature lengths | `ed25519.mbt:245` | `ed25519_wbtest`: 31/33-byte pk and 63/65-byte signature | `covered` | |
+| C-05 | `scalar_lt_l` rejects non-canonical `S >= l` | `ed25519.mbt:260` | `ed25519_wbtest`, Wycheproof malleability vectors, mutation `ed25519-canonical-s` | `mutation-covered` | |
+| C-06 | Invalid public-key point decoding rejects verification | `ed25519.mbt:264` | `ed25519_wbtest`: invalid pk encoding; Wycheproof invalid encodings | `oracle-covered` | |
+| C-07 | Identity public key is explicitly rejected | `ed25519.mbt:271` | `ed25519_wbtest`: identity forgery cases | `covered` | |
+| C-08 | Low-order public keys are rejected by cofactor check | `ed25519.mbt:280` | `ed25519_wbtest`; mutation `ed25519-low-order-reject` | `mutation-covered` | |
+| C-09 | Invalid `R` point decoding rejects verification | `ed25519.mbt:284` | `ed25519_wbtest`: invalid R encoding; Wycheproof invalid encodings | `oracle-covered` | |
+| C-10 | Verification equation rejects wrong message/signature | `ed25519.mbt:294` | `ed25519_wbtest`: wrong message, tampered signature; differential tamper checks | `covered` | |
+| C-11 | `point_decode` rejects non-32-byte encodings | `ed25519.mbt:335` | `ed25519_wbtest`: 31/33-byte encodings | `covered` | |
+| C-12 | `point_decode` rejects non-canonical `y >= p` | `ed25519.mbt:350` | `ed25519_wbtest`; mutation `ed25519-noncanonical-y` | `mutation-covered` | |
+| C-13 | `point_decode` handles sqrt(-1) correction path | `ed25519.mbt:362` | `ed25519_wbtest`: `y=0` accepts after correction | `covered` | |
+| C-14 | `point_decode` rejects points not on the curve | `ed25519.mbt:365` | `ed25519_wbtest`: small `y=2` rejection | `covered` | |
+| C-15 | `point_decode` rejects `x=0` with sign bit set | `ed25519.mbt:375` | `ed25519_wbtest`: identity encoding with sign=1 | `covered` | |
+| C-16 | Field add/sub/mul/invert obey basic field laws | `field25519.mbt` | `field25519_wbtest`: identities, inverse, distributive law | `covered` | |
+| C-17 | `Fe::to_bytes` canonical reduction handles `p -> 0` | `field25519.mbt:158` | `field25519_wbtest`: direct `p` reduction; point non-canonical-y test | `covered` | |
+| C-18 | `Fe::eq` scans all bytes before equality decision | `field25519.mbt:199` | `docs/CONST_TIME_AUDIT.md`; equality used across field/point tests | `covered` | Source-level constant-time audit, not dudect proof. |
+| C-19 | `fe_cmov` / `point_cmov` select both scalar bits without branch | `field25519.mbt:214`, `point25519.mbt:129` | `point25519_wbtest`: scalar 2 and 3; `docs/CONST_TIME_AUDIT.md` | `covered` | Source-level audit only. |
+| C-20 | Point identity/add/double formulas agree | `point25519.mbt:100` | `point25519_wbtest`: identity + base, base + identity, add equals double | `covered` | |
+| C-21 | Scalar multiplication agrees with repeated addition/RFC public keys | `point25519.mbt:143` | `point25519_wbtest`: 2*B/3*B; RFC 8032 public-key KATs | `oracle-covered` | |
+| C-22 | Point encoding round-trips through decode | `point25519.mbt:181` | `ed25519_wbtest`: base point and `y=0` round trips | `covered` | |
+| C-23 | `reduce_scalar_512` has no source-level secret-dependent compare/borrow branch | `ed25519.mbt:81` | `docs/CONST_TIME_AUDIT.md`; RFC/Node differential signing catches functional drift | `covered` | Backend/timing proof remains outside this claim. |
+| C-24 | Ed25519 verify rejects independent negative corpus | `ed25519_wycheproof_wbtest.mbt` | 62 invalid Wycheproof vectors across seven categories | `oracle-covered` | Independent Google Wycheproof expected results. |
+
 ## Open Follow-Ups
 
 | Priority | Item | Reason |
 | --- | --- | --- |
-| P1 | Extend this audit to `digest`, `crypto`, `create`, `store`, and `audit`. | The current pass covers the main verification/Merkle trust boundary, not every package. |
+| P1 | Extend this audit to `create`, `store`, and `audit`. | The current pass covers the main verification/Merkle/digest/crypto trust boundary, not every package. |
 | P1 | Add a lightweight script or checklist gate that fails when this file is stale after touching audited files. | Manual branch maps can drift unless the workflow names the update requirement. |
 | P2 | Add fuzz/property tests for malformed public JS API requests. | CLI/API shape errors are user-facing and broader than the pure core. |

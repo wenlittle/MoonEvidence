@@ -2,6 +2,8 @@
 test "normalize algorithm accepts sha256 forms" {
   assert_true(is_supported_algorithm("sha256"))
   assert_true(is_supported_algorithm("SHA-256"))
+  assert_true(is_supported_algorithm("sha512"))
+  assert_true(is_supported_algorithm("SHA-512"))
   assert_false(is_supported_algorithm("md5"))
 }
 
@@ -24,9 +26,33 @@ test "parse digest normalizes algorithm and hex" {
 }
 
 ///|
+test "parse digest rejects malformed text forms" {
+  debug_inspect(parse_digest("sha256abcd"), content="None")
+  debug_inspect(parse_digest("sha256:abcd:extra"), content="None")
+  debug_inspect(parse_digest("md5:abcd"), content="None")
+  debug_inspect(parse_digest("sha256:"), content="None")
+  debug_inspect(parse_digest("sha256:zz"), content="None")
+}
+
+///|
+test "hex_to_bytes rejects odd length and non hex input" {
+  debug_inspect(hex_to_bytes("abc"), content="None")
+  debug_inspect(hex_to_bytes("00xz"), content="None")
+}
+
+///|
+test "hex_to_bytes accepts uppercase and lowercase nibbles" {
+  let bytes = hex_to_bytes("0aFf") |> Option::unwrap()
+  assert_eq(bytes.length(), 2)
+  assert_eq(bytes[0], b'\x0a')
+  assert_eq(bytes[1], b'\xff')
+}
+
+///|
 test "same digest compares normalized values" {
   assert_true(same_digest("sha256:ABCD", "SHA-256:abcd"))
   assert_false(same_digest("sha256:abcd", "sha256:abce"))
+  assert_false(same_digest("sha256:abcd", "not-a-digest"))
 }
 
 ///|

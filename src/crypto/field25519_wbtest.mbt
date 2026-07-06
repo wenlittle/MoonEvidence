@@ -41,6 +41,20 @@ test "fe from_bytes round-trip" {
 }
 
 ///|
+test "fe to_bytes canonically reduces p to zero" {
+  let p_bytes : Array[Byte] = [
+    b'\xed', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff',
+    b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff',
+    b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff',
+    b'\xff', b'\xff', b'\xff', b'\xff', b'\x7f',
+  ]
+  let reduced = Fe::from_bytes(Bytes::from_array(p_bytes)).to_bytes()
+  for i in 0..<32 {
+    assert_eq(reduced[i], b'\x00')
+  }
+}
+
+///|
 test "fe distributive law: a*(b+c) = a*b + a*c" {
   let a = Fe::from_small(3UL)
   let b = Fe::from_small(5UL)

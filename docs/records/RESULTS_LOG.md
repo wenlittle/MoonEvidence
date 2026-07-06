@@ -1038,27 +1038,34 @@ same 9 create cases and 3 incremental cases, so both scripts assert the same
 
 ## 2026-07-06 Asia/Shanghai (Phase 2 branch coverage audit)
 
-### First-Pass Manual Branch Map
+### Extended Manual Branch Map
 
 MoonBit does not currently give this repo a mature branch coverage report, so
-this round added a manual branch map for the highest-risk verification surface.
-No production code or executable tests changed.
+this round extended the manual branch map from the verification/Merkle surface
+into the digest and crypto foundations. Six focused wbtests were added to make
+previously implicit digest/crypto branch evidence executable.
 
 | Field | Result |
 | --- | --- |
 | New artifact | `docs/BRANCH_COVERAGE.md` |
-| Scope | `src/verify/verify.mbt`, `src/verify/incremental.mbt`, `src/merkle/merkle.mbt` |
-| Audited branches | 45 total: verify 12, incremental 15, merkle 18 |
+| Scope | `src/verify/verify.mbt`, `src/verify/incremental.mbt`, `src/merkle/merkle.mbt`, `src/digest/*`, `src/crypto/*` |
+| Audited branches | 93 total: verify 12, incremental 15, merkle 18, digest 24, crypto 24 |
+| New tests | 6 wbtests: malformed digest text forms, `hex_to_bytes` invalid/valid nibbles, SHA-512 112-byte padding boundary, SHA-512 finalize idempotence, and `Fe::to_bytes(p) == 0` |
 | Open gaps | 0 for this first-pass scope |
 | Accepted risk | Defensive fallback branches that current constructors/model validation should not expose are recorded explicitly instead of hidden |
-| Next scope | Extend the same audit method to `digest`, `crypto`, `create`, `store`, and `audit`; then add a stale-check workflow gate |
+| Next scope | Extend the same audit method to `create`, `store`, and `audit`; then add a stale-check workflow gate |
+| Metrics | 113 commits / 12520 MoonBit lines (impl 5448 + tests 7072) / 337 test declarations / 12 packages / moon.mod 0.4.0 == CHANGELOG 0.4.0 |
 
 ### Verification Run
 
 | Command | Result |
 | --- | --- |
-| `node tools/check-metrics.mjs` | PASS |
+| `moon test --target js src/digest` | 44/44 passed |
+| `moon test --target js src/crypto` | 48/48 passed |
 | `moon check` | exit 0 |
+| `moon test --target js` | 333/333 passed |
+| `moon test --target wasm-gc` | 333/333 passed |
+| `node tools/check-metrics.mjs` | PASS: 19/19 metric assertions |
 | `git diff --check` | PASS; no whitespace errors |
 
 ## Logging Rule

@@ -4,7 +4,8 @@
 //
 //   node tools/smoke-api.mjs
 //
-// Covers all 11 exported pub API functions in closed loops:
+// Covers all 12 exported pub API functions in closed loops:
+//   0. digest_compute (SHA-256 / SHA-512 / HMAC-SHA256)
 //   1. verify_evidence (golden + tampered + malformed)
 //   2. create_evidence_pack → verify_evidence round-trip
 //   3. generate_proof → verify_proof round-trip
@@ -14,6 +15,7 @@
 //
 // Exit code 0 on pass, 1 on any unexpected verdict.
 import {
+  digest_compute,
   verify_evidence,
   create_evidence_pack,
   generate_proof,
@@ -26,7 +28,7 @@ import {
   ed25519_verify,
 } from "../_build/js/release/build/src/api/api.js";
 import { existsSync, readFileSync } from "node:fs";
-import { createHash } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 
 const hex = (buf) =>
   [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -35,6 +37,12 @@ const utf8 = (s) => new TextEncoder().encode(s);
 
 const sha256Hex = (buf) =>
   createHash("sha256").update(buf).digest("hex");
+
+const sha512Hex = (buf) =>
+  createHash("sha512").update(buf).digest("hex");
+
+const hmacSha256Hex = (key, buf) =>
+  createHmac("sha256", key).update(buf).digest("hex");
 
 ///|
 /// Build the canonical file entry text (RFC 8785 JCS key order: digest, path, size).
@@ -65,6 +73,36 @@ function check(label, condition, detail = "") {
 function call(fn, request) {
   return JSON.parse(fn(JSON.stringify(request)));
 }
+
+// ---------------------------------------------------------------------------
+// digest_compute: SHA-256 / SHA-512 / HMAC-SHA256
+// ---------------------------------------------------------------------------
+console.log("0. digest_compute");
+
+const digestPayload = utf8("hello world\n");
+const digestKey = utf8("smoke key");
+const digestSha256 = call(digest_compute, {
+  algorithm: "sha256",
+  data: hex(digestPayload),
+});
+check("sha256 succeeds", digestSha256.ok === true, JSON.stringify(digestSha256));
+check("sha256 matches Node", digestSha256.digest === sha256Hex(digestPayload));
+const digestSha512 = call(digest_compute, {
+  algorithm: "sha512",
+  data: hex(digestPayload),
+});
+check("sha512 succeeds", digestSha512.ok === true, JSON.stringify(digestSha512));
+check("sha512 matches Node", digestSha512.digest === sha512Hex(digestPayload));
+const digestHmac = call(digest_compute, {
+  algorithm: "hmac-sha256",
+  key: hex(digestKey),
+  data: hex(digestPayload),
+});
+check("hmac-sha256 succeeds", digestHmac.ok === true, JSON.stringify(digestHmac));
+check(
+  "hmac-sha256 matches Node",
+  digestHmac.digest === hmacSha256Hex(digestKey, digestPayload),
+);
 
 // ---------------------------------------------------------------------------
 // 1. verify_evidence: golden + tampered + malformed

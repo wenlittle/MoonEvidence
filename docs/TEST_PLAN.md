@@ -8,7 +8,7 @@
 > **最后更新**：2026-07-06
 > **关联文档**：`docs/KNOWLEDGE_BASE.md` §8-§15
 
-> **2026-07-06 进度记录**：Phase 1 已完成七项加固：Wycheproof Ed25519 150 向量、Ed25519 精确分支 8 用例、store 完整性/严格重建 6 个独立 oracle、incremental golden manifest 5 个独立 oracle（含 Q3 缓存信任边界）、Ed25519 常量时间静态审计、create_manifest 5 个 panic 错误路径测试、CT-001 源码级修复。Phase 2 已开始：Ed25519 随机差分 oracle 入 CI，incremental 错误路径补齐 E1004/W1001/E3001。当前本地基线：`moon test --target js` 为 321/321 passed；`check-metrics` 口径为 325 个测试声明（321 可执行测试 + 4 基准 wrapper）。仍需注意：这是源码审计级常量时间结论，不等于 dudect/后端产物级证明。
+> **2026-07-06 进度记录**：Phase 1 已完成七项加固：Wycheproof Ed25519 150 向量、Ed25519 精确分支 8 用例、store 完整性/严格重建 6 个独立 oracle、incremental golden manifest 5 个独立 oracle（含 Q3 缓存信任边界）、Ed25519 常量时间静态审计、create_manifest 5 个 panic 错误路径测试、CT-001 源码级修复。Phase 2 已开始：Ed25519 随机差分 oracle 入 CI，incremental 错误路径补齐 E1004/W1001/E3001，SHA/HMAC 随机差分 oracle 入 CI。当前本地基线：`moon test --target js` 为 321/321 passed；`check-metrics` 口径为 325 个测试声明（321 可执行测试 + 4 基准 wrapper）。仍需注意：这是源码审计级常量时间结论，不等于 dudect/后端产物级证明。
 
 ---
 
@@ -206,8 +206,8 @@
 | 2.8 | 变异测试扩展（+5-8个变异点） | L5 | 阶段1 |
 | 2.9 | 基准测试扩展（native/wasm-gc + Ed25519基准） | L7 | 无 |
 | 2.10 | point_decode边界（y=p/p+1/2p-1 + sign=0/1组合） | L0 | 阶段1 |
-| 2.11 | Ed25519差分测试（Node.js crypto 随机向量；CI 64组，发布候选1000组） | L3 | 无 |
-| 2.12 | SHA/HMAC差分测试（随机长度0-65536字节） | L3 | 无 |
+| 2.11 | Ed25519差分测试（Node.js crypto 随机向量；CI 64组，发布候选1000组） | L3 | Done: `tools/differential-crypto.mjs` compares key derivation, signatures, cross-verification, and tamper rejection against Node.js crypto |
+| 2.12 | SHA/HMAC差分测试（随机长度0-65536字节） | L3 | Done: `tools/differential-digest.mjs` compares SHA-256/SHA-512/HMAC-SHA256 against Node.js crypto; CI runs 64 rounds, release candidates can run 1000 |
 
 **工作量**：约30-40个测试用例 + 12个CLI用例 + 5-8个变异点，4-6天
 

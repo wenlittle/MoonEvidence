@@ -40,7 +40,7 @@
 | 唯一外部依赖 | `moonbitlang/x@0.4.45` |
 | 定位 | 链无关（chain-agnostic）的可信证据包验证核心库 + 原生 CLI |
 | 适用场景 | 区块链公证前完整性验证、数据集归档、数字版权打包、AI 输出审计、科研产物发布 |
-| 代码规模 | 12227 有效 MoonBit 行（实现 5395 + 测试 6832） |
+| 代码规模 | 12280 有效 MoonBit 行（实现 5448 + 测试 6832） |
 | 测试 | 325 个测试声明（321 个可执行测试 + 4 个基准 wrapper）+ 53 例黑盒 CLI 套件 |
 | CI | 17 步流水线，3 道防线（指标门禁 + 交叉对拍 + 变异测试） |
 | 核心问题 | 一组文件、元数据、Merkle 证明与版本记录，是否完整、未被篡改？ |
@@ -113,7 +113,7 @@ L0 Foundation（基础层，无内部依赖）
 | `verify` | L2 | 验证编排（7步管线 + 版本链验证 + 增量验证） |
 | `create` | L2 | 证据包创建（路径排序 → digest → Merkle根 → 规范化 manifest） |
 | `audit` | L2 | 哈希链审计日志（append-only + Ed25519 签名覆盖 canonical JSON） |
-| `api` | L3 | 浏览器/JS 适配层（字符串进字符串出，11个ESM导出函数） |
+| `api` | L3 | 浏览器/JS 适配层（字符串进字符串出，12个ESM导出函数） |
 | `cmd/main` | L3 | 原生 CLI 入口（verify/explain/create 命令 + 三后端平台特定文件） |
 
 ---
@@ -802,9 +802,10 @@ moon-evidence --help
 | 14 | `moon build --target wasm-gc` | 构建 wasm-gc | — |
 | 15 | `moon build --target js` | 构建 js | — |
 | 16 | `pwsh ./tools/cli-test.ps1 -Target js` | CLI 黑盒（53例，js） | — |
-| 17 | `node tools/smoke-api.mjs` | 浏览器适配器烟测（11个API） | — |
+| 17 | `node tools/smoke-api.mjs` | 浏览器适配器烟测（12个API） | — |
 | 18 | `node tools/differential-crypto.mjs --rounds 64` | Ed25519 JS API 与 Node.js crypto 随机差分对拍 | 第2道 |
-| 19 | `node tools/mutation-check.mjs` | **变异测试**：逐字节改写源码，确认测试变红 | 第3道 |
+| 19 | `node tools/differential-digest.mjs --rounds 64` | SHA-256/SHA-512/HMAC-SHA256 JS API 与 Node.js crypto 随机差分对拍 | 第3道 |
+| 20 | `node tools/mutation-check.mjs` | **变异测试**：逐字节改写源码，确认测试变红 | 第4道 |
 
 ### 10.3 bench Job（非阻塞）
 
@@ -835,6 +836,7 @@ moon-evidence --help
 | `cross-verify.mjs` | 独立交叉对拍。用 `node:crypto` 重算所有金色包的摘要和 Merkle 根 | 负面包（`bad-`/`tampered-`/`missing-` 前缀）失败=预期通过。RFC 6962 域分离 |
 | `check-wycheproof-ed25519.mjs` | Wycheproof Ed25519 向量清点门禁 | 校验 150 向量总数、88/62 valid/invalid 分布、7 个攻击类别计数 |
 | `differential-crypto.mjs` | Ed25519 随机差分对拍。比较编译后的 MoonBit JS API 与 Node.js `crypto` | 默认 64 轮；CI 固定 64 轮；发布候选可手动 `--rounds 1000` |
+| `differential-digest.mjs` | SHA-256/SHA-512/HMAC-SHA256 随机差分对拍。比较编译后的 MoonBit JS API 与 Node.js `crypto` | 默认 64 轮；CI 固定 64 轮；发布候选可手动 `--rounds 1000` |
 | `mutation-check.mjs` | 变异测试。逐字节改写源码，跑测试，确认变红，再恢复 | `--merkle` 只跑 merkle 变异。8 个变异。exit 0=全捕获 |
 
 ### 11.2 夹具生成类
@@ -857,7 +859,7 @@ moon-evidence --help
 
 | 文件 | 用途 |
 |---|---|
-| `smoke-api.mjs` | 浏览器适配器烟测，覆盖 11 个 pub API 闭环 |
+| `smoke-api.mjs` | 浏览器适配器烟测，覆盖 12 个 pub API 闭环（含 `digest_compute`） |
 | `env-check.ps1` | 环境体检（git/node/npm/moon + 网络连通性）。`-Json` 输出 JSON |
 | `record-demo.ps1` | 演示视频录制（ffmpeg + gdigrab）。`-Duration 10`（分钟） |
 | `play-demo.ps1` | 演示播放辅助（自动翻页 + http.server:8765） |

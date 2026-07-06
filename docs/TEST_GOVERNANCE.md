@@ -157,9 +157,11 @@ moon test --target wasm-gc
 moon test --target js
 moon build --target wasm-gc
 moon build --target js
+moon build --target js --release src/api
 ./tools/cli-test.ps1 -Target js
 node tools/smoke-api.mjs
 node tools/differential-crypto.mjs --rounds 64
+node tools/differential-digest.mjs --rounds 64
 node tools/mutation-check.mjs
 ```
 
@@ -177,8 +179,8 @@ Canonical CI gate:
 - `.github/workflows/ci.yml` is the source of truth.
 - The CI gate must include metric drift, fixture rot, cross-verification,
   Wycheproof vector inventory, type check, format check, `wasm-gc/js/native`
-  tests, native/js CLI black-box tests, browser adapter smoke, and mutation
-  testing.
+  tests, native/js CLI black-box tests, browser adapter smoke, Ed25519/digest
+  differential checks, and mutation testing.
 - The benchmark job is informational unless a release explicitly declares a
   performance SLO.
 - `.github/workflows/release.yml` packages and publishes tagged artifacts, but

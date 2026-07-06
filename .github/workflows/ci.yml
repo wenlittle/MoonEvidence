@@ -83,7 +83,9 @@ jobs:
         run: moon build --target wasm-gc
 
       - name: Build js
-        run: moon build --target js
+        run: |
+          moon build --target js
+          moon build --target js --release src/api
 
       - name: CLI black-box tests (js)
         shell: pwsh
@@ -98,6 +100,12 @@ jobs:
       # candidates when deeper sampling is needed.
       - name: Differential crypto (MoonBit JS vs Node crypto)
         run: node tools/differential-crypto.mjs --rounds 64
+
+      # Differential digest: compares the compiled MoonBit JS digest API
+      # against Node.js crypto for SHA-256, SHA-512, and HMAC-SHA256 over
+      # deterministic random payloads including padding-boundary lengths.
+      - name: Differential digest (MoonBit JS vs Node crypto)
+        run: node tools/differential-digest.mjs --rounds 64
 
       # Mutation testing: rewrites one source byte at a time, runs the test
       # suite, and confirms at least one test went red. If a mutation slips

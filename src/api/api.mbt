@@ -14,6 +14,59 @@
 // or, when the request itself is malformed:
 //   { "ok": false, "error": String }
 
+// ---------------------------------------------------------------------------
+// Digest API: SHA-256 / SHA-512 / HMAC-SHA256 helper for JS consumers and
+// differential oracle tooling.
+// ---------------------------------------------------------------------------
+
+///|
+/// Computes a digest or HMAC over hex-encoded bytes.
+///
+/// Request:
+///   { "algorithm": "sha256"|"sha512"|"hmac-sha256",
+///     "data": "<hex bytes>",
+///     "key": "<hex bytes>" } // key required only for hmac-sha256
+/// Response:
+///   { "ok": true, "digest": "<hex>" }
+pub fn digest_compute(request_json : String) -> String {
+  let request = @json.parse(request_json) catch {
+    _ => return error_response("request is not valid JSON")
+  }
+  guard request is Object(fields) else {
+    return error_response("request must be a JSON object")
+  }
+  guard fields.get("algorithm") is Some(String(algorithm)) else {
+    return error_response("\"algorithm\" must be a string")
+  }
+  guard fields.get("data") is Some(String(data_hex)) else {
+    return error_response("\"data\" must be a hex string")
+  }
+  guard @digest.hex_to_bytes(data_hex) is Some(data) else {
+    return error_response("\"data\" is not valid hex")
+  }
+  let digest = match algorithm {
+    "sha256" => @digest.sha256_hex(data)
+    "sha512" => @digest.sha512_hex(data)
+    "hmac-sha256" => {
+      guard fields.get("key") is Some(String(key_hex)) else {
+        return error_response("\"key\" must be a hex string for hmac-sha256")
+      }
+      guard @digest.hex_to_bytes(key_hex) is Some(key) else {
+        return error_response("\"key\" is not valid hex")
+      }
+      @digest.hmac_sha256_hex(key, data)
+    }
+    _ =>
+      return error_response(
+        "\"algorithm\" must be \"sha256\", \"sha512\", or \"hmac-sha256\"",
+      )
+  }
+  Json::object({
+    "ok": Json::boolean(true),
+    "digest": Json::string(digest),
+  }).stringify()
+}
+
 ///|
 /// Verifies an evidence pack delivered as a JSON request string and returns
 /// a JSON response string. Exported to JS (see moon.pkg).

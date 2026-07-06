@@ -914,6 +914,43 @@ and unlisted-file warnings.
 | `node tools/differential-crypto.mjs` | 64/64 Ed25519 vectors matched Node.js crypto; Node emitted the existing MODULE_TYPELESS_PACKAGE_JSON warning for the generated JS artifact |
 | `git diff --check` | PASS; only CRLF normalization warning for `README.zh.md` |
 
+## 2026-07-06 Asia/Shanghai (Phase 2 digest differential oracle)
+
+### Node.js crypto differential check for SHA/HMAC
+
+This round added a JS adapter digest endpoint and a randomized differential
+harness for the digest foundation layer. It compares compiled MoonBit JS output
+against Node.js `crypto` for SHA-256, SHA-512, and HMAC-SHA256 across fixed
+padding-boundary lengths and deterministic random payloads.
+
+| Field | Result |
+| --- | --- |
+| New API | `digest_compute` exported from `src/api`: `{algorithm,data,key?}` -> hex digest |
+| New artifact | `tools/differential-digest.mjs` |
+| CI | Added `moon build --target js --release src/api` for the release JS artifact and `node tools/differential-digest.mjs --rounds 64` |
+| Oracle | Node.js `crypto.createHash` / `crypto.createHmac` |
+| Coverage | SHA-256, SHA-512, HMAC-SHA256; fixed lengths include 0/1/55/56/57/63/64/65/111/112/113/127/128/129/65536 plus deterministic random lengths |
+| Smoke API | `tools/smoke-api.mjs` now covers 12 exported API functions and 34 assertions, including digest_compute |
+| Metrics | 108 commits / 12280 MoonBit lines (impl 5448 + tests 6832) / 325 test declarations / 12 packages / moon.mod 0.4.0 == CHANGELOG 0.4.0 |
+
+### Verification Run
+
+| Command | Result |
+| --- | --- |
+| `moon build --target js` | exit 0 |
+| `moon build --target js --release src/api` | exit 0 |
+| `moon check` | exit 0 |
+| `moon test --target js` | 321/321 passed |
+| `moon test --target wasm-gc` | 321/321 passed |
+| `moon test --target js src/api` | 39/39 passed |
+| `node tools/check-metrics.mjs` | PASS: 19/19 metric assertions; current metrics 12280 lines / 325 declarations |
+| `node tools/smoke-api.mjs` | SMOKE PASS: 34 passed, 0 failed |
+| `node tools/differential-digest.mjs --rounds 8` | 8/8 rounds matched Node.js crypto |
+| `node tools/differential-digest.mjs --rounds 64` | 64/64 rounds matched Node.js crypto |
+| `node tools/differential-crypto.mjs --rounds 8` | 8/8 Ed25519 vectors matched Node.js crypto |
+| `node tools/differential-crypto.mjs --rounds 64` | 64/64 Ed25519 vectors matched Node.js crypto |
+| `git diff --check` | PASS; only CRLF normalization warning for `README.zh.md` |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

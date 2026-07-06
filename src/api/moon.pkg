@@ -19,6 +19,7 @@ options(
   link: {
     "js": {
       "exports": [
+        "digest_compute",
         "verify_evidence",
         "compute_merkle_tree",
         "create_evidence_pack",

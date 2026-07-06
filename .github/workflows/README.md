@@ -28,11 +28,14 @@ Runs on every push and pull request to `main`. Two jobs:
    covered by the black-box suite below. If a native-only failure surfaces,
    relax with `continue-on-error: true` and file an issue.
 11. CLI black-box tests (native) - `tools/cli-test.ps1 -Target native`.
-12. `moon build --target wasm-gc` / `moon build --target js`.
+12. `moon build --target wasm-gc` / `moon build --target js`, plus
+   `moon build --target js --release src/api` for the browser-adapter artifact
+   consumed by smoke and differential tools.
 13. CLI black-box tests (js) - `tools/cli-test.ps1 -Target js`.
 14. Browser adapter smoke - `node tools/smoke-api.mjs` over the js artifact.
 15. Differential crypto - `node tools/differential-crypto.mjs --rounds 64`.
-16. Mutation testing - `node tools/mutation-check.mjs`.
+16. Differential digest - `node tools/differential-digest.mjs --rounds 64`.
+17. Mutation testing - `node tools/mutation-check.mjs`.
 
 All commands in the workflow must pass locally before being added here, so a
 red main branch always signals a real regression instead of CI drift.

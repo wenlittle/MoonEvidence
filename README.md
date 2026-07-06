@@ -233,6 +233,6 @@ moon bench --target js
 ```
 
 As of 2026-07-06 Asia/Shanghai, the local wasm-gc/js test baseline is green;
-native requires a C compiler and is covered by CI. Codebase is 12227
-effective MoonBit lines (implementation 5395 + tests 6832); the implementation
+native requires a C compiler and is covered by CI. Codebase is 12280
+effective MoonBit lines (implementation 5448 + tests 6832); the implementation
 size remains within the 4-10k competition range.

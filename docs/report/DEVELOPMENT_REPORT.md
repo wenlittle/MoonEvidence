@@ -1,7 +1,7 @@
 # MoonEvidence 开发报告
 
 > MoonBit OSC2026 开源生态挑战赛 · 项目验收材料
-> 仓库：https://github.com/starlittle/MoonEvidence ｜ 规模：12227 行 MoonBit（实现 5395 + 测试 6832）｜ 提交：107 个 ｜ 包：12 个
+> 仓库：https://github.com/starlittle/MoonEvidence ｜ 规模：12280 行 MoonBit（实现 5448 + 测试 6832）｜ 提交：108 个 ｜ 包：12 个
 > 本报告为单一权威开发报告，合并了功能清单、AI 协作实践与工程质量三方面内容。
 
 ## 一、项目概述
@@ -174,10 +174,11 @@ tests/         -> 夹具与黑盒回归测试
 | manifest 错误码矩阵 | `tests/fixtures/manifest/` 19 个夹具，覆盖 E1001/E1002/E1003/E2001/E2002 在 CLI 黑盒层的触发 |
 | 独立交叉验证 | `tools/cross-verify.mjs` 独立 Node 实现对 create/store/audit 产出重算对比，避免本库自验证盲区 |
 | Ed25519 差分验证 | `tools/differential-crypto.mjs` 将编译后的 MoonBit JS API 与 Node.js `crypto` 对拍：公钥、确定性签名、双向验签、篡改拒绝 |
+| Digest 差分验证 | `tools/differential-digest.mjs` 将编译后的 MoonBit JS API 与 Node.js `crypto` 对拍：SHA-256、SHA-512、HMAC-SHA256，覆盖 padding 边界与随机长度 |
 | Property 测试 | 规范化幂等、Merkle 证明可靠性——并经**变异验证**（`tools/mutation-check.mjs` 故意破坏实现确认测试会红，8/8 捕获，覆盖 Merkle 域分隔符、Ed25519 canonical S/identity/non-canonical-y、SHA-256 初始值/轮常数，证明断言非恒真） |
 | Fuzz | parser fuzz 400 轮随机字节不 panic |
 | 长链压测 | 1000 节点版本链性能数据 |
-| 浏览器适配器 | 28 个 wbtest + Node 烟测（`tools/smoke-api.mjs`，28 断言覆盖 11 个 pub API）+ Playwright 实浏览器会话验证 |
+| 浏览器适配器 | 28 个 wbtest + Node 烟测（`tools/smoke-api.mjs`，34 断言覆盖 12 个 pub API）+ Playwright 实浏览器会话验证 |
 | 基准 | `moon bench`：SHA-256 ~58 MiB/s（js 后端），全量验证 ~26-28 µs/文件，10 倍文件量 → 11.05 倍耗时（近线性） |
 
 ### 测试覆盖分布
@@ -225,9 +226,9 @@ tests/         -> 夹具与黑盒回归测试
 | 指标 | 实测值 |
 | --- | --- |
 | 提交数 | 107 |
-| 实现行数 | 5395 |
+| 实现行数 | 5448 |
 | 测试行数 | 6832 |
-| 总行数 | **12227** |
+| 总行数 | **12280** |
 | 测试声明 | 325（321 测试 + 4 基准调用） |
 | 单元测试通过 | **321/321**（wasm-gc + js 双后端） |
 | CLI 黑盒通过 | **53/53** |

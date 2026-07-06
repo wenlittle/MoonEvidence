@@ -161,8 +161,7 @@ moon build --target js --release src/api
 ./tools/cli-test.ps1 -Target js
 ./tools/cli-test.sh js
 node tools/smoke-api.mjs
-node tools/differential-crypto.mjs --rounds 64
-node tools/differential-digest.mjs --rounds 64
+node tools/randomized-hardening.mjs --profile release --skip-build
 node tools/mutation-check.mjs
 ```
 
@@ -180,7 +179,8 @@ Canonical CI gate:
 - `.github/workflows/ci.yml` is the source of truth.
 - The CI gate must include metric drift, fixture rot, cross-verification,
   Wycheproof vector inventory, type check, format check, `wasm-gc/js/native`
-  tests, native/js CLI black-box tests (PowerShell and bash), browser adapter smoke, Ed25519/digest
+  tests, native/js CLI black-box tests (PowerShell and bash), browser adapter
+  smoke, API malformed fuzz, API semantic property checks, Ed25519/digest
   differential checks, and mutation testing.
 - The benchmark job is informational unless a release explicitly declares a
   performance SLO.
@@ -242,12 +242,13 @@ Reject these during review:
 
 As of 2026-07-06:
 
-- `moon test` baseline is 333 executable tests on `wasm-gc` and `js`.
-- `check-metrics` counts 337 test declarations because 4 benchmark wrappers
+- `moon test` baseline is 340 executable tests on `wasm-gc` and `js`.
+- `check-metrics` counts 344 test declarations because 4 benchmark wrappers
   use `test "bench: ..."` declarations.
 - CI includes the important gates: metrics, fixture rot, cross-verify,
   Wycheproof inventory, type/format checks, multi-backend tests, CLI tests,
-  smoke API, Ed25519 differential crypto, and mutation testing.
+  smoke API, API malformed fuzz, API semantic property checks, Ed25519/digest
+  differential checks, and mutation testing.
 - Independent oracles exist for Ed25519 Wycheproof vectors, store integrity,
   and incremental golden-manifest behavior.
 - Ed25519 exact branch tests now cover length guards, invalid point decoding,

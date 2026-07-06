@@ -180,6 +180,9 @@ moon-evidence/
     cross-verify.mjs           # 独立 Node 交叉验证（create/store/audit 重算对比）
     differential-crypto.mjs    # Ed25519 JS API 与 Node.js crypto 随机差分对拍
     differential-digest.mjs    # SHA/HMAC JS API 与 Node.js crypto 随机差分对拍
+    fuzz-api-malformed.mjs     # JS API malformed request fuzz 门禁
+    property-api-semantic.mjs  # JS API valid-request 闭环 property 门禁
+    randomized-hardening.mjs   # ci/release/stress 随机化加固 profile
     mutation-check.mjs         # 变异验证（故意破坏实现确认测试会红）
     check-fixtures.mjs         # fixtures 防腐化校验
     check-metrics.mjs          # CI 数字对齐门禁（提交/行/测试/包/版本一致性断言）

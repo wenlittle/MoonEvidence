@@ -31,7 +31,7 @@ Status vocabulary:
 | `create` | 12 | 0 | Direct/oracle coverage for manifest creation validation, ordering, empty roots, SHA-512, and tamper detection; defensive fallbacks recorded. |
 | `store` | 16 | 0 | Direct/oracle coverage for content-addressed storage, dedup stats, integrity rejection, strict and lenient reconstruction. |
 | `audit` | 24 | 0 | Direct coverage for hash-chain validation, signing, signature rejection, JSON round-trip, and parser shape errors. |
-| `api` | 49 | 0 | Direct/fuzz/smoke coverage for the public JS string adapter envelope, malformed inputs, closed-loop workflows, and defensive fallbacks. |
+| `api` | 49 | 0 | Direct/fuzz/property/smoke coverage for the public JS string adapter envelope, malformed inputs, closed-loop workflows, and defensive fallbacks. |
 
 The current audited surface has no open `gap` items. This does not mean the
 whole project is fully covered; it means these trust boundaries now have an
@@ -309,4 +309,4 @@ semantics and tamper rejection are covered by `tools/property-api-semantic.mjs`.
 
 | Priority | Item | Reason |
 | --- | --- | --- |
-| P2 | Add release-profile long-run API fuzz/property checks. | CI now has malformed API fuzz plus bounded semantic property checks; release/manual profiles still need higher round counts for broader sampling. |
+| P2 | Run and record release/stress randomized-hardening profiles before tagging. | CI now has malformed API fuzz plus bounded semantic property checks; `tools/randomized-hardening.mjs` defines higher round-count profiles, but release/stress results should be recorded when used for a release candidate. |

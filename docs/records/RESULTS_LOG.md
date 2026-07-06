@@ -1249,6 +1249,33 @@ randomized requests preserve end-to-end invariants and reject tampering.
 | `node tools/check-branch-coverage-stale.mjs --self-test` | PASS: 3/3 cases |
 | `git diff --check` | PASS; no whitespace errors |
 
+## 2026-07-06 Asia/Shanghai (Randomized hardening profiles)
+
+### CI / Release / Stress Round Budgets
+
+This round turned the randomized checks from scattered command comments into a
+single profile runner. The purpose is governance, not more test count: CI,
+release-candidate, and stress sampling now have explicit round budgets for the
+same four randomized suites.
+
+| Field | Result |
+| --- | --- |
+| New artifact | `tools/randomized-hardening.mjs` |
+| CI profile | malformed API fuzz 64; API semantic property 16; Ed25519 differential 64; digest differential 64 |
+| Release profile | malformed API fuzz 1000; API semantic property 256; Ed25519 differential 1000; digest differential 1000 |
+| Stress profile | malformed API fuzz 10000; API semantic property 1000; Ed25519 differential 5000; digest differential 5000 |
+| Controls | `--dry-run`, `--skip-build`, and per-suite overrides (`--malformed`, `--semantic`, `--crypto`, `--digest`) |
+
+### Verification Run
+
+| Command | Result |
+| --- | --- |
+| `node tools/randomized-hardening.mjs --profile ci --dry-run` | PASS: printed expected CI commands |
+| `node tools/randomized-hardening.mjs --profile release --dry-run` | PASS: printed expected release commands |
+| `node tools/randomized-hardening.mjs --profile stress --dry-run` | PASS: printed expected stress commands |
+| `node tools/randomized-hardening.mjs --profile ci --malformed 1 --semantic 1 --crypto 1 --digest 1` | PASS: build + smoke-sized randomized suite |
+| `node tools/randomized-hardening.mjs --profile ci --skip-build` | PASS: 64 malformed rounds, 16 semantic rounds, 64 crypto rounds, 64 digest rounds |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

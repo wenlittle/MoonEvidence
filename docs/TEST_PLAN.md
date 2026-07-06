@@ -212,6 +212,7 @@
 | 2.14 | 分支清单 stale-check gate | L0/L8/治理 | Done: `tools/check-branch-coverage-stale.mjs` and CI step require audited source edits to review `docs/BRANCH_COVERAGE.md` |
 | 2.15 | 公共 JS API malformed-request fuzz | L6/治理 | Done: `tools/fuzz-api-malformed.mjs` calls all 12 exported string adapters with invalid JSON, non-object JSON, wrong field types, invalid hex, malformed proof/audit/signature/key shapes; CI runs 64 deterministic random rounds |
 | 2.16 | 公共 JS API semantic property | L1/L2/L6/治理 | Done: `tools/property-api-semantic.mjs` runs deterministic valid-request closed loops for create→verify→Merkle proof→verify_proof, audit append→verify→tamper→sign→signature verify, and Ed25519 sign→verify→tamper rejection; CI runs 16 bounded rounds, manual hardening uses 64+ |
+| 2.17 | 随机化测试 profile 固化 | L6/治理 | Done: `tools/randomized-hardening.mjs` defines `ci` / `release` / `stress` profiles for API fuzz, API semantic property, Ed25519 differential, and digest differential; supports dry-run and per-suite round overrides |
 
 **工作量**：约30-40个测试用例 + 12个CLI用例 + 已完成的变异点扩展，4-6天
 
@@ -230,7 +231,7 @@
 | 3.1 | diag单复数分支 | L0 |
 | 3.2 | parse_digest失败分支（无冒号/未知算法/非hex） | L0 |
 | 3.3 | Fe::from_small / Fe::to_bytes条件减p 直接测试 | L0 |
-| 3.4 | 模糊测试harness（10000轮随机输入不崩溃） | L6（部分完成：API malformed fuzz + API semantic property 已入 CI；10000 轮 release/manual profile 待补） |
+| 3.4 | 模糊测试harness（10000轮随机输入不崩溃） | L6（部分完成：API malformed fuzz + API semantic property 已入 CI；`randomized-hardening --profile stress` 已定义 10000 级别手动 profile，实际长跑结果待发布候选记录） |
 | 3.5 | 动态时序测量（Ed25519验证10000次采样+统计） | L8 |
 | 3.6 | E3002覆盖（实现proof CLI 或记录为保留码） | L4 |
 | 3.7 | 符号链接缓解验证 | L8 |
@@ -547,3 +548,4 @@ Node 签名、篡改消息被 MoonBit 拒绝。该脚本不把向量固化进仓
 | 2026-07-06 | Phase 2 API 分支审计：`docs/BRANCH_COVERAGE.md` 新增 `src/api/api.mbt` 49 个公共 adapter 分支，stale-check 纳入 `src/api/api.mbt` | Codex |
 | 2026-07-06 | Phase 2 API semantic property 门禁：新增 `tools/property-api-semantic.mjs`，覆盖公共 JS adapter 的 valid-request 闭环不变量与篡改拒绝，并接入 CI 16 轮 | Codex |
 | 2026-07-06 | Phase 2 CLI_VERSION 门禁：`check-metrics.mjs` 新增 `CLI_VERSION == moon.mod version` 断言，版本漂移会阻断 CI | Codex |
+| 2026-07-06 | Phase 2 随机化加固 profile：新增 `tools/randomized-hardening.mjs`，固化 `ci`/`release`/`stress` 三档 fuzz/property/differential 轮次 | Codex |

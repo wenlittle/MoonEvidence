@@ -35,9 +35,11 @@ Runs on every push and pull request to `main`. Two jobs:
 14. CLI black-box tests (js) - `tools/cli-test.ps1 -Target js`.
 15. CLI black-box tests (js, bash parity) - `tools/cli-test.sh js`.
 16. Browser adapter smoke - `node tools/smoke-api.mjs` over the js artifact.
-17. Differential crypto - `node tools/differential-crypto.mjs --rounds 64`.
-18. Differential digest - `node tools/differential-digest.mjs --rounds 64`.
-19. Mutation testing - `node tools/mutation-check.mjs`.
+17. Malformed API request fuzz - `node tools/fuzz-api-malformed.mjs --rounds 64`.
+18. API semantic property checks - `node tools/property-api-semantic.mjs --rounds 16`.
+19. Differential crypto - `node tools/differential-crypto.mjs --rounds 64`.
+20. Differential digest - `node tools/differential-digest.mjs --rounds 64`.
+21. Mutation testing - `node tools/mutation-check.mjs`.
 
 All commands in the workflow must pass locally before being added here, so a
 red main branch always signals a real regression instead of CI drift.

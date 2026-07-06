@@ -68,7 +68,7 @@
 | **B: 无分支覆盖率模型** | H2, H3, L2-L6 | MoonBit 缺乏成熟 coverage 工具，只能靠"331个测试声明"粗粒度指标，无法看到哪些分支从没被触达 |
 | **C: 密码学测试未对标行业标准** | H2, H3, H4 | RFC 8032 §7.1 KAT + Wycheproof Ed25519 150 向量已覆盖签名 oracle；仍缺 dudect 侧信道验证 |
 | **D: 安全函数测试优先级被低估** | M2, M3 | 功能路径先测，防篡改/防绕过的安全函数后测甚至不测 |
-| **E: 测试资产双轨漂移** | 6项治理缺口 | cli-test.ps1(53例) vs cli-test.sh(41例) 人工移植，无共享用例源 |
+| **E: 测试资产双轨漂移** | 6项治理缺口 | cli-test.ps1 与 cli-test.sh 已对齐到 53 例；后续仍需防止人工移植漂移 |
 
 ### 2.2 结构性失衡
 
@@ -91,7 +91,7 @@
 | L1 | 集成测试 | ~15个 | +10（跨包闭环） | P1 |
 | L2 | 属性测试 | 3个 | +8（Ed25519/Fe/canonjson扩展） | P1 |
 | L3 | 差分测试 | 固定夹具 | +随机差分harness（Ed25519/SHA/HMAC） | P1 |
-| L4 | CLI黑盒 | ps1=53, sh=41 | ps1=53, sh=53（补齐12例） | P1 |
+| L4 | CLI黑盒 | ps1=53, sh=53 | 后续改 CLI 时双脚本同步 | P1 |
 | L5 | 变异测试 | 16点 | 继续按高风险改动补点 | P1 |
 | L6 | 模糊测试 | 无 | 10000轮随机输入不崩溃 | P2 |
 | L7 | 性能/基准 | 仅js | +native/wasm-gc + Ed25519基准 | P2 |
@@ -199,7 +199,7 @@
 | 2.1 | 大规模Merkle树（10000叶闭环） | L1/L7 | Done: boundary shapes 2^k-1/2^k/2^k+1 plus 10000-leaf SHA-256/SHA-512 roots and representative inclusion proofs |
 | 2.2 | SHA-512路径（merkle/verify/incremental） | L0/L3 | 阶段1 |
 | 2.3 | 增量验证错误路径（E1004/E2003/E2004/E3001/E3003/W1001） | L0 | Done: incremental_wbtest covers E1004, E2003, E2004, E3001 (missing root and empty tree), E3003, and W1001 |
-| 2.4 | bash cli-test补齐Part4+Part5（12例） | L4 | 无 |
+| 2.4 | bash cli-test补齐Part4+Part5（12例） | L4 | Done: `cli-test.sh` now covers 53/53 cases and CI runs bash parity for native/js |
 | 2.5 | CLI_VERSION CI门禁 | L4/治理 | 无 |
 | 2.6 | Ed25519属性测试（sign→verify往返60轮 + 篡改检测120轮） | L2 | 阶段1 |
 | 2.7 | Fe域运算属性（分配律/交换律/可逆性60轮） | L2 | 无 |
@@ -213,7 +213,7 @@
 
 **验收门禁**：
 - 变异测试捕获率 16/16 = 100%
-- bash 和 PowerShell CLI 用例数一致
+- bash 和 PowerShell CLI 用例数一致（53/53）
 - CI 增加 CLI_VERSION 门禁步骤
 - Ed25519 差分测试 CI 64 组全通过；发布候选手动 `--rounds 1000` 全通过
 
@@ -521,7 +521,7 @@ Node 签名、篡改消息被 MoonBit 拒绝。该脚本不把向量固化进仓
 | RISK-002 | abort分支无法在测试中捕获 | 中 | 中 | 改为Result类型（测试驱动的改进） |
 | RISK-003 | 改进后变异测试逃逸率上升 | 中 | 高 | 变异点与源码行号绑定；扩展优先于改进 |
 | RISK-004 | 常量时间属性被破坏 | 中 | 严重 | 静态审计前置；审计清单纳入代码审查 |
-| RISK-005 | bash CLI测试盲区导致CI通过但行为退化 | 中 | 高 | 阶段2补齐12例；三目标对齐 |
+| RISK-005 | bash CLI测试盲区导致CI通过但行为退化 | 低 | 高 | 已补齐到53例；CI native/js 同跑 bash 与 PowerShell |
 | RISK-006 | 性能优化引入native/wasm-gc特有bug | 低 | 严重 | 三目标基准；基准非阻塞但记录 |
 
 ---

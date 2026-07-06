@@ -79,6 +79,9 @@ jobs:
         shell: pwsh
         run: ./tools/cli-test.ps1 -Target native
 
+      - name: CLI black-box tests (native, bash parity)
+        run: ./tools/cli-test.sh native
+
       - name: Build wasm-gc
         run: moon build --target wasm-gc
 
@@ -90,6 +93,9 @@ jobs:
       - name: CLI black-box tests (js)
         shell: pwsh
         run: ./tools/cli-test.ps1 -Target js
+
+      - name: CLI black-box tests (js, bash parity)
+        run: ./tools/cli-test.sh js
 
       - name: Browser adapter smoke (node over js artifact)
         run: node tools/smoke-api.mjs

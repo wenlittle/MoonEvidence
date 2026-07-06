@@ -65,10 +65,16 @@ function Invoke-Cli {
 
   # The CLI prints everything assertable to stdout; stderr is dropped so
   # PowerShell 5.1 NativeCommandError noise cannot pollute assertions.
-  if ($Target -eq "js") {
-    $output = & $node $artifact @CliArgs 2>$null | Out-String
-  } else {
-    $output = & $artifact @CliArgs 2>$null | Out-String
+  $oldErrorActionPreference = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+  try {
+    if ($Target -eq "js") {
+      $output = & $node $artifact @CliArgs 2>$null | Out-String
+    } else {
+      $output = & $artifact @CliArgs 2>$null | Out-String
+    }
+  } finally {
+    $ErrorActionPreference = $oldErrorActionPreference
   }
   [PSCustomObject]@{ ExitCode = $LASTEXITCODE; Output = $output }
 }

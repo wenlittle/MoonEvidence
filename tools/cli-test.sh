@@ -13,6 +13,10 @@
 #            tests/fixtures/manifest/ fed to `verify --json` so the
 #            parse-layer error codes (E1001/E1002/E1003/E2001/E2002) fire at
 #            the CLI boundary, with EXACT finding-code multiset assertion.
+#   Part 4 - create command black-box: create -> verify closed loops plus
+#            argument validation.
+#   Part 5 - incremental verification: first run rehashes, second run skips,
+#            JSON mode remains valid.
 #
 # Usage:
 #   ./tools/cli-test.sh             # test the js artifact via node
@@ -80,8 +84,19 @@ find_cli_artifact() {
 }
 
 find_node() {
-  command -v node >/dev/null 2>&1 || { echo "node not found" >&2; exit 1; }
-  command -v node
+  if command -v node >/dev/null 2>&1; then
+    command -v node
+    return
+  fi
+  # WSL on the local Windows workstation may expose Node.js as node.exe via
+  # interop. CI uses plain `node`; this fallback only keeps local parity checks
+  # runnable without installing a second Node inside WSL.
+  if command -v node.exe >/dev/null 2>&1; then
+    command -v node.exe
+    return
+  fi
+  echo "node not found" >&2
+  exit 1
 }
 
 ARTIFACT="$(find_cli_artifact "$TARGET")"
@@ -106,6 +121,8 @@ FAILED=0
 CASES_TOTAL=0
 MATRIX_TOTAL=0
 MANIFEST_TOTAL=0
+CREATE_TOTAL=0
+INCREMENTAL_TOTAL=0
 
 # p1_one NAME EXPECTED_EXIT "pat1|pat2" <cli args...>
 # A case passes when the exit code matches AND every pipe-separated pattern
@@ -197,6 +214,33 @@ p3_one() {
   fi
 }
 
+# new_test_file DIR REL_PATH CONTENT
+new_test_file() {
+  local dir="$1" rel="$2" content="$3"
+  local full="$dir/$rel"
+  mkdir -p "$(dirname "$full")"
+  printf '%s' "$content" > "$full"
+}
+
+# record_result KIND NAME PROBLEMS OUTPUT
+record_result() {
+  local kind="$1" name="$2" problems="$3" output="${4:-}"
+  case "$kind" in
+    create) CREATE_TOTAL=$((CREATE_TOTAL + 1)) ;;
+    incremental) INCREMENTAL_TOTAL=$((INCREMENTAL_TOTAL + 1)) ;;
+  esac
+  if [ -z "$problems" ]; then
+    echo "PASS  $kind: $name"
+  else
+    FAILED=$((FAILED + 1))
+    echo "FAIL  $kind: $name"
+    echo "      $problems"
+    if [ -n "$output" ]; then
+      printf '      output: %s\n' "$(printf '%s' "$output" | tr -d '\r')"
+    fi
+  fi
+}
+
 # --- Part 1: command-shape contract ------------------------------------------
 #
 # Mirrors the PowerShell $cases array exactly: same args, same exit codes,
@@ -266,9 +310,171 @@ p3_one "path-drive-letter.json"     "E1002"
 p3_one "path-backslash.json"        "E1002"
 p3_one "valid.json"                 "E2003 E2003 E3003"
 
+# --- Part 4: create command black-box ----------------------------------------
+#
+# Mirrors the PowerShell create cases exactly. The important contract is not
+# just "create exits 0"; every successful create case immediately verifies the
+# produced pack or manifest so path layout, digest algorithm, and Merkle root
+# agree at the real CLI boundary.
+
+CREATE_TMP=".tmp-cli-create-$$"
+rm -rf "$CREATE_TMP"
+mkdir -p "$CREATE_TMP"
+cleanup_create() { rm -rf "$CREATE_TMP"; }
+trap cleanup_create EXIT
+
+# Case 1: flat directory -> create -> verify
+dir1="$CREATE_TMP/flat"
+mkdir -p "$dir1"
+new_test_file "$dir1" "a.txt" "hello"
+new_test_file "$dir1" "b.txt" "world"
+invoke_cli create "$dir1" --subject-id test-flat --subject-type report
+problems=""
+[ "$INVOKE_RC" = "0" ] || problems+="exit: expected 0, got $INVOKE_RC; "
+printf '%s' "$INVOKE_OUT" | grep -Eq 'created.*2 files, sha256' || problems+="output missing: created (2 files, sha256); "
+if [ -z "$problems" ]; then
+  invoke_cli verify "$dir1"
+  [ "$INVOKE_RC" = "0" ] || problems+="verify exit: expected 0, got $INVOKE_RC; "
+  printf '%s' "$INVOKE_OUT" | grep -Eq 'verification OK' || problems+="verify output missing: verification OK; "
+fi
+record_result create "flat -> verify" "$problems" "$INVOKE_OUT"
+
+# Case 2: nested directory -> create -> verify
+dir2="$CREATE_TMP/nested"
+mkdir -p "$dir2"
+new_test_file "$dir2" "a.txt" "top"
+new_test_file "$dir2" "sub/c.txt" "nested"
+invoke_cli create "$dir2" --subject-id test-nested
+problems=""
+[ "$INVOKE_RC" = "0" ] || problems+="exit: expected 0, got $INVOKE_RC; "
+printf '%s' "$INVOKE_OUT" | grep -Eq '2 files, sha256' || problems+="output missing: (2 files, sha256); "
+if [ -z "$problems" ]; then
+  invoke_cli verify "$dir2"
+  [ "$INVOKE_RC" = "0" ] || problems+="verify exit: expected 0, got $INVOKE_RC; "
+  printf '%s' "$INVOKE_OUT" | grep -Eq 'verification OK' || problems+="verify output missing: verification OK; "
+fi
+record_result create "nested -> verify" "$problems" "$INVOKE_OUT"
+
+# Case 3: empty directory -> create -> verify
+dir3="$CREATE_TMP/empty"
+mkdir -p "$dir3"
+invoke_cli create "$dir3" --subject-id test-empty
+problems=""
+[ "$INVOKE_RC" = "0" ] || problems+="exit: expected 0, got $INVOKE_RC; "
+printf '%s' "$INVOKE_OUT" | grep -Eq '0 files, sha256' || problems+="output missing: (0 files, sha256); "
+if [ -z "$problems" ]; then
+  invoke_cli verify "$dir3"
+  [ "$INVOKE_RC" = "0" ] || problems+="verify exit: expected 0, got $INVOKE_RC; "
+  printf '%s' "$INVOKE_OUT" | grep -Eq 'verification OK' || problems+="verify output missing: verification OK; "
+fi
+record_result create "empty -> verify" "$problems" "$INVOKE_OUT"
+
+# Case 4: missing --subject-id -> exit 2
+dir4="$CREATE_TMP/no-sid"
+mkdir -p "$dir4"
+new_test_file "$dir4" "a.txt" "data"
+invoke_cli create "$dir4"
+problems=""
+[ "$INVOKE_RC" = "2" ] || problems+="exit: expected 2, got $INVOKE_RC; "
+record_result create "missing --subject-id" "$problems" "$INVOKE_OUT"
+
+# Case 5: non-existent directory -> exit 2
+invoke_cli create "$CREATE_TMP/no-such-dir" --subject-id x
+problems=""
+[ "$INVOKE_RC" = "2" ] || problems+="exit: expected 2, got $INVOKE_RC; "
+printf '%s' "$INVOKE_OUT" | grep -Eq 'E5001' || problems+="output missing: E5001; "
+record_result create "non-existent dir" "$problems" "$INVOKE_OUT"
+
+# Case 6: custom output path -> create -> verify manifest file
+dir6="$CREATE_TMP/custom-out"
+mkdir -p "$dir6"
+new_test_file "$dir6" "a.txt" "custom"
+custom_manifest="$dir6/my-manifest.json"
+invoke_cli create "$dir6" --subject-id test-custom -o "$custom_manifest"
+problems=""
+[ "$INVOKE_RC" = "0" ] || problems+="exit: expected 0, got $INVOKE_RC; "
+printf '%s' "$INVOKE_OUT" | grep -Eq 'created.*my-manifest' || problems+="output missing: created my-manifest; "
+if [ -z "$problems" ]; then
+  invoke_cli verify "$custom_manifest"
+  [ "$INVOKE_RC" = "0" ] || problems+="verify exit: expected 0, got $INVOKE_RC; "
+  printf '%s' "$INVOKE_OUT" | grep -Eq 'verification OK' || problems+="verify output missing: verification OK; "
+fi
+record_result create "custom output -> verify" "$problems" "$INVOKE_OUT"
+
+# Case 7: SHA-512 algorithm -> create -> verify
+dir7="$CREATE_TMP/sha512"
+mkdir -p "$dir7"
+new_test_file "$dir7" "a.txt" "sha512-content"
+invoke_cli create "$dir7" --subject-id test-sha512 --algorithm sha512
+problems=""
+[ "$INVOKE_RC" = "0" ] || problems+="exit: expected 0, got $INVOKE_RC; "
+printf '%s' "$INVOKE_OUT" | grep -Eq '1 files, sha512' || problems+="output missing: (1 files, sha512); "
+if [ -z "$problems" ]; then
+  invoke_cli verify "$dir7"
+  [ "$INVOKE_RC" = "0" ] || problems+="verify exit: expected 0, got $INVOKE_RC; "
+  printf '%s' "$INVOKE_OUT" | grep -Eq 'verification OK' || problems+="verify output missing: verification OK; "
+fi
+record_result create "sha512 -> verify" "$problems" "$INVOKE_OUT"
+
+# Case 8: unknown algorithm -> exit 2
+dir8="$CREATE_TMP/bad-algo"
+mkdir -p "$dir8"
+new_test_file "$dir8" "a.txt" "x"
+invoke_cli create "$dir8" --subject-id x --algorithm md5
+problems=""
+[ "$INVOKE_RC" = "2" ] || problems+="exit: expected 2, got $INVOKE_RC; "
+printf '%s' "$INVOKE_OUT" | grep -Eq 'unknown algorithm' || problems+="output missing: unknown algorithm; "
+record_result create "unknown algorithm" "$problems" "$INVOKE_OUT"
+
+# Case 9: version chaining -> create -> verify JSON shows ok
+dir9="$CREATE_TMP/versioned"
+mkdir -p "$dir9"
+new_test_file "$dir9" "a.txt" "v2-content"
+invoke_cli create "$dir9" --subject-id test-ver --version-id v2 --version-parent abc123
+problems=""
+[ "$INVOKE_RC" = "0" ] || problems+="exit: expected 0, got $INVOKE_RC; "
+if [ -z "$problems" ]; then
+  invoke_cli verify --json "$dir9"
+  [ "$INVOKE_RC" = "0" ] || problems+="verify exit: expected 0, got $INVOKE_RC; "
+  printf '%s' "$INVOKE_OUT" | grep -Eq '"ok":true' || problems+="verify output missing: ok:true; "
+fi
+record_result create "version chaining -> verify" "$problems" "$INVOKE_OUT"
+
+# --- Part 5: incremental verification ---------------------------------------
+#
+# Mirrors the PowerShell incremental cases. The first run has no cache and
+# rehashes all files; the second run uses the cache and skips unchanged files.
+
+INC_CACHE=".tmp-cli-incremental-$$"
+rm -rf "$INC_CACHE"
+mkdir -p "$INC_CACHE"
+cleanup_incremental() { rm -rf "$INC_CACHE"; }
+trap 'cleanup_create; cleanup_incremental' EXIT
+
+# Case 1: first run - no cache, all files rehashed
+invoke_cli verify --incremental "$INC_CACHE" examples/valid-pack
+problems=""
+[ "$INVOKE_RC" = "0" ] || problems+="exit: expected 0, got $INVOKE_RC; "
+printf '%s' "$INVOKE_OUT" | grep -Eq 'incremental:.*rehashed.*0 skipped' || problems+="first run should show 0 skipped; "
+record_result incremental "first run (all rehashed)" "$problems" "$INVOKE_OUT"
+
+# Case 2: second run - cache exists, all files skipped
+invoke_cli verify --incremental "$INC_CACHE" examples/valid-pack
+problems=""
+[ "$INVOKE_RC" = "0" ] || problems+="exit: expected 0, got $INVOKE_RC; "
+printf '%s' "$INVOKE_OUT" | grep -Eq 'incremental:.*0 rehashed.*skipped' || problems+="second run should show 0 rehashed; "
+record_result incremental "second run (all skipped)" "$problems" "$INVOKE_OUT"
+
+# Case 3: --incremental with --json
+invoke_cli verify --json --incremental "$INC_CACHE" examples/valid-pack
+problems=""
+[ "$INVOKE_RC" = "0" ] || problems+="exit: expected 0, got $INVOKE_RC; "
+printf '%s' "$INVOKE_OUT" | grep -Eq '"ok":true' || problems+="json output missing ok:true; "
+record_result incremental "json mode" "$problems" "$INVOKE_OUT"
+
 # --- summary ----------------------------------------------------------------
 
-TOTAL=$((CASES_TOTAL + MATRIX_TOTAL + MANIFEST_TOTAL))
+TOTAL=$((CASES_TOTAL + MATRIX_TOTAL + MANIFEST_TOTAL + CREATE_TOTAL + INCREMENTAL_TOTAL))
 PASSED=$((TOTAL - FAILED))
 echo ""
 echo "cli-test ($TARGET): $PASSED/$TOTAL passed"

@@ -159,6 +159,7 @@ moon build --target wasm-gc
 moon build --target js
 moon build --target js --release src/api
 ./tools/cli-test.ps1 -Target js
+./tools/cli-test.sh js
 node tools/smoke-api.mjs
 node tools/differential-crypto.mjs --rounds 64
 node tools/differential-digest.mjs --rounds 64
@@ -179,7 +180,7 @@ Canonical CI gate:
 - `.github/workflows/ci.yml` is the source of truth.
 - The CI gate must include metric drift, fixture rot, cross-verification,
   Wycheproof vector inventory, type check, format check, `wasm-gc/js/native`
-  tests, native/js CLI black-box tests, browser adapter smoke, Ed25519/digest
+  tests, native/js CLI black-box tests (PowerShell and bash), browser adapter smoke, Ed25519/digest
   differential checks, and mutation testing.
 - The benchmark job is informational unless a release explicitly declares a
   performance SLO.
@@ -241,8 +242,8 @@ Reject these during review:
 
 As of 2026-07-06:
 
-- `moon test` baseline is 325 executable tests on `wasm-gc` and `js`.
-- `check-metrics` counts 329 test declarations because 4 benchmark wrappers
+- `moon test` baseline is 327 executable tests on `wasm-gc` and `js`.
+- `check-metrics` counts 331 test declarations because 4 benchmark wrappers
   use `test "bench: ..."` declarations.
 - CI includes the important gates: metrics, fixture rot, cross-verify,
   Wycheproof inventory, type/format checks, multi-backend tests, CLI tests,
@@ -260,9 +261,8 @@ As of 2026-07-06:
 - Remaining Phase 1 risk is no longer "missing tests"; the remaining
   constant-time caveat is measurement/backend assurance beyond source review.
 - Current release-governance caveats are P1 unless the affected release depends
-  on them: bash CLI parity is behind PowerShell parity, release tags rely on
-  prior CI success, and fixture drift coverage should stay aligned with every
-  generated fixture family.
+  on them: release tags rely on prior CI success, and fixture drift coverage
+  should stay aligned with every generated fixture family.
 
 This means the baseline is substantially better than a superficial green test
 count, and Phase 1 is closed at the source/test-governance level. Further work

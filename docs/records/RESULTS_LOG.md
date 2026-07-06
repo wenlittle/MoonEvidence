@@ -1007,6 +1007,35 @@ added, then the full mutation suite caught every mutant.
 | `moon test --target js` | 327/327 passed |
 | `moon test --target wasm-gc` | 327/327 passed |
 
+## 2026-07-06 Asia/Shanghai (Phase 2 CLI bash parity)
+
+### Bash CLI Suite Reaches PowerShell Parity
+
+This round closed the known CLI black-box drift: `cli-test.sh` only covered
+Part 1-3 while `cli-test.ps1` covered Part 1-5. The bash suite now includes the
+same 9 create cases and 3 incremental cases, so both scripts assert the same
+53-case public CLI contract. CI now runs both scripts for native and js.
+
+| Field | Result |
+| --- | --- |
+| Scope | `tools/cli-test.sh`, `.github/workflows/ci.yml`, workflow/test docs |
+| Added bash coverage | Part 4 create command: flat/nested/empty/custom-output/SHA-512/versioned create->verify plus missing subject, missing dir, bad algorithm |
+| Added bash coverage | Part 5 incremental verify: first run rehashes, second run skips, JSON mode stays valid |
+| CI | Added `./tools/cli-test.sh native` and `./tools/cli-test.sh js` alongside the existing PowerShell black-box steps |
+| Parity status | `cli-test.ps1`: 53 cases; `cli-test.sh`: 53 cases |
+
+### Verification Run
+
+| Command | Result |
+| --- | --- |
+| `bash -n tools/cli-test.sh` | pass |
+| `moon build --target js` | exit 0 |
+| `bash ./tools/cli-test.sh js` | 53/53 passed |
+| `powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target js` | 53/53 passed; `Invoke-Cli` now suppresses Node stderr warnings without aborting under PowerShell 5.1 |
+| `moon check` | exit 0 |
+| `node tools/check-metrics.mjs` | PASS: 19/19 metric assertions |
+| `git diff --check` | PASS; only line-ending normalization warnings for `README.zh.md` and `tools/cli-test.ps1` |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

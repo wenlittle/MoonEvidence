@@ -121,6 +121,7 @@ node $cli explain examples/tampered-pack
 
 # run the full black-box suite
 powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target js
+bash ./tools/cli-test.sh js
 ```
 
 Exit codes are frozen: `0` verification passed, `1` verification failed,
@@ -228,6 +229,7 @@ moon check
 moon test --target native,wasm-gc,js
 moon build --target js
 powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target js
+bash ./tools/cli-test.sh js
 node tools/smoke-api.mjs
 moon bench --target js
 ```

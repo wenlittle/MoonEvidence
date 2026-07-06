@@ -1335,8 +1335,8 @@ checks are green together on one clean commit line.
 | --- | --- |
 | Baseline | 13485 MoonBit lines after `moon fmt` normalization: implementation 5436 + tests 8049; 348 test declarations = 344 executable tests + 4 benchmark wrappers |
 | Release randomized hardening | PASS: 1000 malformed API fuzz rounds, 256 API semantic property rounds, 1000 Ed25519 differential vectors, 1000 digest differential rounds |
-| Unit/regression tests | PASS: `moon test --target js` 344/344; `moon test --target wasm-gc` 344/344 |
-| CLI black-box tests | PASS: PowerShell JS target 53/53; bash JS target 53/53 |
+| Unit/regression tests | PASS: `moon test --target native` 344/344; `moon test --target js` 344/344; `moon test --target wasm-gc` 344/344 |
+| CLI black-box tests | PASS: PowerShell native/js targets 53/53 each; bash native/js targets 53/53 each |
 | Mutation testing | PASS: `node tools/mutation-check.mjs` caught 16/16 mutations; 0 slipped, 0 errored |
 | Governance gates | PASS: `moon check`; `check-metrics` 20/20; branch-coverage stale self-test 3/3; stale-check against `HEAD~1`; `git diff --check` |
 | Working tree | Clean before documentation update |
@@ -1345,8 +1345,8 @@ checks are green together on one clean commit line.
 
 | Gate class | Command | Cadence |
 | --- | --- | --- |
-| Fast CI baseline | `moon check`; `moon test --target js`; `moon test --target wasm-gc`; API smoke/fuzz/property at CI profile; metrics/stale gates | Every PR / push |
-| CLI contract | `tools/cli-test.ps1 -Target js`; `bash tools/cli-test.sh js`; CI additionally runs native when compiler exists | Every PR / push |
+| Fast CI baseline | `moon check`; `moon test --target native`; `moon test --target js`; `moon test --target wasm-gc`; API smoke/fuzz/property at CI profile; metrics/stale gates | Every PR / push |
+| CLI contract | `tools/cli-test.ps1 -Target native/js`; `bash tools/cli-test.sh native/js` | Every PR / push |
 | Release randomized gate | `node tools/randomized-hardening.mjs --profile release` | Release candidate |
 | Mutation reverse-proof gate | `node tools/mutation-check.mjs` | Release candidate and security-sensitive changes |
 | Timing probe | `node tools/timing-ed25519-verify.mjs --samples 10000` | Manual release/security audit; informational only |
@@ -1355,7 +1355,7 @@ checks are green together on one clean commit line.
 
 | Risk | Status |
 | --- | --- |
-| Native backend local validation | Not locally verified in this Windows environment because a usable C compiler is absent; CI/native environment remains the authoritative native gate. |
+| Native backend local validation | Closed locally on Windows/MSVC: unit tests PASS 344/344; PowerShell and bash native CLI suites PASS 53/53 each. CI/native remains the remote confirmation gate. |
 | Side-channel proof | Static constant-time audit and timing sampler exist, but this is not a dudect or backend-machine-code proof. |
 | Symlink semantics | Current `@fs` surface has no lstat/symlink API; mitigation is bounded traversal by depth/file caps, not symlink-target proof. |
 | Randomized testing completeness | Release profile materially expands sampling, but random fuzz/differential tests are still bounded and cannot prove all inputs. |
@@ -1396,6 +1396,34 @@ explicit format review note so the branch-coverage stale gate remains honest.
 | `node tools/differential-crypto.mjs --rounds 64` | PASS: 64/64 Ed25519 vectors |
 | `node tools/differential-digest.mjs --rounds 64` | PASS: 64/64 digest rounds |
 | `node tools/mutation-check.mjs` | PASS: 16/16 mutations caught, 0 slipped, 0 errored |
+
+## 2026-07-06 Asia/Shanghai (Windows/MSVC native baseline closure)
+
+### Local Native Toolchain
+
+After installing the Visual Studio C++ workload and Windows SDK, the Windows
+native backend is no longer a local blind spot.
+
+| Field | Result |
+| --- | --- |
+| Toolchain entry | `D:\software\VStudio2022\VC\Auxiliary\Build\vcvars64.bat` |
+| Compiler | MSVC `cl.exe` 19.44.35222, target x64 |
+| Linker | MSVC `link.exe` 14.44.35222 |
+| Windows SDK | `10.0.26100.0`; `stdio.h` found under the UCRT include path |
+| Working tree | Clean before and after the native verification run |
+
+### Verification Run
+
+| Command | Result |
+| --- | --- |
+| `moon test --target native` | PASS: 344/344 |
+| `moon build --target native` | PASS: produced `_build/native/debug/build/src/cmd/main/main.exe` |
+| `powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target native` | PASS: 53/53 |
+| `bash ./tools/cli-test.sh native` | PASS: 53/53 |
+
+Impact: delivery materials may now state that native, wasm-gc, and js are all
+locally verified. The CI/native lane is still required as remote environment
+confirmation, but it is no longer carrying the entire native proof burden.
 
 ## Logging Rule
 

@@ -168,7 +168,7 @@ tests/         -> 夹具与黑盒回归测试
 
 | 层 | 数量与内容 |
 | --- | --- |
-| 单元测试 | **348 个**测试声明（344 个可执行测试 + 4 个基准 wrapper），wasm-gc 与 js 双后端全绿；含 NIST/RFC/Wycheproof 向量、JCS fixtures、版本链图语义、Merkle 树物化与路径 |
+| 单元测试 | **348 个**测试声明（344 个可执行测试 + 4 个基准 wrapper），native / wasm-gc / js 三后端全绿；含 NIST/RFC/Wycheproof 向量、JCS fixtures、版本链图语义、Merkle 树物化与路径 |
 | CLI 黑盒 | **53 用例**（`tools/cli-test.ps1` + `tools/cli-test.sh` 1:1 对等）：12 个命令形状 + 10 包篡改矩阵 + 19 个 manifest 错误码矩阵 + 9 create + 3 incremental，逐 pack / 逐 fixture 断言**精确错误码集合**（禁止"至少包含"式宽松断言） |
 | 篡改矩阵 | `tests/fixtures/packs/` 10 个 pack 由独立 Node 参考实现生成，覆盖每个错误码族；CI 设防腐化校验（重新生成后 `git diff` 必须为空） |
 | manifest 错误码矩阵 | `tests/fixtures/manifest/` 19 个夹具，覆盖 E1001/E1002/E1003/E2001/E2002 在 CLI 黑盒层的触发 |
@@ -197,7 +197,7 @@ tests/         -> 夹具与黑盒回归测试
 
 ## 六、CI 与工程治理
 
-- **CI 三后端矩阵**：native / wasm-gc / js 构建，wasm-gc+js 测试，native（ubuntu gcc）+ js 黑盒，js 适配器烟测；fixtures 防腐化校验
+- **CI 三后端矩阵**：native / wasm-gc / js 构建与测试，native（本地 Windows/MSVC + CI ubuntu/gcc）+ js 黑盒，js 适配器烟测；fixtures 防腐化校验
 - **fmt 门禁**：CI 运行 `moon fmt --check` 作为必需门禁，防止格式漂移复发
 - **基准**：bench 设为单独 job，结果落基线 JSON，性能回归可发现
 - **release 流程**：tag 触发 release 工作流（`moon package` 产物 + SHA256 签名）
@@ -230,13 +230,13 @@ tests/         -> 夹具与黑盒回归测试
 | 测试行数 | 8049 |
 | 总行数 | **13485** |
 | 测试声明 | 348（344 测试 + 4 基准调用） |
-| 单元测试通过 | **344/344**（wasm-gc + js 双后端） |
-| CLI 黑盒通过 | **53/53** |
+| 单元测试通过 | **344/344**（native + wasm-gc + js 三后端） |
+| CLI 黑盒通过 | **53/53**（native + js） |
 | 包数 | **12** |
 | moon check warnings | 0 |
 | moon fmt --check | exit 0（无漂移） |
 
-> 以上数字为 2026-07-06 Asia/Shanghai 本机实测冻结基线（见 `docs/records/RESULTS_LOG.md` 的 Release readiness gate），全仓交付材料统一引用此基线；提交数按下限记录，后续文档提交只会递增；native 后端在本机缺 C 编译器，交由 CI 验证。
+> 以上数字为 2026-07-06 Asia/Shanghai 本机实测冻结基线（见 `docs/records/RESULTS_LOG.md` 的 Release readiness gate 与 Windows/MSVC native baseline closure），全仓交付材料统一引用此基线；提交数按下限记录，后续文档提交只会递增；native 后端已在本机 Windows/MSVC 19.44 + Windows SDK 10.0.26100.0 环境验证。
 
 ## 九、创新点与竞争力
 

@@ -219,8 +219,8 @@ All 12 packages are implemented and fully tested across three backends.
 - **Browser** (`src/api`): esm bundle for client-side verification
 
 ### Test Coverage
-- **348 unit tests** declared (344 executable tests + 4 benchmark wrappers), with wasm-gc/js passing locally and native covered by CI
-- **53-case black-box CLI suite**: 12 command-shape + 10-pack tamper matrix + 19 error-code fixtures + 9 create + 3 incremental
+- **348 unit tests** declared (344 executable tests + 4 benchmark wrappers), with native/wasm-gc/js passing locally
+- **53-case black-box CLI suite**: 12 command-shape + 10-pack tamper matrix + 19 error-code fixtures + 9 create + 3 incremental, with native/js passing locally
 - **Property tests**: canonicalization idempotence, Merkle proof soundness (mutation-verified)
 - **CI three-backend matrix**: native / wasm-gc / js build + test + browser smoke test
 
@@ -228,13 +228,17 @@ All 12 packages are implemented and fully tested across three backends.
 moon check
 moon test --target native,wasm-gc,js
 moon build --target js
+moon build --target native
 powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target js
+powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target native
 bash ./tools/cli-test.sh js
+bash ./tools/cli-test.sh native
 node tools/smoke-api.mjs
 moon bench --target js
 ```
 
-As of 2026-07-06 Asia/Shanghai, the local wasm-gc/js test baseline is green;
-native requires a C compiler and is covered by CI. Codebase is 13485
+As of 2026-07-06 Asia/Shanghai, the local native/wasm-gc/js test baseline is
+green; native was verified on Windows with MSVC 19.44 and Windows SDK
+10.0.26100.0. Codebase is 13485
 effective MoonBit lines (implementation 5436 + tests 8049); the implementation
 size remains within the 4-10k competition range.

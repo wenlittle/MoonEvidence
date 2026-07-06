@@ -51,6 +51,12 @@ jobs:
       - name: Wycheproof Ed25519 vector guard
         run: node tools/check-wycheproof-ed25519.mjs
 
+      # Manual branch coverage map drift guard: if a source file already
+      # covered by docs/BRANCH_COVERAGE.md changes, that document must be
+      # touched in the same diff so the branch map is explicitly reviewed.
+      - name: Branch coverage stale guard
+        run: node tools/check-branch-coverage-stale.mjs
+
       - name: Type check
         run: moon check
 

@@ -34,8 +34,8 @@ Status vocabulary:
 
 The current audited surface has no open `gap` items. This does not mean the
 whole project is fully covered; it means these trust boundaries now have an
-explicit branch map. The next pass should add a stale-check gate so edits to
-audited source files require this file to be reviewed.
+explicit branch map. `tools/check-branch-coverage-stale.mjs` now gates the map:
+edits to audited source files must touch this file in the same diff.
 
 ## Verify
 
@@ -244,5 +244,4 @@ File: `src/audit/audit_log.mbt`
 
 | Priority | Item | Reason |
 | --- | --- | --- |
-| P1 | Add a lightweight script or checklist gate that fails when this file is stale after touching audited files. | Manual branch maps can drift unless the workflow names the update requirement. |
 | P2 | Add fuzz/property tests for malformed public JS API requests. | CLI/API shape errors are user-facing and broader than the pure core. |

@@ -1099,6 +1099,35 @@ indirectly.
 | `node tools/check-metrics.mjs` | PASS: 19/19 metric assertions; current metrics 12607 lines / 344 declarations |
 | `git diff --check` | PASS; only known line-ending normalization warning for `README.zh.md` |
 
+## 2026-07-06 Asia/Shanghai (branch coverage stale-check gate)
+
+### Branch Map Drift Guard
+
+This round added a CI guard for the manual branch coverage map. The point is
+workflow control: once a production source file is part of
+`docs/BRANCH_COVERAGE.md`, any later change to that source file must touch the
+branch map in the same diff, forcing an explicit review instead of silent drift.
+
+| Field | Result |
+| --- | --- |
+| New artifact | `tools/check-branch-coverage-stale.mjs` |
+| CI | Added `node tools/check-branch-coverage-stale.mjs` after the metric/Wycheproof guards |
+| Guarded files | Production source files covered by `docs/BRANCH_COVERAGE.md`: verify, incremental, merkle, digest, crypto, create, store, and audit |
+| Behavior | Fails if guarded source changes without `docs/BRANCH_COVERAGE.md`; passes when no guarded source changed or when the coverage document is updated too |
+| Self-test | `node tools/check-branch-coverage-stale.mjs --self-test` covers no-source-change, source+doc, and source-without-doc cases |
+
+### Verification Run
+
+| Command | Result |
+| --- | --- |
+| `node tools/check-branch-coverage-stale.mjs --self-test` | PASS: 3/3 cases |
+| `node tools/check-branch-coverage-stale.mjs --base HEAD~1` | PASS: no audited source files changed |
+| `moon check` | exit 0 |
+| `moon test --target js` | 340/340 passed |
+| `moon test --target wasm-gc` | 340/340 passed |
+| `node tools/check-metrics.mjs` | PASS: 19/19 metric assertions |
+| `git diff --check` | PASS; no whitespace errors |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

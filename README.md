@@ -219,7 +219,7 @@ All 12 packages are implemented and fully tested across three backends.
 - **Browser** (`src/api`): esm bundle for client-side verification
 
 ### Test Coverage
-- **337 unit tests** declared (333 executable tests + 4 benchmark wrappers), with wasm-gc/js passing locally and native covered by CI
+- **344 unit tests** declared (340 executable tests + 4 benchmark wrappers), with wasm-gc/js passing locally and native covered by CI
 - **53-case black-box CLI suite**: 12 command-shape + 10-pack tamper matrix + 19 error-code fixtures + 9 create + 3 incremental
 - **Property tests**: canonicalization idempotence, Merkle proof soundness (mutation-verified)
 - **CI three-backend matrix**: native / wasm-gc / js build + test + browser smoke test
@@ -235,6 +235,6 @@ moon bench --target js
 ```
 
 As of 2026-07-06 Asia/Shanghai, the local wasm-gc/js test baseline is green;
-native requires a C compiler and is covered by CI. Codebase is 12520
-effective MoonBit lines (implementation 5448 + tests 7072); the implementation
+native requires a C compiler and is covered by CI. Codebase is 12607
+effective MoonBit lines (implementation 5448 + tests 7159); the implementation
 size remains within the 4-10k competition range.

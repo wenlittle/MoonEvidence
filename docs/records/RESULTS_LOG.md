@@ -1068,6 +1068,37 @@ previously implicit digest/crypto branch evidence executable.
 | `node tools/check-metrics.mjs` | PASS: 19/19 metric assertions |
 | `git diff --check` | PASS; no whitespace errors |
 
+## 2026-07-06 Asia/Shanghai (Phase 2 lifecycle branch audit)
+
+### Create/Store/Audit Branch Coverage Closure
+
+This round extended the manual branch-coverage map to the remaining core
+lifecycle packages: creation, content-addressed storage, and audit logs. Seven
+focused wbtests were added for branches that were previously documented only
+indirectly.
+
+| Field | Result |
+| --- | --- |
+| Scope | `src/create/create.mbt`, `src/store/object_store.mbt`, `src/audit/audit_log.mbt`, and their wbtests |
+| Audited branches | 145 total: verify 12, incremental 15, merkle 18, digest 24, crypto 24, create 12, store 16, audit 24 |
+| New tests | 7 wbtests: empty-create Merkle null output, canonical deduplicate JSON independent of map insertion order, lenient reconstruct missing-content skip, audit action parse builtins/custom, empty `sign_last`, unsigned signature skip, and odd-length signature hex rejection |
+| Open gaps | 0 for the audited core lifecycle scope |
+| Next scope | Add a stale-check gate so changes to audited source files require `docs/BRANCH_COVERAGE.md` to be reviewed |
+| Metrics | 114 commits / 12607 MoonBit lines (impl 5448 + tests 7159) / 344 test declarations / 12 packages / moon.mod 0.4.0 == CHANGELOG 0.4.0 |
+
+### Verification Run
+
+| Command | Result |
+| --- | --- |
+| `moon test --target js src/create` | 16/16 passed |
+| `moon test --target js src/store` | 18/18 passed |
+| `moon test --target js src/audit` | 26/26 passed |
+| `moon check` | exit 0 |
+| `moon test --target js` | 340/340 passed |
+| `moon test --target wasm-gc` | 340/340 passed |
+| `node tools/check-metrics.mjs` | PASS: 19/19 metric assertions; current metrics 12607 lines / 344 declarations |
+| `git diff --check` | PASS; only known line-ending normalization warning for `README.zh.md` |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

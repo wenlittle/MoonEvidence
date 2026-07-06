@@ -107,6 +107,25 @@ test "create_manifest with empty files produces valid output" {
 }
 
 ///|
+test "create_manifest with empty files emits null merkle root and empty files" {
+  let files : Map[String, Bytes] = {}
+  let options : CreateOptions = {
+    subject: { id: "empty-root-test", kind: "test" },
+    algorithm: @digest.Sha256,
+    version_id: "v1",
+    version_parent: None,
+  }
+  let manifest_json = create_manifest(files, options)
+  let parsed = @json.parse(manifest_json) catch { _ => return }
+  guard parsed is Object(obj) else { return }
+  guard obj.get("files") is Some(Array(arr)) else { return }
+  assert_eq(arr.length(), 0)
+  guard obj.get("merkle_root") is Some(Null) else {
+    fail("empty manifest should encode merkle_root as null")
+  }
+}
+
+///|
 test "panic create_manifest rejects empty subject id" {
   let files : Map[String, Bytes] = { "ok.txt": b"ok" }
   let options : CreateOptions = {

@@ -1,7 +1,8 @@
 # Branch Coverage Audit
 
 > Last updated: 2026-07-06 Asia/Shanghai. Scope covered so far:
-> `verify`, `incremental`, `merkle`, `digest`, and `crypto` trust boundaries.
+> `verify`, `incremental`, `merkle`, `digest`, `crypto`, `create`, `store`,
+> and `audit` trust boundaries.
 
 MoonBit does not currently give this repository a mature line/branch coverage
 report, so this file is the manual substitute. It records the security-relevant
@@ -27,11 +28,14 @@ Status vocabulary:
 | `merkle` | 18 | 0 | Direct/oracle/mutation coverage for live branches; one defensive accepted-risk guard. |
 | `digest` | 24 | 0 | Direct, RFC/NIST, mutation, and Node.js differential coverage for hash/HMAC/digest parsing branches. |
 | `crypto` | 24 | 0 | Direct, RFC 8032, Wycheproof, mutation, differential, and static-audit evidence for Ed25519/field/point branches. |
+| `create` | 12 | 0 | Direct/oracle coverage for manifest creation validation, ordering, empty roots, SHA-512, and tamper detection; defensive fallbacks recorded. |
+| `store` | 16 | 0 | Direct/oracle coverage for content-addressed storage, dedup stats, integrity rejection, strict and lenient reconstruction. |
+| `audit` | 24 | 0 | Direct coverage for hash-chain validation, signing, signature rejection, JSON round-trip, and parser shape errors. |
 
 The current audited surface has no open `gap` items. This does not mean the
 whole project is fully covered; it means these trust boundaries now have an
-explicit branch map. The next pass should extend the same table to `create`,
-`store`, and `audit`, then add a stale-check gate.
+explicit branch map. The next pass should add a stale-check gate so edits to
+audited source files require this file to be reviewed.
 
 ## Verify
 
@@ -163,10 +167,82 @@ Files: `src/crypto/ed25519.mbt`, `src/crypto/field25519.mbt`,
 | C-23 | `reduce_scalar_512` has no source-level secret-dependent compare/borrow branch | `ed25519.mbt:81` | `docs/CONST_TIME_AUDIT.md`; RFC/Node differential signing catches functional drift | `covered` | Backend/timing proof remains outside this claim. |
 | C-24 | Ed25519 verify rejects independent negative corpus | `ed25519_wycheproof_wbtest.mbt` | 62 invalid Wycheproof vectors across seven categories | `oracle-covered` | Independent Google Wycheproof expected results. |
 
+## Create
+
+File: `src/create/create.mbt`
+
+| ID | Branch / Invariant | Source | Evidence | Status | Notes |
+| --- | --- | --- | --- | --- | --- |
+| CR-01 | Empty `subject.id` aborts before producing an unverifiable manifest | `create.mbt:41` | `create_wbtest`: panic rejects empty subject id | `covered` | |
+| CR-02 | Empty `subject.kind` aborts | `create.mbt:44` | `create_wbtest`: panic rejects empty subject kind | `covered` | |
+| CR-03 | Empty `version_id` aborts | `create.mbt:47` | `create_wbtest`: panic rejects empty version id | `covered` | |
+| CR-04 | Present-but-empty `version_parent` aborts | `create.mbt:50` | `create_wbtest`: panic rejects empty version parent | `covered` | |
+| CR-05 | Hostile file paths are rejected before inclusion in the manifest | `create.mbt:69` | `create_wbtest`: `../escape.txt` panic | `covered` | Mirrors verify-side path validation. |
+| CR-06 | File paths are sorted by UTF-16/code-unit order, not MoonBit shortlex | `create.mbt:59` | `create_wbtest`: `"aa"` before `"b"` plus pinned Merkle root from Node | `oracle-covered` | Protects cross-tool reproducibility. |
+| CR-07 | Per-file digest and Merkle root use the selected algorithm | `create.mbt:78`, `create.mbt:91` | `create_wbtest`: SHA-256 and SHA-512 create->verify; SHA-512 prefix assertions | `covered` | |
+| CR-08 | Empty file set produces empty `files[]` and `merkle_root: null` | `create.mbt:89` | `create_wbtest`: empty files emits null root and empty files | `covered` | New explicit branch pin. |
+| CR-09 | Version parent serializes as string when present and null when absent | `create.mbt:101` | `create_wbtest`: version parent round-trip; empty/no-parent tests parse JSON | `covered` | |
+| CR-10 | Created manifest is RFC 8785 canonical JSON | `create.mbt:122` | `create_wbtest`: canonicalization idempotence | `covered` | |
+| CR-11 | Tampered file content is rejected by downstream verification | `create_wbtest` | `create_wbtest`: create->tamper->verify detects mismatch, including SHA-512 E2003 | `covered` | Cross-package lifecycle invariant. |
+| CR-12 | `files.get(path)` miss and canonicalization fallback branches | `create.mbt:72`, `create.mbt:85`, `create.mbt:122` | No direct public trigger for the miss/fallback cases | `accepted-risk` | The loop iterates over keys from the same map, and constructed JSON uses strings/numbers that canonicalize under current policy. |
+
+## Store
+
+File: `src/store/object_store.mbt`
+
+| ID | Branch / Invariant | Source | Evidence | Status | Notes |
+| --- | --- | --- | --- | --- | --- |
+| S-01 | New store starts empty | `object_store.mbt:14` | `object_store_wbtest`: empty store has zero count | `covered` | |
+| S-02 | First `put` stores content under SHA-256 key | `object_store.mbt:21` | `object_store_wbtest`: put/get round-trip with byte comparison | `covered` | |
+| S-03 | Duplicate `put` is idempotent and does not add a second object | `object_store.mbt:21` | `object_store_wbtest`: duplicate content stored once | `covered` | |
+| S-04 | `get`/`has` positive and negative paths | `object_store.mbt:29`, `object_store.mbt:34` | `object_store_wbtest`: put/get, has true and false | `covered` | |
+| S-05 | `remove` returns true and deletes existing object | `object_store.mbt:56` | `object_store_wbtest`: remove deletes object | `covered` | |
+| S-06 | `remove` returns false for missing object | `object_store.mbt:61` | `object_store_wbtest`: second remove returns false | `covered` | |
+| S-07 | `list_hashes` exposes all stored keys | `object_store.mbt:45` | `object_store_wbtest`: two hashes listed | `covered` | |
+| S-08 | Deduplicate records duplicate savings and unique object count | `object_store.mbt:78` | `object_store_wbtest`: duplicate file set produces two unique objects and positive bytes saved | `covered` | |
+| S-09 | Deduplicate JSON output is canonical independent of map insertion order | `object_store.mbt:118` | `object_store_wbtest`: two differently inserted maps serialize identically | `covered` | New explicit branch pin for the canonicalize path. |
+| S-10 | `verify_integrity` accepts untampered content with independent SHA-256 keys | `object_store.mbt:128` | `object_store_wbtest`: Node-computed hash constants | `oracle-covered` | Breaks the old put()/sha256 self-cycle. |
+| S-11 | `verify_integrity` rejects content whose recomputed digest differs from its key | `object_store.mbt:132` | `object_store_wbtest`: tampered content returns false | `oracle-covered` | |
+| S-12 | `verify_integrity` rejects missing content | `object_store.mbt:136` | `object_store_wbtest`: missing object returns false | `oracle-covered` | |
+| S-13 | Lenient `reconstruct` restores present objects byte-for-byte | `object_store.mbt:153` | `object_store_wbtest`: reconstruct recovers original files; strict oracle checks bytes | `covered` | |
+| S-14 | Lenient `reconstruct` skips missing objects without failing | `object_store.mbt:155` | `object_store_wbtest`: missing content skipped in lenient mode | `oracle-covered` | New explicit trust-boundary pin. |
+| S-15 | `reconstruct_strict` returns `Err` and accumulates all missing paths | `object_store.mbt:174`, `object_store.mbt:179` | `object_store_wbtest`: one missing and two missing paths | `oracle-covered` | |
+| S-16 | `reconstruct_strict` returns `Ok` when all entries are present | `object_store.mbt:181` | `object_store_wbtest`: strict success with byte checks | `oracle-covered` | |
+
+## Audit
+
+File: `src/audit/audit_log.mbt`
+
+| ID | Branch / Invariant | Source | Evidence | Status | Notes |
+| --- | --- | --- | --- | --- | --- |
+| A-01 | `AuditAction::to_string` renders builtins and custom values | `audit_log.mbt:17` | `audit_log_wbtest`: custom action and normal append tests | `covered` | |
+| A-02 | `AuditAction::parse` recognizes builtins and preserves unknown custom values | `audit_log.mbt:29` | `audit_log_wbtest`: parse recognizes builtins and custom action | `covered` | New explicit branch pin. |
+| A-03 | Entry hashing is deterministic and includes optional digest/previous hash fields | `audit_log.mbt:55` | `audit_log_wbtest`: deterministic hash, multi-entry chain, from_json round-trips | `covered` | |
+| A-04 | Entry/log JSON serialization is canonical and parseable | `audit_log.mbt:111`, `audit_log.mbt:233` | `audit_log_wbtest`: entry/log JSON parse tests; from_json round-trips | `covered` | |
+| A-05 | New/empty log verifies and has zero length | `audit_log.mbt:126`, `audit_log.mbt:174` | `audit_log_wbtest`: empty audit log verifies | `covered` | |
+| A-06 | Append links the first entry to `None` and later entries to previous hash | `audit_log.mbt:139` | `audit_log_wbtest`: single and multi-entry chains verify | `covered` | |
+| A-07 | `verify_chain` rejects wrong `prev_hash` | `audit_log.mbt:164` | `audit_log_wbtest`: broken middle prev_hash and forked chain rejected | `covered` | |
+| A-08 | `verify_chain` rejects tampered content or stored hash mismatch | `audit_log.mbt:168` | `audit_log_wbtest`: tampered chain, tampered hash field, from_json tamper | `covered` | |
+| A-09 | `sign_last` on an empty log is a no-op | `audit_log.mbt:184` | `audit_log_wbtest`: sign_last on empty log | `covered` | New explicit branch pin. |
+| A-10 | `sign_last` signs the last entry and preserves chain validity | `audit_log.mbt:189` | `audit_log_wbtest`: sign and verify audit entry, multi-entry signed log | `covered` | |
+| A-11 | Unsigned entries are skipped by signature verification | `audit_log.mbt:217` | `audit_log_wbtest`: unsigned entries are skipped | `covered` | New explicit branch pin. |
+| A-12 | Valid signatures verify with the right public key | `audit_log.mbt:204` | `audit_log_wbtest`: sign and verify, signed round-trip | `covered` | |
+| A-13 | Wrong public key or invalid Ed25519 signature returns false | `audit_log.mbt:210` | `audit_log_wbtest`: signed log rejects wrong public key | `covered` | |
+| A-14 | Invalid signature hex returns false | `audit_log.mbt:213` | `audit_log_wbtest`: odd-length hex and non-hex signature strings rejected | `covered` | |
+| A-15 | `from_json` rejects unparsable JSON | `audit_log.mbt:248` | `audit_log_wbtest`: `"not json"` returns None | `covered` | |
+| A-16 | `from_json` rejects non-array top-level values | `audit_log.mbt:249` | `audit_log_wbtest`: `{}` returns None | `covered` | |
+| A-17 | `from_json` rejects non-object array elements | `audit_log.mbt:252` | `audit_log_wbtest`: `[42]` returns None | `covered` | |
+| A-18 | `from_json` rejects missing required fields | `audit_log.mbt:254` | `audit_log_wbtest`: missing required fields returns None | `covered` | |
+| A-19 | `from_json` rejects malformed `hash` format | `audit_log.mbt:264` | `audit_log_wbtest`: bad prefix and bad length | `covered` | |
+| A-20 | `from_json` maps optional `manifest_digest`, `prev_hash`, and `signature` strings and null/missing to optionals | `audit_log.mbt:268`, `audit_log.mbt:272`, `audit_log.mbt:284` | `audit_log_wbtest`: empty log, unsigned log, signed log, and chain round-trips | `covered` | |
+| A-21 | `from_json` rejects malformed `prev_hash` format | `audit_log.mbt:277` | `audit_log_wbtest`: malformed prev_hash field | `covered` | |
+| A-22 | `from_json` preserves empty logs | `audit_log.mbt:291` | `audit_log_wbtest`: empty log round-trip | `covered` | |
+| A-23 | `from_json` rebuilds last hash so subsequent chain/signature checks work | `audit_log.mbt:291` | `audit_log_wbtest`: chain and signature round-trips verify | `covered` | |
+| A-24 | Long chains still verify and detect middle breaks | `audit_log.mbt:162` | `audit_log_wbtest`: 1000-entry positive and middle-break tests | `covered` | |
+
 ## Open Follow-Ups
 
 | Priority | Item | Reason |
 | --- | --- | --- |
-| P1 | Extend this audit to `create`, `store`, and `audit`. | The current pass covers the main verification/Merkle/digest/crypto trust boundary, not every package. |
 | P1 | Add a lightweight script or checklist gate that fails when this file is stale after touching audited files. | Manual branch maps can drift unless the workflow names the update requirement. |
 | P2 | Add fuzz/property tests for malformed public JS API requests. | CLI/API shape errors are user-facing and broader than the pure core. |

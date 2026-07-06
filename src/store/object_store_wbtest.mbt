@@ -100,6 +100,17 @@ test "deduplicate result serializes to JSON" {
 }
 
 ///|
+test "deduplicate result JSON is canonical regardless of map insertion order" {
+  let files1 : Map[String, Bytes] = {}
+  files1["z.txt"] = @digest.string_to_utf8_bytes("zulu")
+  files1["a.txt"] = @digest.string_to_utf8_bytes("alpha")
+  let files2 : Map[String, Bytes] = {}
+  files2["a.txt"] = @digest.string_to_utf8_bytes("alpha")
+  files2["z.txt"] = @digest.string_to_utf8_bytes("zulu")
+  assert_eq(deduplicate(files1).to_json(), deduplicate(files2).to_json())
+}
+
+///|
 test "list_hashes returns all stored keys" {
   let store = ObjectStore::new()
   let _ = store.put(@digest.string_to_utf8_bytes("one"))
@@ -259,5 +270,21 @@ test "reconstruct_strict returns Ok with correct content (independent oracle)" {
       }
     }
     Err(_) => fail("reconstruct_strict should succeed but returned Err")
+  }
+}
+
+///|
+/// The lenient reconstruct API intentionally skips missing objects instead of
+/// failing. This pins the documented trust boundary so callers know they need
+/// reconstruct_strict when missing content must be an error.
+test "reconstruct skips missing content in lenient mode (independent oracle)" {
+  let result = build_oracle_result()
+  let _ = result.store.remove(known_sha256_hello_world)
+  let recovered = result.reconstruct()
+  assert_eq(recovered.length(), 1)
+  assert_true(recovered.get("files/a.txt") is None)
+  match recovered.get("files/b.bin") {
+    Some(content) => assert_eq(content.length(), 0)
+    None => fail("files/b.bin should still be recovered")
   }
 }

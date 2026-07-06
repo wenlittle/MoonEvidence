@@ -99,6 +99,16 @@ test "custom action type" {
 }
 
 ///|
+test "audit action parse recognizes builtins and preserves custom action" {
+  assert_true(AuditAction::parse("created") == Created)
+  assert_true(AuditAction::parse("verified") == Verified)
+  assert_true(AuditAction::parse("sealed") == Sealed)
+  assert_true(AuditAction::parse("signed") == Signed)
+  assert_true(AuditAction::parse("shared") == Shared)
+  assert_true(AuditAction::parse("migrated") == Custom("migrated"))
+}
+
+///|
 fn test_sk() -> Bytes {
   let b : Array[Byte] = [
     b'\x9d', b'\x61', b'\xb1', b'\x9d', b'\xef', b'\xfd', b'\x5a', b'\x60', b'\xba',
@@ -107,6 +117,15 @@ fn test_sk() -> Bytes {
     b'\x03', b'\x1c', b'\xae', b'\x7f', b'\x60',
   ]
   Bytes::from_array(b)
+}
+
+///|
+test "sign_last on empty log is a no-op" {
+  let sk = test_sk()
+  let log = AuditLog::new()
+  log.sign_last(sk)
+  assert_eq(log.length(), 0)
+  assert_true(log.verify_chain())
 }
 
 ///|
@@ -122,6 +141,15 @@ test "sign and verify audit entry" {
 }
 
 ///|
+test "unsigned audit entries are skipped by signature verification" {
+  let sk = test_sk()
+  let pk = @crypto.ed25519_public_key(sk)
+  let log = AuditLog::new()
+  log.append("2026-06-18T19:00:00Z", "alice", Created, "dataset-v1")
+  assert_true(log.verify_signatures(pk))
+}
+
+///|
 test "signed log rejects wrong public key" {
   let sk = test_sk()
   let log = AuditLog::new()
@@ -129,6 +157,19 @@ test "signed log rejects wrong public key" {
   log.sign_last(sk)
   let wrong_pk = Bytes::make(32, b'\x42')
   assert_false(log.verify_signatures(wrong_pk))
+}
+
+///|
+test "odd-length signature hex is rejected" {
+  let sk = test_sk()
+  let pk = @crypto.ed25519_public_key(sk)
+  let log = AuditLog::new()
+  log.append("2026-06-18T19:00:00Z", "alice", Created, "test")
+  log.sign_last(sk)
+  let entry = log.entries[0]
+  let tampered_entry : AuditEntry = { ..entry, signature: Some("abc") }
+  log.entries[0] = tampered_entry
+  assert_false(log.verify_signatures(pk))
 }
 
 ///|

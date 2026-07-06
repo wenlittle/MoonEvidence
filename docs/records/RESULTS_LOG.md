@@ -1295,6 +1295,33 @@ but has passed once on the release candidate baseline.
 | Total wall time | About 4.5 minutes on the local Windows workstation |
 | Note | Node emitted the existing `MODULE_TYPELESS_PACKAGE_JSON` warning for the generated ESM artifact; it did not affect pass/fail results |
 
+## 2026-07-06 Asia/Shanghai (Phase 3 closure)
+
+### Low-Risk Branch And Timing Closure
+
+This round closed the remaining Phase 3 testing backlog items that were not
+already covered by Phase 1/2. The changes are deliberately focused: direct
+white-box tests for low-level branches, one timing sampler, and policy records
+for items that are intentionally not executable tests in the current product
+surface.
+
+| Field | Result |
+| --- | --- |
+| `diag` pluralization | Added `diag_wbtest` coverage for 0/1/2 error and warning summary text |
+| Field element boundaries | Added `field25519_wbtest` coverage for `Fe::from_small` UInt64 limb serialization and `Fe::to_bytes` p, p+1, p-1 canonical boundaries |
+| `parse_digest` failures | Already covered by `digest_wbtest`: no colon, extra colon, unknown algorithm, empty hex, non-hex |
+| Timing sampler | Added `tools/timing-ed25519-verify.mjs`; ran 10000 valid verify samples |
+| E3002 | Recorded as a reserved proof-format code: no CLI proof-file consumer exists, and tests assert other malformed paths do not misreport E3002 |
+| Symlink mitigation | Recorded as runtime depth/file caps because `@fs` exposes no symlink/lstat API; deeper symlink semantics require platform support or sandboxing |
+
+### Verification Run
+
+| Command | Result |
+| --- | --- |
+| `moon test --target js src/diag src/digest src/crypto` | 102/102 passed |
+| `moon test --target wasm-gc src/diag src/digest src/crypto` | 102/102 passed |
+| `node tools/timing-ed25519-verify.mjs --samples 10000` | PASS: 5000/5000 samples per class; mean A 43.777016ms, mean B 43.732392ms, Welch t 0.406313 |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

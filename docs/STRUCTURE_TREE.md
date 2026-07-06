@@ -183,6 +183,7 @@ moon-evidence/
     fuzz-api-malformed.mjs     # JS API malformed request fuzz 门禁
     property-api-semantic.mjs  # JS API valid-request 闭环 property 门禁
     randomized-hardening.mjs   # ci/release/stress 随机化加固 profile
+    timing-ed25519-verify.mjs  # Ed25519 verify 动态时序采样探针
     mutation-check.mjs         # 变异验证（故意破坏实现确认测试会红）
     check-fixtures.mjs         # fixtures 防腐化校验
     check-metrics.mjs          # CI 数字对齐门禁（提交/行/测试/包/版本一致性断言）

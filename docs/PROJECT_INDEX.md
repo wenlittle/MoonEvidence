@@ -49,6 +49,7 @@ Build a reusable MoonBit library and CLI for trusted evidence pack verification:
 | `tools/fuzz-api-malformed.mjs` | Deterministic malformed-request fuzz guard for all 12 public JS string adapters |
 | `tools/property-api-semantic.mjs` | Deterministic semantic property guard for valid public JS API closed loops and tamper rejection |
 | `tools/randomized-hardening.mjs` | Named CI/release/stress profiles for randomized API and differential hardening |
+| `tools/timing-ed25519-verify.mjs` | Informational Ed25519 verify timing sampler for release/security audit notes |
 
 ## Source Traceability Rule
 

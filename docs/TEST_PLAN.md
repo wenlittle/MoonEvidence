@@ -8,7 +8,7 @@
 > **最后更新**：2026-07-06
 > **关联文档**：`docs/KNOWLEDGE_BASE.md` §8-§15；`docs/BRANCH_COVERAGE.md` 记录逐分支审计清单
 
-> **2026-07-06 进度记录**：Phase 1 已完成七项加固：Wycheproof Ed25519 150 向量、Ed25519 精确分支 8 用例、store 完整性/严格重建 6 个独立 oracle、incremental golden manifest 5 个独立 oracle（含 Q3 缓存信任边界）、Ed25519 常量时间静态审计、create_manifest 5 个 panic 错误路径测试、CT-001 源码级修复。Phase 2 已开始：Ed25519 随机差分 oracle 入 CI，incremental 错误路径补齐 E1004/W1001/E3001，SHA/HMAC 随机差分 oracle 入 CI，Merkle 大规模/边界测试完成，mutation 扩展至 16/16 捕获，verify/incremental/merkle/digest/crypto/create/store/audit/api 分支审计完成并记录在 `docs/BRANCH_COVERAGE.md`，branch-coverage stale-check 已接入 CI，公共 JS API malformed-request fuzz 已接入 CI，公共 JS API semantic property 已接入 CI，CLI_VERSION 一致性已纳入 `check-metrics`。当前本地基线：`moon test --target js` 为 340/340 passed；`check-metrics` 口径为 344 个测试声明（340 可执行测试 + 4 基准 wrapper）。仍需注意：这是源码审计级常量时间结论，不等于 dudect/后端产物级证明。
+> **2026-07-06 进度记录**：Phase 1 已完成七项加固：Wycheproof Ed25519 150 向量、Ed25519 精确分支 8 用例、store 完整性/严格重建 6 个独立 oracle、incremental golden manifest 5 个独立 oracle（含 Q3 缓存信任边界）、Ed25519 常量时间静态审计、create_manifest 5 个 panic 错误路径测试、CT-001 源码级修复。Phase 2 已开始：Ed25519 随机差分 oracle 入 CI，incremental 错误路径补齐 E1004/W1001/E3001，SHA/HMAC 随机差分 oracle 入 CI，Merkle 大规模/边界测试完成，mutation 扩展至 16/16 捕获，verify/incremental/merkle/digest/crypto/create/store/audit/api 分支审计完成并记录在 `docs/BRANCH_COVERAGE.md`，branch-coverage stale-check 已接入 CI，公共 JS API malformed-request fuzz 已接入 CI，公共 JS API semantic property 已接入 CI，CLI_VERSION 一致性已纳入 `check-metrics`。当前本地基线：`moon test --target js` 为 344/344 passed；`check-metrics` 口径为 348 个测试声明（344 可执行测试 + 4 基准 wrapper）。仍需注意：这是源码审计级常量时间结论，不等于 dudect/后端产物级证明。
 
 ---
 
@@ -65,7 +65,7 @@
 | 根因 | 涉及盲点 | 本质 |
 |---|---|---|
 | **A: Happy-path bias** | H1, H3, M1, L1, L7 | 测试用例从"功能说明书"正向生成（能做什么），而非从"输入空间划分"逆向生成（每种输入该返回什么） |
-| **B: 无分支覆盖率模型** | H2, H3, L2-L6 | MoonBit 缺乏成熟 coverage 工具，只能靠"344个测试声明"粗粒度指标，无法看到哪些分支从没被触达 |
+| **B: 无分支覆盖率模型** | H2, H3, L2-L6 | MoonBit 缺乏成熟 coverage 工具，只能靠"348个测试声明"粗粒度指标，无法看到哪些分支从没被触达 |
 | **C: 密码学测试未对标行业标准** | H2, H3, H4 | RFC 8032 §7.1 KAT + Wycheproof Ed25519 150 向量已覆盖签名 oracle；仍缺 dudect 侧信道验证 |
 | **D: 安全函数测试优先级被低估** | M2, M3 | 功能路径先测，防篡改/防绕过的安全函数后测甚至不测 |
 | **E: 测试资产双轨漂移** | 6项治理缺口 | cli-test.ps1 与 cli-test.sh 已对齐到 53 例；后续仍需防止人工移植漂移 |
@@ -77,7 +77,7 @@
 | 鲁棒性缺失占比 | 13/17 = **76%** | 76%的盲点都是"没测异常路径"，不是个别遗漏而是默认取向 |
 | 密码学测试三支柱 | 只剩1根（KAT） | 缺消极向量集 + 缺侧信道验证 = 结构性缺陷 |
 | 测试用例生成方式 | 仅3种（KAT+手工攻击+3个属性测试） | 缺差分测试 + 缺模糊测试 = 只能测"想到的" |
-| 覆盖率度量 | "344个测试声明" + `docs/BRANCH_COVERAGE.md` 首批分支图 | 数量指标只能说明测试规模；分支图回答 verify/incremental/merkle 的关键分支是否有证据覆盖 |
+| 覆盖率度量 | "348个测试声明" + `docs/BRANCH_COVERAGE.md` 首批分支图 | 数量指标只能说明测试规模；分支图回答 verify/incremental/merkle 的关键分支是否有证据覆盖 |
 
 ---
 
@@ -87,7 +87,7 @@
 
 | 层次 | 名称 | 现状 | 目标 | 优先级 |
 |---|---|---|---|---|
-| L0 | 单元测试（白盒） | 344个声明（340可执行+4基准wrapper）+ verify/incremental/merkle/digest/crypto/create/store/audit/api 分支图 + stale-check gate + API malformed fuzz gate + API semantic property gate + CLI_VERSION gate | 继续补 release/manual 长轮次 fuzz 与 dudect/后端产物级侧信道验证 | P0/P1 |
+| L0 | 单元测试（白盒） | 348个声明（344可执行+4基准wrapper）+ verify/incremental/merkle/digest/crypto/create/store/audit/api 分支图 + stale-check gate + API malformed fuzz gate + API semantic property gate + CLI_VERSION gate | 继续补 release/manual 长轮次 fuzz 与 dudect/后端产物级侧信道验证 | P0/P1 |
 | L1 | 集成测试 | ~15个 | +10（跨包闭环） | P1 |
 | L2 | 属性测试 | 3个 | +8（Ed25519/Fe/canonjson扩展） | P1 |
 | L3 | 差分测试 | 固定夹具 | +随机差分harness（Ed25519/SHA/HMAC） | P1 |
@@ -226,16 +226,16 @@
 
 > **原则**：不阻塞改进工作，在每次相关功能改进时顺带补。
 
-| 序号 | 内容 | 层次 |
-|---|---|---|
-| 3.1 | diag单复数分支 | L0 |
-| 3.2 | parse_digest失败分支（无冒号/未知算法/非hex） | L0 |
-| 3.3 | Fe::from_small / Fe::to_bytes条件减p 直接测试 | L0 |
-| 3.4 | 模糊测试harness（10000轮随机输入不崩溃） | L6（部分完成：API malformed fuzz + API semantic property 已入 CI；`randomized-hardening --profile release` 已实跑通过；`--profile stress` 已定义 10000 级别手动 profile，待真正发布前按需长跑） |
-| 3.5 | 动态时序测量（Ed25519验证10000次采样+统计） | L8 |
-| 3.6 | E3002覆盖（实现proof CLI 或记录为保留码） | L4 |
-| 3.7 | 符号链接缓解验证 | L8 |
-| 3.8 | Wycheproof EdDSA测试向量移植 | L0（已提前完成 Ed25519 150 向量；后续可扩展到来源生成/差分复核） |
+| 序号 | 内容 | 层次 | 状态 |
+|---|---|---|---|
+| 3.1 | diag单复数分支 | L0 | Done: `diag_wbtest` 覆盖 0/1/2 个 error/warning 的 summary 文案 |
+| 3.2 | parse_digest失败分支（无冒号/未知算法/非hex） | L0 | Done: `digest_wbtest` 覆盖 no-colon、extra-colon、unknown algorithm、empty hex、non-hex |
+| 3.3 | Fe::from_small / Fe::to_bytes条件减p 直接测试 | L0 | Done: `field25519_wbtest` 直接覆盖 UInt64 limb 序列化、p->0、p+1->1、p-1 不变 |
+| 3.4 | 模糊测试harness（10000轮随机输入不崩溃） | L6 | Done: API malformed fuzz + API semantic property 已入 CI；`randomized-hardening --profile release` 已实跑通过；`--profile stress` 已定义 10000 级别手动 profile，待真正发布前按需长跑 |
+| 3.5 | 动态时序测量（Ed25519验证10000次采样+统计） | L8 | Done: `tools/timing-ed25519-verify.mjs --samples 10000` 已实跑并记录 Welch t 统计；明确不是 dudect 证明 |
+| 3.6 | E3002覆盖（实现proof CLI 或记录为保留码） | L4 | Done as policy: E3002 继续作为 proof-format 保留码，CLI/API 当前无 proof 文件消费者；`tests/fixtures/packs/README.md` 与 incremental 测试明确 E3002 不应误触发 |
+| 3.7 | 符号链接缓解验证 | L8 | Done as mitigation audit: `collect_pack_files`/`collect_create_files` 以 depth=32 和 file cap=10000 作为当前 `@fs` API 下的运行时边界；无法做 symlink lstat 级断言，限制写入 `KNOWLEDGE_BASE`/`SECURITY` |
+| 3.8 | Wycheproof EdDSA测试向量移植 | L0 | Done: Ed25519 150 条 Wycheproof 向量已提前完成；后续只保留来源生成/差分复核为 P2 |
 
 **工作量**：约15-20个测试用例 + fuzzing/timing harness，3-5天
 
@@ -550,3 +550,4 @@ Node 签名、篡改消息被 MoonBit 拒绝。该脚本不把向量固化进仓
 | 2026-07-06 | Phase 2 CLI_VERSION 门禁：`check-metrics.mjs` 新增 `CLI_VERSION == moon.mod version` 断言，版本漂移会阻断 CI | Codex |
 | 2026-07-06 | Phase 2 随机化加固 profile：新增 `tools/randomized-hardening.mjs`，固化 `ci`/`release`/`stress` 三档 fuzz/property/differential 轮次 | Codex |
 | 2026-07-06 | Release 随机化加固实跑：`node tools/randomized-hardening.mjs --profile release` 通过，记录 1000 malformed fuzz / 256 semantic property / 1000 crypto differential / 1000 digest differential | Codex |
+| 2026-07-06 | Phase 3 收口：补 `diag` 单复数、`Fe::from_small`/`Fe::to_bytes` 边界测试，新增 Ed25519 verify 10000 次 timing sampler，并将 E3002/符号链接项记录为 policy/mitigation 完成 | Codex |

@@ -66,7 +66,7 @@ pub fn create_manifest(
     // Defense in depth: validate each path before adding it to the manifest.
     // This mirrors what Manifest::parse does on the verify side, ensuring
     // create→verify round-trip safety even if the caller passes hostile paths.
-    try @model.validate_entry_path(path, "files") catch {
+    @model.validate_entry_path(path, "files") catch {
       _ => abort("create_manifest: invalid file path: \{path}")
     }
     let data = match files.get(path) {

@@ -61,10 +61,7 @@ pub fn digest_compute(request_json : String) -> String {
         "\"algorithm\" must be \"sha256\", \"sha512\", or \"hmac-sha256\"",
       )
   }
-  Json::object({
-    "ok": Json::boolean(true),
-    "digest": Json::string(digest),
-  }).stringify()
+  Json::object({ "ok": Json::boolean(true), "digest": Json::string(digest) }).stringify()
 }
 
 ///|
@@ -739,10 +736,7 @@ pub fn audit_sign(request_json : String) -> String {
     return error_response("\"secret_key\" must be 32 bytes")
   }
   log.sign_last(sk)
-  Json::object({
-    "ok": Json::boolean(true),
-    "log": Json::string(log.to_json()),
-  }).stringify()
+  Json::object({ "ok": Json::boolean(true), "log": Json::string(log.to_json()) }).stringify()
 }
 
 // ---------------------------------------------------------------------------

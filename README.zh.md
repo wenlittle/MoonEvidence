@@ -200,7 +200,7 @@ bash ./tools/cli-test.sh js
 node tools/smoke-api.mjs
 ```
 
-截至 2026-07-06 Asia/Shanghai，wasm-gc/js 本地测试基线全绿；native 需要 C 编译器，由 CI 覆盖。代码库共 12668 有效 MoonBit 行（实现 5448 + 测试 7220），实现规模仍处于竞赛 4-10k 区间内。
+截至 2026-07-06 Asia/Shanghai，wasm-gc/js 本地测试基线全绿；native 需要 C 编译器，由 CI 覆盖。代码库共 13485 有效 MoonBit 行（实现 5436 + 测试 8049），实现规模仍处于竞赛 4-10k 区间内。
 
 ## 项目文档
 

@@ -115,7 +115,9 @@ pub fn DeduplicateResult::to_json(self : DeduplicateResult) -> String {
     }),
   })
   // Canonicalize so Map iteration order never affects the output bytes.
-  @canonjson.canonicalize(doc.stringify()) catch { _ => doc.stringify() }
+  @canonjson.canonicalize(doc.stringify()) catch {
+    _ => doc.stringify()
+  }
 }
 
 ///|

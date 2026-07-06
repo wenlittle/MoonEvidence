@@ -163,13 +163,7 @@ fn build_oracle_result() -> DeduplicateResult {
     "files/a.txt": known_sha256_hello_world,
     "files/b.bin": known_sha256_empty,
   }
-  {
-    index,
-    store,
-    total_files: 2,
-    unique_objects: 2,
-    bytes_saved: 0L,
-  }
+  { index, store, total_files: 2, unique_objects: 2, bytes_saved: 0L }
 }
 
 ///|

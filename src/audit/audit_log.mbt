@@ -275,10 +275,7 @@ pub fn AuditLog::from_json(json_str : String) -> AuditLog? {
     }
     // When prev_hash is present, validate the same sha256 format.
     match prev_hash {
-      Some(h) =>
-        if !h.has_prefix("sha256:") || h.length() != 71 {
-          return None
-        }
+      Some(h) => if !h.has_prefix("sha256:") || h.length() != 71 { return None }
       None => ()
     }
     let signature : String? = match obj.get("signature") {

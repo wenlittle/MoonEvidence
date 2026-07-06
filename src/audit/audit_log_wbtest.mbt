@@ -367,8 +367,8 @@ test "from_json rejects malformed prev_hash field" {
   // The to_json output is canonical, so prev_hash appears as a value; we
   // just inject a bad-format string in its place.
   let tampered = json_str.replace(
-    old= log.entries[1].prev_hash.unwrap(),
-    new= "bad-hash-format",
+    old=log.entries[1].prev_hash.unwrap(),
+    new="bad-hash-format",
   )
   assert_true(AuditLog::from_json(tampered) is None)
 }

@@ -57,10 +57,30 @@ test "explain pluralizes multiple errors and warnings" {
   let report : VerifyReport = {
     ok: false,
     findings: [
-      { code: "E1001", severity: Error, path: "manifest.json", message: "parse failed" },
-      { code: "E2003", severity: Error, path: "files/a.txt", message: "digest mismatch" },
-      { code: "W1001", severity: Warning, path: "files/extra-a.txt", message: "unlisted file" },
-      { code: "W1001", severity: Warning, path: "files/extra-b.txt", message: "unlisted file" },
+      {
+        code: "E1001",
+        severity: Error,
+        path: "manifest.json",
+        message: "parse failed",
+      },
+      {
+        code: "E2003",
+        severity: Error,
+        path: "files/a.txt",
+        message: "digest mismatch",
+      },
+      {
+        code: "W1001",
+        severity: Warning,
+        path: "files/extra-a.txt",
+        message: "unlisted file",
+      },
+      {
+        code: "W1001",
+        severity: Warning,
+        path: "files/extra-b.txt",
+        message: "unlisted file",
+      },
     ],
     checked: { files_total: 4, files_passed: 2, merkle_checked: false },
   }

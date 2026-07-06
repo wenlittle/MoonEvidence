@@ -7,8 +7,7 @@
 
 ///|
 #borrow(s)
-extern "C" fn eprintln_stderr_ffi(s : Bytes, len : Int) -> Unit =
-  "moon_evidence_eprintln_stderr"
+extern "C" fn eprintln_stderr_ffi(s : Bytes, len : Int) -> Unit = "moon_evidence_eprintln_stderr"
 
 ///|
 /// Writes `s` (as UTF-8) followed by a newline to standard error.

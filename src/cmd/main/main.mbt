@@ -14,24 +14,24 @@ let usage_text : String =
   #|moon-evidence - trusted evidence pack verification
   #|
   #|Usage:
-#|  moon-evidence verify [--json] [--incremental <cache-dir>] <path> [<path> ...]
-#|  moon-evidence explain <path> [<path> ...]
-#|  moon-evidence create <dir> --subject-id <id> [--subject-type <type>]
-#|                          [--algorithm sha256|sha512]
-#|                          [--version-id <id>] [--version-parent <hash>]
-#|                          [-o <out>]
-#|  moon-evidence --version
-#|  moon-evidence --help
-#|
-#|Commands:
-#|  verify    Verify evidence packs; --json emits canonical JSON reports
-#|  explain   Verify and print human-readable findings reports
-#|  create    Create a manifest from files in a directory
-#|
-#|Verify options:
-#|  --json               Emit canonical JSON instead of human-readable text
-#|  --incremental <dir>  Cache file digests in <dir> for fast re-verification;
-#|                       unchanged files are skipped on subsequent runs
+  #|  moon-evidence verify [--json] [--incremental <cache-dir>] <path> [<path> ...]
+  #|  moon-evidence explain <path> [<path> ...]
+  #|  moon-evidence create <dir> --subject-id <id> [--subject-type <type>]
+  #|                          [--algorithm sha256|sha512]
+  #|                          [--version-id <id>] [--version-parent <hash>]
+  #|                          [-o <out>]
+  #|  moon-evidence --version
+  #|  moon-evidence --help
+  #|
+  #|Commands:
+  #|  verify    Verify evidence packs; --json emits canonical JSON reports
+  #|  explain   Verify and print human-readable findings reports
+  #|  create    Create a manifest from files in a directory
+  #|
+  #|Verify options:
+  #|  --json               Emit canonical JSON instead of human-readable text
+  #|  --incremental <dir>  Cache file digests in <dir> for fast re-verification;
+  #|                       unchanged files are skipped on subsequent runs
   #|
   #|Create options:
   #|  --subject-id <id>       Evidence subject identifier (required)
@@ -507,11 +507,7 @@ fn collect_create_files(
   if out.length() >= max_pack_files {
     return
   }
-  let full_dir = if rel_dir.is_empty() {
-    root
-  } else {
-    "\{root}/\{rel_dir}"
-  }
+  let full_dir = if rel_dir.is_empty() { root } else { "\{root}/\{rel_dir}" }
   if !@fs.path_exists(full_dir) {
     return
   }
@@ -522,11 +518,7 @@ fn collect_create_files(
     if out.length() >= max_pack_files {
       return
     }
-    let rel_path = if rel_dir.is_empty() {
-      name
-    } else {
-      "\{rel_dir}/\{name}"
-    }
+    let rel_path = if rel_dir.is_empty() { name } else { "\{rel_dir}/\{name}" }
     let is_subdir = @fs.is_dir("\{root}/\{rel_path}") catch { _ => false }
     if is_subdir {
       collect_create_files(root, rel_path, out, depth=depth + 1)
@@ -613,7 +605,9 @@ fn run_create(args : Array[String]) -> Int {
       match @digest.normalize_algorithm(name) {
         Some(algo) => algo
         None => {
-          println("create: unknown algorithm '\{name}' (supported: sha256, sha512)")
+          println(
+            "create: unknown algorithm '\{name}' (supported: sha256, sha512)",
+          )
           return 2
         }
       }
@@ -640,7 +634,9 @@ fn run_create(args : Array[String]) -> Int {
   let file_paths : Array[String] = []
   collect_create_files(pack_dir, "", file_paths)
   if file_paths.length() >= max_pack_files {
-    println("[E5002] \{pack_dir}: too many files (>=\{max_pack_files}), manifest creation aborted to avoid silent truncation")
+    println(
+      "[E5002] \{pack_dir}: too many files (>=\{max_pack_files}), manifest creation aborted to avoid silent truncation",
+    )
     return 2
   }
   let files : Map[String, Bytes] = {}
@@ -666,9 +662,9 @@ fn run_create(args : Array[String]) -> Int {
   }
   let manifest_json = @create.create_manifest(files, {
     subject: { id: sid, kind: stype },
-    algorithm: algorithm,
+    algorithm,
     version_id: vid,
-    version_parent: version_parent,
+    version_parent,
   })
   let out = match output_path {
     Some(p) => p

@@ -1333,7 +1333,7 @@ checks are green together on one clean commit line.
 
 | Field | Result |
 | --- | --- |
-| Baseline | 12668 MoonBit lines: implementation 5448 + tests 7220; 348 test declarations = 344 executable tests + 4 benchmark wrappers |
+| Baseline | 13485 MoonBit lines after `moon fmt` normalization: implementation 5436 + tests 8049; 348 test declarations = 344 executable tests + 4 benchmark wrappers |
 | Release randomized hardening | PASS: 1000 malformed API fuzz rounds, 256 API semantic property rounds, 1000 Ed25519 differential vectors, 1000 digest differential rounds |
 | Unit/regression tests | PASS: `moon test --target js` 344/344; `moon test --target wasm-gc` 344/344 |
 | CLI black-box tests | PASS: PowerShell JS target 53/53; bash JS target 53/53 |
@@ -1359,6 +1359,43 @@ checks are green together on one clean commit line.
 | Side-channel proof | Static constant-time audit and timing sampler exist, but this is not a dudect or backend-machine-code proof. |
 | Symlink semantics | Current `@fs` surface has no lstat/symlink API; mitigation is bounded traversal by depth/file caps, not symlink-target proof. |
 | Randomized testing completeness | Release profile materially expands sampling, but random fuzz/differential tests are still bounded and cannot prove all inputs. |
+
+## 2026-07-06 Asia/Shanghai (Pre-push format normalization)
+
+### CI Format Gate Closure
+
+The local pre-push check found that CI's `moon fmt --check` gate would fail on
+historical formatting drift. This round ran `moon fmt`, reviewed the audited
+source diff as formatting-only, updated the metric-bearing delivery materials
+to the new line-count baseline, and touched `docs/BRANCH_COVERAGE.md` with an
+explicit format review note so the branch-coverage stale gate remains honest.
+
+| Field | Result |
+| --- | --- |
+| Scope | Mechanical `moon fmt` over 13 MoonBit source/test files, dominated by Wycheproof vector wrapping |
+| New metric baseline | 13485 MoonBit lines: implementation 5436 + tests 8049; 348 test declarations = 344 executable tests + 4 benchmark wrappers |
+| Branch coverage review | `docs/BRANCH_COVERAGE.md` records audited-source formatting review; branch conditions and evidence mappings unchanged |
+
+### Verification Run
+
+| Command | Result |
+| --- | --- |
+| `node tools/check-metrics.mjs` | PASS: 20/20 metric assertions |
+| `node tools/cross-verify.mjs` | PASS: 10/10 packs; negative fixtures correctly rejected |
+| `node tools/check-wycheproof-ed25519.mjs` | PASS: 150 vectors, 88 valid + 62 invalid |
+| `node tools/check-branch-coverage-stale.mjs --base main` | PASS: audited source changed with branch coverage review |
+| `node tools/gen-fixtures.mjs; git diff --exit-code tests/fixtures/packs` | PASS: regenerated packs byte-identical |
+| `moon check` | PASS |
+| `moon fmt --check` | PASS |
+| `moon test --target wasm-gc,js` | PASS: 344/344 wasm-gc and 344/344 js |
+| `powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target js` | PASS: 53/53 |
+| `bash ./tools/cli-test.sh js` | PASS: 53/53 |
+| `node tools/smoke-api.mjs` | PASS: 34/34 |
+| `node tools/fuzz-api-malformed.mjs --rounds 64` | PASS: 279 cases across 12 exports |
+| `node tools/property-api-semantic.mjs --rounds 16` | PASS: 48 closed-loop checks |
+| `node tools/differential-crypto.mjs --rounds 64` | PASS: 64/64 Ed25519 vectors |
+| `node tools/differential-digest.mjs --rounds 64` | PASS: 64/64 digest rounds |
+| `node tools/mutation-check.mjs` | PASS: 16/16 mutations caught, 0 slipped, 0 errored |
 
 ## Logging Rule
 

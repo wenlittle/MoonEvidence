@@ -267,20 +267,10 @@ test "sha512 merkle root and proofs round trip" {
   for index in [0, 4, 8] {
     let proof = must_proof_with(leaves, index, @digest.Sha512)
     assert_true(
-      verify_inclusion(
-        leaves[index],
-        proof,
-        root,
-        algorithm=@digest.Sha512,
-      ),
+      verify_inclusion(leaves[index], proof, root, algorithm=@digest.Sha512),
     )
     assert_false(
-      verify_inclusion(
-        leaves[index],
-        proof,
-        root,
-        algorithm=@digest.Sha256,
-      ),
+      verify_inclusion(leaves[index], proof, root, algorithm=@digest.Sha256),
     )
   }
 }
@@ -411,12 +401,7 @@ test "large sha512 tree with 10000 leaves verifies representative proofs" {
   for index in [0, 4095, 4096, 9999] {
     let proof = must_proof_with(leaves, index, @digest.Sha512)
     assert_true(
-      verify_inclusion(
-        leaves[index],
-        proof,
-        root,
-        algorithm=@digest.Sha512,
-      ),
+      verify_inclusion(leaves[index], proof, root, algorithm=@digest.Sha512),
     )
     assert_false(
       verify_inclusion(b"tampered leaf", proof, root, algorithm=@digest.Sha512),

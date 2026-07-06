@@ -1027,7 +1027,9 @@ test "audit_sign: sign last entry" {
     ed25519_keypair(json_request([("seed", Json::string(seed_hex))])),
   )
   guard kp.get("secret_key") is Some(String(sk_hex)) else {
-    fail("keypair should have secret_key: \{ed25519_keypair(json_request([("seed", Json::string(seed_hex))]))}")
+    fail(
+      "keypair should have secret_key: \{ed25519_keypair(json_request([("seed", Json::string(seed_hex))]))}",
+    )
   }
   // Create a log with one entry.
   let log_json = make_one_entry_log("ds-sign") catch {
@@ -1058,8 +1060,12 @@ test "audit_verify: verify_signatures true with valid signature" {
   let kp = parse_json_obj(
     ed25519_keypair(json_request([("seed", Json::string(seed_hex))])),
   )
-  guard kp.get("public_key") is Some(String(pk_hex)) else { fail("no public_key") }
-  guard kp.get("secret_key") is Some(String(sk_hex)) else { fail("no secret_key") }
+  guard kp.get("public_key") is Some(String(pk_hex)) else {
+    fail("no public_key")
+  }
+  guard kp.get("secret_key") is Some(String(sk_hex)) else {
+    fail("no secret_key")
+  }
   let log_json = make_one_entry_log("ds-verify-valid") catch {
     err => fail("make_one_entry_log failed: \{err}")
   }
@@ -1096,8 +1102,12 @@ test "audit_verify: verify_signatures true with tampered signature" {
   let kp = parse_json_obj(
     ed25519_keypair(json_request([("seed", Json::string(seed_hex))])),
   )
-  guard kp.get("public_key") is Some(String(pk_hex)) else { fail("no public_key") }
-  guard kp.get("secret_key") is Some(String(sk_hex)) else { fail("no secret_key") }
+  guard kp.get("public_key") is Some(String(pk_hex)) else {
+    fail("no public_key")
+  }
+  guard kp.get("secret_key") is Some(String(sk_hex)) else {
+    fail("no secret_key")
+  }
   let log_json = make_one_entry_log("ds-verify-tamper") catch {
     err => fail("make_one_entry_log failed: \{err}")
   }

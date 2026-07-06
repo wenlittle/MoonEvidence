@@ -38,6 +38,11 @@ whole project is fully covered; it means these trust boundaries now have an
 explicit branch map. `tools/check-branch-coverage-stale.mjs` now gates the map:
 edits to audited source files must touch this file in the same diff.
 
+Format review 2026-07-06: `moon fmt` mechanically reformatted audited source
+files in `api`, `audit`, `create`, and `store`. Branch conditions, public
+contracts, and evidence mappings above were reviewed as unchanged; this entry
+is the required stale-check touch for the formatting-only diff.
+
 ## Verify
 
 File: `src/verify/verify.mbt`

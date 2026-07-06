@@ -8,7 +8,7 @@
 > **最后更新**：2026-07-06
 > **关联文档**：`docs/KNOWLEDGE_BASE.md` §8-§15；`docs/BRANCH_COVERAGE.md` 记录逐分支审计清单
 
-> **2026-07-06 进度记录**：Phase 1 已完成七项加固：Wycheproof Ed25519 150 向量、Ed25519 精确分支 8 用例、store 完整性/严格重建 6 个独立 oracle、incremental golden manifest 5 个独立 oracle（含 Q3 缓存信任边界）、Ed25519 常量时间静态审计、create_manifest 5 个 panic 错误路径测试、CT-001 源码级修复。Phase 2 已开始：Ed25519 随机差分 oracle 入 CI，incremental 错误路径补齐 E1004/W1001/E3001，SHA/HMAC 随机差分 oracle 入 CI，Merkle 大规模/边界测试完成，mutation 扩展至 16/16 捕获，verify/incremental/merkle/digest/crypto/create/store/audit/api 分支审计完成并记录在 `docs/BRANCH_COVERAGE.md`，branch-coverage stale-check 已接入 CI，公共 JS API malformed-request fuzz 已接入 CI，公共 JS API semantic property 已接入 CI，CLI_VERSION 一致性已纳入 `check-metrics`。当前本地基线：`moon test --target js` 为 344/344 passed；`check-metrics` 口径为 348 个测试声明（344 可执行测试 + 4 基准 wrapper）。仍需注意：这是源码审计级常量时间结论，不等于 dudect/后端产物级证明。
+> **2026-07-06 进度记录**：Phase 1-3 已阶段性收口：Wycheproof Ed25519 150 向量、Ed25519 精确分支 8 用例、store 完整性/严格重建 6 个独立 oracle、incremental golden manifest 5 个独立 oracle（含 Q3 缓存信任边界）、Ed25519 常量时间静态审计、create_manifest 5 个 panic 错误路径测试、CT-001 源码级修复、Ed25519/SHA/HMAC 随机差分 oracle、公共 JS API malformed fuzz 与 semantic property、Merkle 大规模/边界测试、mutation 16/16 捕获、verify/incremental/merkle/digest/crypto/create/store/audit/api 分支审计和 stale-check 门禁、CLI_VERSION 一致性门禁、Phase 3 低风险分支与 timing sampler。当前发布候选基线：`moon test --target js` 为 344/344 passed；`moon test --target wasm-gc` 为 344/344 passed；CLI PowerShell/bash JS 黑盒均为 53/53 passed；`node tools/randomized-hardening.mjs --profile release` 通过；`check-metrics` 口径为 348 个测试声明（344 可执行测试 + 4 基准 wrapper）。仍需注意：这是源码审计级常量时间结论，不等于 dudect/后端产物级证明。
 
 ---
 

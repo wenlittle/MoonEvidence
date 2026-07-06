@@ -1,7 +1,7 @@
 # MoonEvidence 开发报告
 
 > MoonBit OSC2026 开源生态挑战赛 · 项目验收材料
-> 仓库：https://github.com/starlittle/MoonEvidence ｜ 规模：12668 行 MoonBit（实现 5448 + 测试 7220）｜ 提交：109 个 ｜ 包：12 个
+> 仓库：https://github.com/starlittle/MoonEvidence ｜ 规模：12668 行 MoonBit（实现 5448 + 测试 7220）｜ 提交：124 个 ｜ 包：12 个
 > 本报告为单一权威开发报告，合并了功能清单、AI 协作实践与工程质量三方面内容。
 
 ## 一、项目概述
@@ -225,7 +225,7 @@ tests/         -> 夹具与黑盒回归测试
 
 | 指标 | 实测值 |
 | --- | --- |
-| 提交数 | 107 |
+| 提交数 | 124（下限，后续文档提交会继续递增） |
 | 实现行数 | 5448 |
 | 测试行数 | 7220 |
 | 总行数 | **12668** |
@@ -236,7 +236,7 @@ tests/         -> 夹具与黑盒回归测试
 | moon check warnings | 0 |
 | moon fmt --check | exit 0（无漂移） |
 
-> 以上数字为 2026-07-06 Asia/Shanghai 本机实测冻结基线（见 `docs/records/RESULTS_LOG.md`），全仓文档统一引用此基线；native 后端在本机缺 C 编译器，交由 CI 验证。
+> 以上数字为 2026-07-06 Asia/Shanghai 本机实测冻结基线（见 `docs/records/RESULTS_LOG.md` 的 Release readiness gate），全仓交付材料统一引用此基线；提交数按下限记录，后续文档提交只会递增；native 后端在本机缺 C 编译器，交由 CI 验证。
 
 ## 九、创新点与竞争力
 

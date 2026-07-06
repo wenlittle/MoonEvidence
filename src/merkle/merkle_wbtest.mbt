@@ -28,6 +28,43 @@ fn must_proof(leaves : Array[Bytes], index : Int) -> Array[ProofStep] raise {
   }
 }
 
+///|
+fn must_root_with(
+  leaves : Array[Bytes],
+  algorithm : @digest.HashAlgorithm,
+) -> Bytes raise {
+  match compute_root(leaves, algorithm~) {
+    Some(root) => root
+    None => fail("expected a root for \{leaves.length()} leaves")
+  }
+}
+
+///|
+fn must_proof_with(
+  leaves : Array[Bytes],
+  index : Int,
+  algorithm : @digest.HashAlgorithm,
+) -> Array[ProofStep] raise {
+  match compute_proof(leaves, index, algorithm~) {
+    Some(proof) => proof
+    None => fail("expected a proof for index \{index}")
+  }
+}
+
+///|
+fn expected_height(count : Int) -> Int {
+  if count == 0 {
+    return 0
+  }
+  let mut width = count
+  let mut height = 1
+  while width > 1 {
+    width = (width + 1) / 2
+    height = height + 1
+  }
+  height
+}
+
 // ---------------------------------------------------------------------------
 // Tree shapes
 // ---------------------------------------------------------------------------
@@ -82,7 +119,7 @@ test "five leaf root promotes across two levels" {
 
 ///|
 test "proof round trip verifies for every index in every shape" {
-  for count in [1, 2, 3, 4, 5, 8] {
+  for count in [1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17] {
     let leaves = make_leaves(count)
     let root = must_root(leaves)
     for index in 0..<count {
@@ -186,6 +223,34 @@ test "domain separation keeps leaf and node hashes apart" {
 }
 
 ///|
+test "sha512 merkle root and proofs round trip" {
+  let leaves = make_leaves(9)
+  let root = must_root_with(leaves, @digest.Sha512)
+  assert_eq(root.length(), 64)
+  let sha256_root = must_root_with(leaves, @digest.Sha256)
+  assert_true(root != sha256_root)
+  for index in [0, 4, 8] {
+    let proof = must_proof_with(leaves, index, @digest.Sha512)
+    assert_true(
+      verify_inclusion(
+        leaves[index],
+        proof,
+        root,
+        algorithm=@digest.Sha512,
+      ),
+    )
+    assert_false(
+      verify_inclusion(
+        leaves[index],
+        proof,
+        root,
+        algorithm=@digest.Sha256,
+      ),
+    )
+  }
+}
+
+///|
 test "leaf hash used as node input cannot replay as proof step" {
   // A two-leaf tree whose root is node_hash(h0, h1). An attacker who only
   // controls leaf payloads cannot craft data whose LEAF hash equals an
@@ -219,13 +284,42 @@ fn must_tree(leaves : Array[Bytes]) -> MerkleTree raise {
 }
 
 ///|
+fn must_tree_with(
+  leaves : Array[Bytes],
+  algorithm : @digest.HashAlgorithm,
+) -> MerkleTree raise {
+  match compute_tree(leaves, algorithm~) {
+    Some(tree) => tree
+    None => fail("expected a tree for \{leaves.length()} leaves")
+  }
+}
+
+///|
+fn assert_shape_round_trip(count : Int) -> Unit raise {
+  let leaves = make_leaves(count)
+  let root = must_root(leaves)
+  let tree = must_tree(leaves)
+  assert_eq(tree.leaf_count(), count)
+  assert_eq(tree.height(), expected_height(count))
+  let tree_root = match tree.root() {
+    Some(r) => r
+    None => fail("tree root missing for \{count} leaves")
+  }
+  assert_eq(tree_root, root)
+  for index in [0, count / 2, count - 1] {
+    let proof = must_proof(leaves, index)
+    assert_true(verify_inclusion(leaves[index], proof, root))
+  }
+}
+
+///|
 test "compute_tree on empty input returns None" {
   assert_true(compute_tree([]) is None)
 }
 
 ///|
 test "compute_tree root equals compute_root for every shape" {
-  for count in [1, 2, 3, 4, 5, 7, 8, 16] {
+  for count in [1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17] {
     let leaves = make_leaves(count)
     let tree = must_tree(leaves)
     let tree_root = match tree.root() {
@@ -237,6 +331,61 @@ test "compute_tree root equals compute_root for every shape" {
       None => fail("compute_root should agree")
     }
     assert_eq(tree_root, compute_root_value)
+  }
+}
+
+///|
+test "boundary tree shapes preserve roots and representative proofs" {
+  for count in [1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17] {
+    assert_shape_round_trip(count)
+  }
+}
+
+///|
+test "large tree with 10000 leaves has stable shape and proofs" {
+  let count = 10000
+  let leaves = make_leaves(count)
+  let root = must_root(leaves)
+  let tree = must_tree(leaves)
+  assert_eq(tree.leaf_count(), count)
+  assert_eq(tree.height(), expected_height(count))
+  let tree_root = match tree.root() {
+    Some(r) => r
+    None => fail("large tree root missing")
+  }
+  assert_eq(tree_root, root)
+  for index in [0, 1, 4999, 5000, 9998, 9999] {
+    let proof = must_proof(leaves, index)
+    assert_true(verify_inclusion(leaves[index], proof, root))
+    assert_false(verify_inclusion(b"tampered leaf", proof, root))
+  }
+}
+
+///|
+test "large sha512 tree with 10000 leaves verifies representative proofs" {
+  let count = 10000
+  let leaves = make_leaves(count)
+  let root = must_root_with(leaves, @digest.Sha512)
+  let tree = must_tree_with(leaves, @digest.Sha512)
+  let tree_root = match tree.root() {
+    Some(r) => r
+    None => fail("large sha512 tree root missing")
+  }
+  assert_eq(tree_root, root)
+  assert_eq(root.length(), 64)
+  for index in [0, 4095, 4096, 9999] {
+    let proof = must_proof_with(leaves, index, @digest.Sha512)
+    assert_true(
+      verify_inclusion(
+        leaves[index],
+        proof,
+        root,
+        algorithm=@digest.Sha512,
+      ),
+    )
+    assert_false(
+      verify_inclusion(b"tampered leaf", proof, root, algorithm=@digest.Sha512),
+    )
   }
 }
 

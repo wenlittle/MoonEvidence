@@ -4,7 +4,7 @@
 
 | # | 要求 | 状态 | 证据 |
 | --- | --- | --- | --- |
-| 1 | 项目以 MoonBit 为主要实现语言 | ✅ | 全部核心逻辑为 MoonBit：12 个包，实现 5448 行 + 测试 6832 行，合计 **12280 行**；实现规模落在 4-10k 要求区间。仓库内 JS 仅为独立参考实现/烟测工具（`tools/*.mjs`）与 demo 页面胶水，不承担验证语义 |
+| 1 | 项目以 MoonBit 为主要实现语言 | ✅ | 全部核心逻辑为 MoonBit：12 个包，实现 5448 行 + 测试 6981 行，合计 **12429 行**；实现规模落在 4-10k 要求区间。仓库内 JS 仅为独立参考实现/烟测工具（`tools/*.mjs`）与 demo 页面胶水，不承担验证语义 |
 | 2 | GitHub 与 Gitlink 仓库公开可访问、提交记录完整 | ⏳ 推送后即满足 | 本地 main 分支 **107 个提交**（远超 10-20 有效提交要求），按逻辑单元划分、conventional commits 风格、每步附验收记录。待执行：双推 GitHub + Gitlink 并确认 CI 首跑绿（推送属外部可见操作，由仓库所有者执行） |
 | 3 | 源代码结构清晰、架构表达完整核心功能 | ✅ | 12 个包（6 核心：canonjson/digest/merkle/model/verify/diag 零 IO + 4 扩展：create/store/audit/crypto + 2 适配器：cmd/main CLI、api 浏览器）分层；每包带 README；架构图见 `README.md` / `README.zh.md`（mermaid）与 `docs/ARCHITECTURE.md` |
 | 4 | README 说明项目目标、安装方式、使用方法、示例，且可复现 | ✅ | 双语 README（英文主 + `README.zh.md`）：30 秒上手、浏览器试用（含截图）、API 速览、错误码表、性能数据；`examples/` 自带完好/篡改双包可即时复现；`docs/GUIDE.md` 三场景全部命令实跑验证过 |

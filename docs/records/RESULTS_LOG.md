@@ -951,6 +951,34 @@ padding-boundary lengths and deterministic random payloads.
 | `node tools/differential-crypto.mjs --rounds 64` | 64/64 Ed25519 vectors matched Node.js crypto |
 | `git diff --check` | PASS; only CRLF normalization warning for `README.zh.md` |
 
+## 2026-07-06 Asia/Shanghai (Phase 2 Merkle boundary and scale tests)
+
+### Merkle Large-Tree and Boundary Coverage
+
+This round closed Phase 2 item 2.1 for Merkle scale/boundary coverage. No
+production Merkle logic changed. The new tests exercise shape boundaries around
+powers of two, SHA-512 Merkle mode, and 10000-leaf trees with representative
+inclusion proofs and tamper rejection.
+
+| Field | Result |
+| --- | --- |
+| Scope | `src/merkle/merkle_wbtest.mbt` |
+| New tests | 4 wbtests: SHA-512 Merkle root/proof round trip, boundary shape round trips for 1/2/3/4/5/7/8/9/15/16/17 leaves, 10000-leaf SHA-256 tree root/proofs, 10000-leaf SHA-512 tree root/proofs |
+| Boundary classes | Empty tree remains covered; new cases cover `2^k-1`, `2^k`, `2^k+1`, odd-node promotion, first/middle/last representative proofs, and wrong-leaf rejection |
+| Phase 2 status | Item 2.1 is closed for executable tests; benchmark/performance tracking remains under the separate L7 benchmark item |
+| Metrics | 109 commits / 12429 MoonBit lines (impl 5448 + tests 6981) / 329 test declarations / 12 packages / moon.mod 0.4.0 == CHANGELOG 0.4.0 |
+
+### Verification Run
+
+| Command | Result |
+| --- | --- |
+| `moon test --target js src/merkle` | 34/34 passed |
+| `moon check` | exit 0 |
+| `moon test --target js` | 325/325 passed |
+| `moon test --target wasm-gc` | 325/325 passed |
+| `node tools/check-metrics.mjs` | PASS: 19/19 metric assertions; current metrics 12429 lines / 329 declarations |
+| `git diff --check` | PASS; only CRLF normalization warning for `README.zh.md` |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

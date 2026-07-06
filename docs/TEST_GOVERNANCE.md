@@ -241,8 +241,8 @@ Reject these during review:
 
 As of 2026-07-06:
 
-- `moon test` baseline is 321 executable tests on `wasm-gc` and `js`.
-- `check-metrics` counts 325 test declarations because 4 benchmark wrappers
+- `moon test` baseline is 325 executable tests on `wasm-gc` and `js`.
+- `check-metrics` counts 329 test declarations because 4 benchmark wrappers
   use `test "bench: ..."` declarations.
 - CI includes the important gates: metrics, fixture rot, cross-verify,
   Wycheproof inventory, type/format checks, multi-backend tests, CLI tests,

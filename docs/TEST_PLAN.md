@@ -8,7 +8,7 @@
 > **最后更新**：2026-07-06
 > **关联文档**：`docs/KNOWLEDGE_BASE.md` §8-§15
 
-> **2026-07-06 进度记录**：Phase 1 已完成七项加固：Wycheproof Ed25519 150 向量、Ed25519 精确分支 8 用例、store 完整性/严格重建 6 个独立 oracle、incremental golden manifest 5 个独立 oracle（含 Q3 缓存信任边界）、Ed25519 常量时间静态审计、create_manifest 5 个 panic 错误路径测试、CT-001 源码级修复。Phase 2 已开始：Ed25519 随机差分 oracle 入 CI，incremental 错误路径补齐 E1004/W1001/E3001，SHA/HMAC 随机差分 oracle 入 CI。当前本地基线：`moon test --target js` 为 321/321 passed；`check-metrics` 口径为 325 个测试声明（321 可执行测试 + 4 基准 wrapper）。仍需注意：这是源码审计级常量时间结论，不等于 dudect/后端产物级证明。
+> **2026-07-06 进度记录**：Phase 1 已完成七项加固：Wycheproof Ed25519 150 向量、Ed25519 精确分支 8 用例、store 完整性/严格重建 6 个独立 oracle、incremental golden manifest 5 个独立 oracle（含 Q3 缓存信任边界）、Ed25519 常量时间静态审计、create_manifest 5 个 panic 错误路径测试、CT-001 源码级修复。Phase 2 已开始：Ed25519 随机差分 oracle 入 CI，incremental 错误路径补齐 E1004/W1001/E3001，SHA/HMAC 随机差分 oracle 入 CI，Merkle 大规模/边界测试完成。当前本地基线：`moon test --target js` 为 325/325 passed；`check-metrics` 口径为 329 个测试声明（325 可执行测试 + 4 基准 wrapper）。仍需注意：这是源码审计级常量时间结论，不等于 dudect/后端产物级证明。
 
 ---
 
@@ -65,7 +65,7 @@
 | 根因 | 涉及盲点 | 本质 |
 |---|---|---|
 | **A: Happy-path bias** | H1, H3, M1, L1, L7 | 测试用例从"功能说明书"正向生成（能做什么），而非从"输入空间划分"逆向生成（每种输入该返回什么） |
-| **B: 无分支覆盖率模型** | H2, H3, L2-L6 | MoonBit 缺乏成熟 coverage 工具，只能靠"325个测试声明"粗粒度指标，无法看到哪些分支从没被触达 |
+| **B: 无分支覆盖率模型** | H2, H3, L2-L6 | MoonBit 缺乏成熟 coverage 工具，只能靠"329个测试声明"粗粒度指标，无法看到哪些分支从没被触达 |
 | **C: 密码学测试未对标行业标准** | H2, H3, H4 | RFC 8032 §7.1 KAT + Wycheproof Ed25519 150 向量已覆盖签名 oracle；仍缺 dudect 侧信道验证 |
 | **D: 安全函数测试优先级被低估** | M2, M3 | 功能路径先测，防篡改/防绕过的安全函数后测甚至不测 |
 | **E: 测试资产双轨漂移** | 6项治理缺口 | cli-test.ps1(53例) vs cli-test.sh(41例) 人工移植，无共享用例源 |
@@ -77,7 +77,7 @@
 | 鲁棒性缺失占比 | 13/17 = **76%** | 76%的盲点都是"没测异常路径"，不是个别遗漏而是默认取向 |
 | 密码学测试三支柱 | 只剩1根（KAT） | 缺消极向量集 + 缺侧信道验证 = 结构性缺陷 |
 | 测试用例生成方式 | 仅3种（KAT+手工攻击+3个属性测试） | 缺差分测试 + 缺模糊测试 = 只能测"想到的" |
-| 覆盖率度量 | "325个测试声明" | 数量指标非覆盖指标，无法回答"39个分支里多少被执行过" |
+| 覆盖率度量 | "329个测试声明" | 数量指标非覆盖指标，无法回答"39个分支里多少被执行过" |
 
 ---
 
@@ -87,7 +87,7 @@
 
 | 层次 | 名称 | 现状 | 目标 | 优先级 |
 |---|---|---|---|---|
-| L0 | 单元测试（白盒） | 325个声明（321可执行+4基准wrapper） | 继续补剩余分支/错误路径 | P0/P1 |
+| L0 | 单元测试（白盒） | 329个声明（325可执行+4基准wrapper） | 继续补剩余分支/错误路径 | P0/P1 |
 | L1 | 集成测试 | ~15个 | +10（跨包闭环） | P1 |
 | L2 | 属性测试 | 3个 | +8（Ed25519/Fe/canonjson扩展） | P1 |
 | L3 | 差分测试 | 固定夹具 | +随机差分harness（Ed25519/SHA/HMAC） | P1 |
@@ -196,7 +196,7 @@
 
 | 序号 | 内容 | 层次 | 依赖 |
 |---|---|---|---|
-| 2.1 | 大规模Merkle树（10000叶闭环） | L1/L7 | 无 |
+| 2.1 | 大规模Merkle树（10000叶闭环） | L1/L7 | Done: boundary shapes 2^k-1/2^k/2^k+1 plus 10000-leaf SHA-256/SHA-512 roots and representative inclusion proofs |
 | 2.2 | SHA-512路径（merkle/verify/incremental） | L0/L3 | 阶段1 |
 | 2.3 | 增量验证错误路径（E1004/E2003/E2004/E3001/E3003/W1001） | L0 | Done: incremental_wbtest covers E1004, E2003, E2004, E3001 (missing root and empty tree), E3003, and W1001 |
 | 2.4 | bash cli-test补齐Part4+Part5（12例） | L4 | 无 |

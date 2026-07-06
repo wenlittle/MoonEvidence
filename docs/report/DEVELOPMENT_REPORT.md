@@ -1,7 +1,7 @@
 # MoonEvidence 开发报告
 
 > MoonBit OSC2026 开源生态挑战赛 · 项目验收材料
-> 仓库：https://github.com/starlittle/MoonEvidence ｜ 规模：12280 行 MoonBit（实现 5448 + 测试 6832）｜ 提交：108 个 ｜ 包：12 个
+> 仓库：https://github.com/starlittle/MoonEvidence ｜ 规模：12429 行 MoonBit（实现 5448 + 测试 6981）｜ 提交：109 个 ｜ 包：12 个
 > 本报告为单一权威开发报告，合并了功能清单、AI 协作实践与工程质量三方面内容。
 
 ## 一、项目概述
@@ -168,7 +168,7 @@ tests/         -> 夹具与黑盒回归测试
 
 | 层 | 数量与内容 |
 | --- | --- |
-| 单元测试 | **325 个**测试声明（321 个可执行测试 + 4 个基准 wrapper），wasm-gc 与 js 双后端全绿；含 NIST/RFC/Wycheproof 向量、JCS fixtures、版本链图语义、Merkle 树物化与路径 |
+| 单元测试 | **329 个**测试声明（325 个可执行测试 + 4 个基准 wrapper），wasm-gc 与 js 双后端全绿；含 NIST/RFC/Wycheproof 向量、JCS fixtures、版本链图语义、Merkle 树物化与路径 |
 | CLI 黑盒 | **53 用例**（`tools/cli-test.ps1` + `tools/cli-test.sh` 1:1 对等）：12 个命令形状 + 10 包篡改矩阵 + 19 个 manifest 错误码矩阵 + 9 create + 3 incremental，逐 pack / 逐 fixture 断言**精确错误码集合**（禁止"至少包含"式宽松断言） |
 | 篡改矩阵 | `tests/fixtures/packs/` 10 个 pack 由独立 Node 参考实现生成，覆盖每个错误码族；CI 设防腐化校验（重新生成后 `git diff` 必须为空） |
 | manifest 错误码矩阵 | `tests/fixtures/manifest/` 19 个夹具，覆盖 E1001/E1002/E1003/E2001/E2002 在 CLI 黑盒层的触发 |
@@ -227,10 +227,10 @@ tests/         -> 夹具与黑盒回归测试
 | --- | --- |
 | 提交数 | 107 |
 | 实现行数 | 5448 |
-| 测试行数 | 6832 |
-| 总行数 | **12280** |
-| 测试声明 | 325（321 测试 + 4 基准调用） |
-| 单元测试通过 | **321/321**（wasm-gc + js 双后端） |
+| 测试行数 | 6981 |
+| 总行数 | **12429** |
+| 测试声明 | 329（325 测试 + 4 基准调用） |
+| 单元测试通过 | **325/325**（wasm-gc + js 双后端） |
 | CLI 黑盒通过 | **53/53** |
 | 包数 | **12** |
 | moon check warnings | 0 |

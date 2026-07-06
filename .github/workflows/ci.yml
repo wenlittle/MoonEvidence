@@ -106,6 +106,12 @@ jobs:
       - name: Browser adapter smoke (node over js artifact)
         run: node tools/smoke-api.mjs
 
+      # Public JS API hardening: all exported string-in/string-out adapter
+      # functions must reject malformed request envelopes without throwing and
+      # must always return a JSON object with a boolean `ok` field.
+      - name: Malformed API request fuzz (node over js artifact)
+        run: node tools/fuzz-api-malformed.mjs --rounds 64
+
       # Differential crypto: compares the compiled MoonBit JS Ed25519 API
       # against Node.js crypto on deterministic random seeds/messages.
       # Use a bounded CI round count; run `--rounds 1000` manually for release

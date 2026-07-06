@@ -1128,6 +1128,40 @@ branch map in the same diff, forcing an explicit review instead of silent drift.
 | `node tools/check-metrics.mjs` | PASS: 19/19 metric assertions |
 | `git diff --check` | PASS; no whitespace errors |
 
+## 2026-07-06 Asia/Shanghai (API malformed-request fuzz gate)
+
+### Public JS Adapter Fuzzing
+
+This round added a deterministic Node.js fuzz harness for the public browser/API
+adapter boundary. The target is not semantic verification of valid packs; it is
+the boundary contract for hostile or broken callers: every exported function
+must accept a string, never throw for malformed request JSON, and always return
+a JSON object with a boolean `ok` field.
+
+| Field | Result |
+| --- | --- |
+| New artifact | `tools/fuzz-api-malformed.mjs` |
+| CI | Added `node tools/fuzz-api-malformed.mjs --rounds 64` after `tools/smoke-api.mjs` |
+| Covered exports | All 12 public JS adapters: digest, verify, Merkle tree/proof, create, audit, and Ed25519 APIs |
+| Input classes | Invalid JSON, top-level non-objects, missing fields, wrong field types, odd/non-hex strings, malformed proof steps, malformed audit logs, malformed key/signature shapes |
+| Contract checked | No thrown JS exception; returned value is JSON string; parsed value is an object; `ok` is boolean; deterministic malformed envelopes return `ok:false` with an `error` string |
+
+### Verification Run
+
+| Command | Result |
+| --- | --- |
+| `moon build --target js --release src/api` | exit 0 |
+| `node tools/fuzz-api-malformed.mjs --rounds 64` | PASS: 279 cases across 12 exports |
+| `node tools/fuzz-api-malformed.mjs --rounds 128` | PASS: 343 cases across 12 exports |
+| `node tools/smoke-api.mjs` | PASS: 34/34 checks |
+| `moon test --target js src/api` | 39/39 passed |
+| `moon check` | exit 0 |
+| `moon test --target js` | 340/340 passed |
+| `moon test --target wasm-gc` | 340/340 passed |
+| `node tools/check-metrics.mjs` | PASS: 19/19 metric assertions |
+| `node tools/check-branch-coverage-stale.mjs --base HEAD~1` | PASS: no audited source files changed |
+| `git diff --check` | PASS; no whitespace errors |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

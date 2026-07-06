@@ -250,7 +250,8 @@ callers. Its main trust boundary is request-envelope validation: malformed
 caller input must not throw across the JS boundary, and every response must be
 parseable JSON with a boolean `ok` field. Semantic success paths are covered by
 MoonBit wbtests and `tools/smoke-api.mjs`; broad malformed-shape coverage is
-covered by `tools/fuzz-api-malformed.mjs`.
+covered by `tools/fuzz-api-malformed.mjs`; valid randomized closed-loop
+semantics and tamper rejection are covered by `tools/property-api-semantic.mjs`.
 
 | ID | Branch / Invariant | Source | Evidence | Status | Notes |
 | --- | --- | --- | --- | --- | --- |
@@ -281,31 +282,31 @@ covered by `tools/fuzz-api-malformed.mjs`.
 | API-25 | `create_evidence_pack` accepts `subject.type` or `subject.kind` and rejects missing/wrong type | `api.mbt:358` | `api_wbtest`: kind alias; fuzz non-string/missing type | `covered` | |
 | API-26 | `create_evidence_pack` defaults to SHA-256, accepts SHA-512, rejects unknown algorithms | `api.mbt:373` | `api_wbtest`: SHA-512 success; fuzz `md5`; smoke create uses SHA-256 | `covered` | |
 | API-27 | `create_evidence_pack` requires string `version_id` and string/null `version_parent` | `api.mbt:381`, `api.mbt:384` | `fuzz-api-malformed.mjs`: wrong version_id and version_parent types | `covered` | |
-| API-28 | `create_evidence_pack` output verifies through the normal verifier | `api.mbt:392` | `api_wbtest`: create then verify succeeds; `smoke-api.mjs` closed loop | `covered` | |
+| API-28 | `create_evidence_pack` output verifies through the normal verifier | `api.mbt:392` | `api_wbtest`: create then verify succeeds; `smoke-api.mjs` closed loop; `property-api-semantic.mjs` randomized create→verify loops | `covered` | |
 | API-29 | `generate_proof` validates manifest/files/index request shape | `api.mbt:419`, `api.mbt:425`, `api.mbt:441` | `api_wbtest`: out-of-range index; fuzz missing/wrong manifest, files, and index | `covered` | |
 | API-30 | `generate_proof` reports manifest parse errors | `api.mbt:446` | `fuzz-api-malformed.mjs`: malformed manifest text | `covered` | |
 | API-31 | `generate_proof` rejects empty/out-of-range tree indexes | `api.mbt:458` | `api_wbtest`: out-of-range index rejected | `covered` | |
-| API-32 | `generate_proof` returns proof/leaf/root metadata for valid inputs | `api.mbt:460` | `api_wbtest`: generate then verify proof round-trip; `smoke-api.mjs` proof closed loop | `covered` | |
+| API-32 | `generate_proof` returns proof/leaf/root metadata for valid inputs | `api.mbt:460` | `api_wbtest`: generate then verify proof round-trip; `smoke-api.mjs` proof closed loop; `property-api-semantic.mjs` randomized proof loops | `covered` | |
 | API-33 | `generate_proof` root fallback is defensive only | `api.mbt:472` | No direct trigger | `accepted-risk` | `Some(proof)` requires a non-empty tree, so `compute_root` should also be `Some`. |
 | API-34 | `verify_proof` validates leaf hex, proof shape, and root hex | `api.mbt:504`, `api.mbt:512`, `api.mbt:534` | `api_wbtest`: valid/tampered proof; fuzz leaf/proof/root malformed cases | `covered` | |
 | API-35 | `verify_proof` validates each proof side and sibling hex | `api.mbt:516`, `api.mbt:521`, `api.mbt:527` | `fuzz-api-malformed.mjs`: missing fields, bad sibling hex, invalid side | `covered` | |
 | API-36 | `verify_proof` validates optional algorithm and defaults to SHA-256 | `api.mbt:544` | `fuzz-api-malformed.mjs`: invalid algorithm; `api_wbtest`/smoke default SHA-256 proof | `covered` | |
-| API-37 | `verify_proof` accepts valid inclusion proofs and rejects tampered leaves | `api.mbt:557` | `api_wbtest`: round-trip succeeds and tampered proof fails; `smoke-api.mjs` closed loop | `covered` | |
+| API-37 | `verify_proof` accepts valid inclusion proofs and rejects tampered leaves | `api.mbt:557` | `api_wbtest`: round-trip succeeds and tampered proof fails; `smoke-api.mjs` closed loop; `property-api-semantic.mjs` randomized valid/tampered leaves | `covered` | |
 | API-38 | `audit_append` creates/loads logs and rejects invalid log JSON/type | `api.mbt:587` | `api_wbtest`: append/verify round-trip; fuzz invalid log type/text | `covered` | |
 | API-39 | `audit_append` requires actor/action/subject strings and validates optional digest/timestamp | `api.mbt:598`, `api.mbt:607`, `api.mbt:613` | `fuzz-api-malformed.mjs`: wrong required and optional field types | `covered` | |
-| API-40 | `audit_append` returns updated log and entry hash after append | `api.mbt:624` | `api_wbtest`: multi-entry append round-trip; `smoke-api.mjs` two-entry log | `covered` | |
+| API-40 | `audit_append` returns updated log and entry hash after append | `api.mbt:624` | `api_wbtest`: multi-entry append round-trip; `smoke-api.mjs` two-entry log; `property-api-semantic.mjs` randomized audit chains | `covered` | |
 | API-41 | `audit_append` empty-log last-hash fallback is defensive only | `api.mbt:624` | No direct trigger | `accepted-risk` | A successful append makes length non-zero before reading the last hash. |
-| API-42 | `audit_verify` validates log JSON/type and reports chain validity | `api.mbt:654` | `api_wbtest`: tampered log invalid; fuzz invalid log type/text | `covered` | |
+| API-42 | `audit_verify` validates log JSON/type and reports chain validity | `api.mbt:654` | `api_wbtest`: tampered log invalid; fuzz invalid log type/text; `property-api-semantic.mjs` randomized tampered chain rejection | `covered` | |
 | API-43 | `audit_verify` defaults signature verification off | `api.mbt:665` | `api_wbtest`: verify_signatures false/default | `covered` | |
 | API-44 | `audit_verify` requires a valid 32-byte public key when signature verification is enabled | `api.mbt:670` | `api_wbtest`: valid signed log; fuzz missing/wrong/invalid/short public key | `covered` | |
-| API-45 | `audit_verify` validates signatures and detects tampering | `api.mbt:684` | `api_wbtest`: valid signature and tampered signature cases; `smoke-api.mjs` signed audit loop | `covered` | |
+| API-45 | `audit_verify` validates signatures and detects tampering | `api.mbt:684` | `api_wbtest`: valid signature and tampered signature cases; `smoke-api.mjs` signed audit loop; `property-api-semantic.mjs` randomized signed audit tamper rejection | `covered` | |
 | API-46 | `audit_sign` validates log JSON/type and 32-byte secret key | `api.mbt:721`, `api.mbt:730`, `api.mbt:736` | `api_wbtest`: sign last entry; fuzz invalid log, secret key type/hex/length | `covered` | |
 | API-47 | `ed25519_keypair` validates optional 32-byte seed and warns on demo seed | `api.mbt:765`, `api.mbt:785` | `api_wbtest`: explicit seed round-trip and demo warning; fuzz seed type/hex/length | `covered` | |
 | API-48 | `ed25519_sign` validates secret key and message hex before signing | `api.mbt:815`, `api.mbt:824` | `api_wbtest`: sign/verify round-trip; fuzz bad secret key/message cases | `covered` | |
-| API-49 | `ed25519_verify` validates public key/message/signature hex and lengths, then returns semantic validity | `api.mbt:848`, `api.mbt:866` | `api_wbtest`: valid signature and wrong message; fuzz bad pk/message/signature type/hex/length | `covered` | |
+| API-49 | `ed25519_verify` validates public key/message/signature hex and lengths, then returns semantic validity | `api.mbt:848`, `api.mbt:866` | `api_wbtest`: valid signature and wrong message; fuzz bad pk/message/signature type/hex/length; `property-api-semantic.mjs` randomized valid/tampered message checks | `covered` | |
 
 ## Open Follow-Ups
 
 | Priority | Item | Reason |
 | --- | --- | --- |
-| P2 | Add deeper API semantic property/differential checks. | Current API fuzz proves envelope robustness; it does not exhaustively prove every semantically valid-but-adversarial request shape. |
+| P2 | Add release-profile long-run API fuzz/property checks. | CI now has malformed API fuzz plus bounded semantic property checks; release/manual profiles still need higher round counts for broader sampling. |

@@ -1215,6 +1215,40 @@ as a blocking CI step, so the new assertion is automatically enforced.
 | `moon check` | exit 0 |
 | `git diff --check` | PASS; no whitespace errors |
 
+## 2026-07-06 Asia/Shanghai (API semantic property gate)
+
+### Public API Closed-Loop Properties
+
+This round added deterministic semantic property checks for valid public JS
+adapter requests. It complements malformed-request fuzzing: malformed fuzz
+proves the adapter boundary does not throw, while this harness proves valid
+randomized requests preserve end-to-end invariants and reject tampering.
+
+| Field | Result |
+| --- | --- |
+| New artifact | `tools/property-api-semantic.mjs` |
+| CI | Added `node tools/property-api-semantic.mjs --rounds 16` after malformed API fuzz |
+| Covered loops | `create_evidence_pack -> verify_evidence -> compute_merkle_tree -> generate_proof -> verify_proof`; `audit_append -> audit_verify -> tamper rejection -> audit_sign -> signed verify -> signature tamper rejection`; `ed25519_keypair -> ed25519_sign -> ed25519_verify -> message tamper rejection` |
+| Input space | Deterministic SplitMix64 random files, empty packs, SHA-256/SHA-512 manifests, file sizes around digest padding boundaries, randomized audit chains, randomized seeds/messages |
+| Remaining limit | This is still bounded randomized sampling; release hardening should run higher rounds, and deeper independent semantic oracles remain useful |
+
+### Verification Run
+
+| Command | Result |
+| --- | --- |
+| `moon build --target js --release src/api` | exit 0 |
+| `node tools/property-api-semantic.mjs --rounds 16` | PASS: 48 closed-loop checks |
+| `node tools/property-api-semantic.mjs --rounds 64` | PASS: 192 closed-loop checks |
+| `node tools/fuzz-api-malformed.mjs --rounds 64` | PASS: 279 cases across 12 exports |
+| `node tools/smoke-api.mjs` | PASS: 34/34 checks |
+| `moon test --target js src/api` | 39/39 passed |
+| `moon check` | exit 0 |
+| `moon test --target js` | 340/340 passed |
+| `moon test --target wasm-gc` | 340/340 passed |
+| `node tools/check-metrics.mjs` | PASS: 20/20 metric assertions |
+| `node tools/check-branch-coverage-stale.mjs --self-test` | PASS: 3/3 cases |
+| `git diff --check` | PASS; no whitespace errors |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

@@ -47,6 +47,7 @@ Build a reusable MoonBit library and CLI for trusted evidence pack verification:
 | `tools/env-check.ps1` | Read-only local environment check script |
 | `tools/check-branch-coverage-stale.mjs` | Branch-coverage drift guard: audited source changes must review `docs/BRANCH_COVERAGE.md` |
 | `tools/fuzz-api-malformed.mjs` | Deterministic malformed-request fuzz guard for all 12 public JS string adapters |
+| `tools/property-api-semantic.mjs` | Deterministic semantic property guard for valid public JS API closed loops and tamper rejection |
 
 ## Source Traceability Rule
 

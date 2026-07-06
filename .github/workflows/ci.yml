@@ -112,6 +112,14 @@ jobs:
       - name: Malformed API request fuzz (node over js artifact)
         run: node tools/fuzz-api-malformed.mjs --rounds 64
 
+      # Public JS API semantic properties: valid randomized requests must
+      # preserve end-to-end invariants across create/verify/proof, audit
+      # append/sign/verify, and Ed25519 sign/verify tamper rejection.
+      # Keep CI rounds bounded; run `--rounds 64` or higher manually when
+      # doing release hardening.
+      - name: API semantic property checks (node over js artifact)
+        run: node tools/property-api-semantic.mjs --rounds 16
+
       # Differential crypto: compares the compiled MoonBit JS Ed25519 API
       # against Node.js crypto on deterministic random seeds/messages.
       # Use a bounded CI round count; run `--rounds 1000` manually for release

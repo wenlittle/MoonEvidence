@@ -1,7 +1,7 @@
 # MoonEvidence 开发报告
 
 > MoonBit OSC2026 开源生态挑战赛 · 项目验收材料
-> 仓库：https://github.com/starlittle/MoonEvidence ｜ 规模：13925 行 MoonBit（实现 5876 + 测试 8049）｜ 提交：128 个 ｜ 包：13 个
+> 仓库：https://github.com/wenlittle/MoonEvidence ｜ 规模：13925 行 MoonBit（实现 5876 + 测试 8049）｜ 提交：128 个 ｜ 包：13 个
 > 本报告为单一权威开发报告，合并了功能清单、AI 协作实践与工程质量三方面内容。
 
 ## 一、项目概述

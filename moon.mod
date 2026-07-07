@@ -7,7 +7,7 @@ version = "0.4.0"
 
 readme = "README.md"
 
-repository = "https://github.com/starlittle/MoonEvidence.git"
+repository = "https://github.com/wenlittle/MoonEvidence.git"
 
 license = "Apache-2.0"
 

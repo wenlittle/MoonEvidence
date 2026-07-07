@@ -1,6 +1,6 @@
 # MoonEvidence
 
-[![CI](https://github.com/starlittle/MoonEvidence/actions/workflows/ci.yml/badge.svg)](https://github.com/starlittle/MoonEvidence/actions/workflows/ci.yml)
+[![CI](https://github.com/wenlittle/MoonEvidence/actions/workflows/ci.yml/badge.svg)](https://github.com/wenlittle/MoonEvidence/actions/workflows/ci.yml)
 
 [English](README.md) | 中文
 
@@ -217,14 +217,14 @@ node tools/smoke-api.mjs
 - [架构说明](docs/ARCHITECTURE.md)
 - [证据包规范](docs/spec/EVIDENCE_PACK_SPEC.md)
 - [开发路线图](docs/ROADMAP.md)
-- 开发报告（仅源码仓库，[见 GitHub](https://github.com/starlittle/MoonEvidence/blob/main/docs/report/DEVELOPMENT_REPORT.md)）
+- 开发报告（仅源码仓库，[见 GitHub](https://github.com/wenlittle/MoonEvidence/blob/main/docs/report/DEVELOPMENT_REPORT.md)）
 
 ### 工程与质量
 - [项目索引](docs/PROJECT_INDEX.md)
 - [代码规范](docs/CODE_GUIDELINES.md)
-- 结果记录（仅源码仓库，[见 GitHub](https://github.com/starlittle/MoonEvidence/blob/main/docs/records/RESULTS_LOG.md)）
-- 验收自查清单（仅源码仓库，[见 GitHub](https://github.com/starlittle/MoonEvidence/blob/main/docs/records/ACCEPTANCE_CHECKLIST.md)）
-- 决策日志（仅源码仓库，[见 GitHub](https://github.com/starlittle/MoonEvidence/blob/main/docs/records/DECISION_LOG.md)）
+- 结果记录（仅源码仓库，[见 GitHub](https://github.com/wenlittle/MoonEvidence/blob/main/docs/records/RESULTS_LOG.md)）
+- 验收自查清单（仅源码仓库，[见 GitHub](https://github.com/wenlittle/MoonEvidence/blob/main/docs/records/ACCEPTANCE_CHECKLIST.md)）
+- 决策日志（仅源码仓库，[见 GitHub](https://github.com/wenlittle/MoonEvidence/blob/main/docs/records/DECISION_LOG.md)）
 
 ## 许可证
 

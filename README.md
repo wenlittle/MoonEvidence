@@ -1,6 +1,6 @@
 # MoonEvidence
 
-[![CI](https://github.com/starlittle/MoonEvidence/actions/workflows/ci.yml/badge.svg)](https://github.com/starlittle/MoonEvidence/actions/workflows/ci.yml)
+[![CI](https://github.com/wenlittle/MoonEvidence/actions/workflows/ci.yml/badge.svg)](https://github.com/wenlittle/MoonEvidence/actions/workflows/ci.yml)
 
 English | [中文](README.zh.md)
 
@@ -91,14 +91,14 @@ CLI, in CI's three-backend matrix, and in the browser.
 - [Architecture](docs/ARCHITECTURE.md)
 - [Evidence Pack Specification](docs/spec/EVIDENCE_PACK_SPEC.md)
 - [Roadmap](docs/ROADMAP.md)
-- Development Report (repo-only, [see GitHub](https://github.com/starlittle/MoonEvidence/blob/main/docs/report/DEVELOPMENT_REPORT.md))
+- Development Report (repo-only, [see GitHub](https://github.com/wenlittle/MoonEvidence/blob/main/docs/report/DEVELOPMENT_REPORT.md))
 
 ### Engineering & Quality
 - [Project Index](docs/PROJECT_INDEX.md)
 - [Code Guidelines](docs/CODE_GUIDELINES.md)
-- Results Log (repo-only, [see GitHub](https://github.com/starlittle/MoonEvidence/blob/main/docs/records/RESULTS_LOG.md))
-- Acceptance Checklist (repo-only, [see GitHub](https://github.com/starlittle/MoonEvidence/blob/main/docs/records/ACCEPTANCE_CHECKLIST.md))
-- Decision Log (repo-only, [see GitHub](https://github.com/starlittle/MoonEvidence/blob/main/docs/records/DECISION_LOG.md))
+- Results Log (repo-only, [see GitHub](https://github.com/wenlittle/MoonEvidence/blob/main/docs/records/RESULTS_LOG.md))
+- Acceptance Checklist (repo-only, [see GitHub](https://github.com/wenlittle/MoonEvidence/blob/main/docs/records/ACCEPTANCE_CHECKLIST.md))
+- Decision Log (repo-only, [see GitHub](https://github.com/wenlittle/MoonEvidence/blob/main/docs/records/DECISION_LOG.md))
 
 ## Quick Start (CLI)
 

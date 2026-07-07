@@ -37,7 +37,7 @@ MoonEvidence 含**自实现的密码学原语**，未依赖任何外部经审计
 如果你发现安全漏洞，请**不要**在公开 Issue 中直接披露。请通过以下任一渠道私有报告：
 
 - **GitHub Issues**：创建 Issue 并标注 `security` 标签（适用于非敏感问题）。
-- **私有渠道**：通过 GitHub Security Advisory（仓库 Security 标签页 → Report a vulnerability）私下联系，或通过申报书中的脱敏联系方式协商安全通信渠道。
+- **私有渠道**：通过 GitHub Security Advisory（仓库 Security 标签页 → Report a vulnerability）私下联系，或通过申报书中的联系方式协商安全通信渠道。
 
 报告时请包含：问题描述、复现步骤、影响评估与建议修复方案。收到报告后将在合理时间内确认并跟进。
 

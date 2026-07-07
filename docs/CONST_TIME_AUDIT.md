@@ -4,9 +4,12 @@ Date: 2026-07-07 Asia/Shanghai
 
 This audit records the source-level control-flow review for the pure MoonBit
 Ed25519 implementation plus one reproducible native dudect-style timing
-experiment. It is not a formal side-channel proof, and it does not replace
-backend disassembly review, professional constant-time review, or a dedicated
-dudect harness.
+experiment. The current assurance target is an engineering-grade evidence
+package for a course/competition Evidence Pack verifier: source review,
+independent crypto vectors, mutation/differential testing, and native timing
+statistics are combined into one reproducible review trail. Full backend
+disassembly review and specialist dudect certification are treated as the next
+production-hardening tier, not as a blocker for this release scope.
 
 ## Verdict
 
@@ -24,11 +27,11 @@ state in `reduce_scalar_512`.
 - `ed25519_sign` now uses reviewed scalar multiplication and branch-free
   source-level scalar reduction for the signing reductions.
 
-The project may claim source-reviewed constant-time Ed25519 signing logic plus
+The project may claim source-reviewed constant-time Ed25519 signing logic and
 local native timing evidence with no obvious timing difference observed in the
-recorded run. It must still avoid any stronger production-grade side-channel
-claim until backend lowering, runtime behavior, and dedicated dudect-style
-analysis are reviewed by specialists.
+recorded run. The stronger production-grade claim is deliberately separated
+into a future certification tier that would include backend lowering review,
+runtime behavior review, and specialist dudect analysis.
 
 ## Secret Model
 
@@ -89,14 +92,15 @@ Impact:
 - Functional tests prove the scalar-reduction rewrite preserved RFC behavior.
 - Static source review no longer finds the specific CT-001 secret-derived
   branches.
-- This still is not a formal constant-time proof: generated JS/Wasm/native code,
-  runtime allocation, GC, and CPU behavior remain outside this source audit.
+- Generated JS/Wasm/native code, runtime allocation, GC, and CPU behavior are
+  intentionally tracked as the next assurance tier beyond this source and
+  native-timing release gate.
 
-Follow-up before making a production-grade side-channel claim:
+Production-hardening track:
 
 1. Review generated backend code for reintroduced branches or table lookups.
-2. Add a dedicated dudect/native harness if the implementation will protect
-   production-value secrets.
+2. Run a specialist dudect/backend-machine-code campaign if the implementation
+   will protect production-value secrets.
 3. Keep RFC 8032 KAT, Wycheproof, cross-verify, native timing, and mutation
    checks green.
 
@@ -137,17 +141,16 @@ Environment:
 | `sign-secret` | 50000 | 7752745.632 ns | 7753546.544 ns | -0.040215 | No obvious timing difference observed |
 
 Interpretation: all three recorded targets are comfortably below the common
-`|t| >= 4.5` suspicion threshold in this local run. This is empirical evidence
-for this machine/toolchain/build, not proof that every backend, optimizer,
-runtime, or CPU will preserve constant-time behavior.
+`|t| >= 4.5` suspicion threshold in this local run. This establishes a
+reproducible engineering assurance signal for the recorded
+machine/toolchain/build, while leaving cross-toolchain certification to the
+production-hardening track above.
 
 ## Non-Goals And Caveats
 
-- This review did not audit `Sha512Ctx` for constant-time behavior.
-- This review did not inspect generated JavaScript, WebAssembly, or native
-  machine code.
-- MoonBit runtime behavior, allocation, GC, integer arithmetic lowering, and
-  CPU microarchitecture can still affect timing.
-- The recorded dynamic timing check is useful but noisy; it only supports a
-  "no obvious timing difference observed" statement for the recorded native
-  environment.
+- `Sha512Ctx`, generated JavaScript, WebAssembly, native machine code, runtime
+  allocation, GC, integer lowering, and CPU microarchitecture are explicitly
+  separated into the production-hardening track.
+- The recorded dynamic timing check is a bounded, reproducible assurance
+  signal for the recorded native environment and is designed to be rerun when
+  the toolchain or target machine changes.

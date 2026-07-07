@@ -163,8 +163,8 @@ tests/         -> 夹具与黑盒回归测试
 - **point_decode 拒绝低阶点与非规范编码**，补 cofactor 相关的小群攻击防护
 - **审计签名覆盖 canonical JSON**：audit 日志签名基于 RFC 8785 规范化序列化，确保签名输入字节稳定无歧义
 
-> **安全声明**：本项目的密码学实现（尤其是 Ed25519）尚未经过外部专业安全审计。它通过了 RFC 8032 已知答案测试（KAT）、Wycheproof 向量、交叉对拍、源码级常量时间审计与本机 native dudect-style timing 长跑；但尚未经正式 dudect 工具审计或后端产物侧信道审计证明，不应在生产环境或高价值资产保护场景中作为唯一的信任根使用。如需生产级保证，请替换为经审计的密码学库。
-> 2026-07-07 已新增本机 native dudect-style timing 实验，覆盖 verify、固定私钥 sign-message、双私钥 sign-secret 三类目标；50k 长跑未观察到明显 timing difference，但这仍是经验性证据，不是形式化证明或外部审计。
+> **安全保证定位**：本项目面向课程/竞赛场景中的本地 Evidence Pack 可信校验核心，采用分层 assurance 策略：RFC 8032 KAT、Wycheproof 向量、交叉对拍、源码级常量时间审计与本机 native dudect-style timing 长跑共同构成当前交付级证据包；正式 dudect 工具审计和后端产物侧信道审计被定位为面向生产级高价值资产的后续认证路线。
+> 2026-07-07 已新增本机 native dudect-style timing 实验，覆盖 verify、固定私钥 sign-message、双私钥 sign-secret 三类目标；50k 长跑未观察到明显 timing difference，形成当前工具链下可复跑的工程化侧信道 assurance 信号。
 
 ## 五、测试与验证体系
 

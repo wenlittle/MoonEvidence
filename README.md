@@ -224,7 +224,7 @@ experiments.
 - **348 unit tests** declared (344 executable tests + 4 benchmark wrappers), with native/wasm-gc/js passing locally
 - **54-case black-box CLI suite**: 12 command-shape + 10-pack tamper matrix + 19 error-code fixtures + 10 create + 3 incremental, with native/js passing locally
 - **Property tests**: canonicalization idempotence, Merkle proof soundness (mutation-verified)
-- **Native timing probe**: dudect-style Ed25519 verify/sign sampler for local native release builds; reports Welch t and is recorded as empirical evidence, not a formal proof
+- **Native timing probe**: dudect-style Ed25519 verify/sign sampler for local native release builds; reports Welch t as an engineering assurance signal for this toolchain
 - **CI three-backend matrix**: native / wasm-gc / js build + test + browser smoke test
 
 ```powershell

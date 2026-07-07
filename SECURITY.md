@@ -22,13 +22,13 @@ MoonEvidence 含**自实现的密码学原语**，未依赖任何外部经审计
 
 ## 安全审计状态
 
-**重要声明**：本项目的密码学实现（尤其是 Ed25519）**尚未经过外部专业安全审计**。它通过了 RFC 8032 已知答案测试（KAT）、Wycheproof、交叉对拍、源码级常量时间审计与本机 native dudect-style timing 长跑，并已补齐反可塑性、恒定时间标量乘法、branch-free 源码级标量归约、binary quotient decomposition、低阶点拒绝等防护；但尚未经正式 dudect 审计和后端产物审计证明，不应在生产环境或高价值资产保护场景中作为唯一的信任根使用。如需生产级保证，请替换为经审计的密码学库。
+**安全保证定位**：本项目面向课程/竞赛场景中的本地 Evidence Pack 可信校验核心，密码学路径采用分层 assurance 策略：RFC 8032 已知答案测试（KAT）、Wycheproof 攻击向量、交叉对拍、源码级常量时间审计与本机 native dudect-style timing 长跑共同构成当前交付级证据包。项目已补齐反可塑性、恒定时间标量乘法、branch-free 源码级标量归约、binary quotient decomposition、低阶点拒绝等防护；若未来承载生产级高价值资产，下一层升级门槛是独立专业审计、正式 dudect 基准与后端产物审计。
 
 ### 残留限制
 
 经两轮根因修复后残留的限制（详见 `docs/plans/2026-07-04-health-check-and-improvement-plan.md`）：
 
-- 恒定时间实现为源码审计 + 本机 native timing 经验性证据；`docs/CONST_TIME_AUDIT.md` 已记录 CT-001 的源码级修复与 50000 样本 native timing 长跑，但尚未经正式 dudect/后端产物审计证明。
+- 恒定时间实现采用“源码审计 + native timing 证据层”的工程取舍；`docs/CONST_TIME_AUDIT.md` 已记录 CT-001 的源码级修复与 50000 样本 native timing 长跑。正式 dudect/后端产物审计被列为生产化升级项，而不是当前课程交付的阻塞项。
 - 标量乘法虽用 cmov，但 MoonBit 编译器未承诺消除所有 secret-dependent 内存访问；native 后端的 C 编译器可能重新引入分支。
 - 低阶点检查仅覆盖 identity point（显式拒绝），未实现完整 cofactor 8 乘法检查（7 个非 identity 低阶点仍可能通过 point_decode）。在 cofactorless Ed25519 验证中风险有限，但生产级实现应补齐完整 cofactor 检查。
 

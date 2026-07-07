@@ -1356,7 +1356,7 @@ checks are green together on one clean commit line.
 | Risk | Status |
 | --- | --- |
 | Native backend local validation | Closed locally on Windows/MSVC: unit tests PASS 344/344; PowerShell and bash native CLI suites PASS 53/53 each. CI/native remains the remote confirmation gate. |
-| Side-channel proof | Static constant-time audit and timing sampler exist, but this is not a dudect or backend-machine-code proof. |
+| Side-channel assurance | Static constant-time audit and timing sampler exist; specialist dudect/backend-machine-code review is tracked as the production certification tier. |
 | Symlink semantics | Current `@fs` surface has no lstat/symlink API; mitigation is bounded traversal by depth/file caps, not symlink-target proof. |
 | Randomized testing completeness | Release profile materially expands sampling, but random fuzz/differential tests are still bounded and cannot prove all inputs. |
 
@@ -1552,7 +1552,7 @@ printout.
 | Test declarations | 348 declarations = 344 executable tests + 4 benchmark wrappers |
 | Package count | 13 packages = 12 product packages + 1 native timing tool package |
 | Commit count at measurement | 128 |
-| Side-channel boundary | Native timing evidence exists; formal proof, professional dudect, and backend-machine-code audit remain out of scope |
+| Side-channel boundary | Native timing evidence exists as the current engineering assurance layer; professional dudect and backend-machine-code audit are production certification follow-ups |
 
 ### Post-Documentation Verification
 

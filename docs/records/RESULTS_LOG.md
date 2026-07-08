@@ -1578,6 +1578,7 @@ printout.
 | --- | --- |
 | Deprecated optional-try syntax | Removed all remaining deprecated optional-try usage from tests; negative-path canonjson tests now use explicit `try ... catch ... noraise` helpers |
 | `moon info` drift | Regenerated and committed `pkg.generated.mbti` updates, including the new `src/timing/pkg.generated.mbti` |
+| GitHub Actions Type check | Added explicit `moon update` after toolchain install so fresh runners populate the MoonBit registry before resolving `moonbitlang/x` |
 | Mooncakes version | Published `starlittle/MoonEvidence` v0.4.0; registry now reports `moon.mod` 0.4.0 == Mooncakes 0.4.0 |
 | Registry recheck | `https://mooncakes.io/api/v0/modules` returned 1485 modules; RFC 8785/JCS keywords still have zero non-self hits |
 
@@ -1587,6 +1588,7 @@ printout.
 | --- | --- |
 | `moon check --deny-warn` | PASS |
 | `moon test --deny-warn` | PASS: 344/344 |
+| Latest toolchain probe | PASS on moon 0.1.20260703 after `moon update`: `moon check --deny-warn` and `moon test --deny-warn` |
 | `moon fmt --check` | PASS |
 | `node tools/check-metrics.mjs` | PASS: 20/20 metric assertions; 13943 total lines = 5876 implementation + 8067 tests; 13 packages; 348 test declarations |
 | `moon publish --dry-run` | PASS validation; server returned dry-run accepted for `starlittle/MoonEvidence` v0.4.0 |

@@ -26,6 +26,9 @@ jobs:
       - name: Show toolchain versions
         run: moon version --all
 
+      - name: Update MoonBit registry
+        run: moon update
+
       # Metric drift guard: asserts that quantified numbers in docs (test
       # count, line count, commit count, package count, moon.mod/CHANGELOG,
       # and CLI_VERSION) match the actual repository state. Prevents
@@ -157,6 +160,9 @@ jobs:
 
       - name: Show toolchain versions
         run: moon version --all
+
+      - name: Update MoonBit registry
+        run: moon update
 
       - name: Run benchmarks (js)
         run: moon bench --target js

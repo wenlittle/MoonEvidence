@@ -21,7 +21,7 @@
 | --- | --- | --- | --- | --- |
 | 源码架构与质量 | 7.5 | 8.0 | **7.0** | 分层与核心管线仍扎实，但 SHA-512 多算法在 verify/merkle 两处断裂、JS API 审计层是空壳、create/verify 布局不对称，"全功能"声称难支撑 |
 | 测试与验证 | 6.5 | 7.5 | **6.5** | 库内核（merkle/ed25519/audit/verify）测试扎实，但 api.mbt 10 个 pub 函数 8 个零测试、最强验证工具（cross-verify/mutation-check/check-metrics）未入 CI、fuzz 仅防 panic |
-| 文档与工程治理 | 4.5 | 6.0 | **6.0** | check-metrics 工具存在但未接入 CI（声称的"自动门禁"是空话）、申报书三格式漏 4/6 创新点且数字漂移、SECURITY.md 安全声称超前于代码 |
+| 文档与工程治理 | 4.5 | 6.0 | **6.0** | check-metrics 工具存在但未接入 CI（声称的"自动门禁"是空话）、申报书三格式漏 4/6 创新点且数字漂移、当时发现 SECURITY.md 安全声称超前于代码（后续已关闭） |
 | 竞争力与展示 | — | — | **5.5** | Trust Workbench 6 视图已建却未进任何材料、Mooncakes 未发布、碰撞检查过期、申报书呈现 MVP 而非 0.4.0 平台 |
 | **综合** | 6.2 | 7.2 | **6.3** | 工程内核优秀，但"系统性半成品 + 材料错配 + 治理形似神不至"叠加，前两轮自评 9.0 偏高 |
 
@@ -55,8 +55,8 @@
 - `api.mbt:500-503` `Some(String(_log_json)) => @audit.AuditLog::new()`——丢弃输入；`:559-563` 同样。audit_verify 恒返回 `chain_valid:true, length:0`。根因：`audit_log.mbt` 无 `from_json`（grep 确认只有 `AuditAction::parse` 与 to_json 方向的 `@json.parse`）。
 - `api.mbt` 10 个 pub 函数（verify_evidence/compute_merkle_tree/create_evidence_pack/generate_proof/verify_proof/audit_append/audit_verify/ed25519_keypair/ed25519_sign/ed25519_verify），wbtest 仅覆盖前 2 个——**8 个零测试**。
 - `.github/workflows` grep `check-metrics|cross-verify|mutation-check|check-fixtures` **零命中**——声称的 CI 防漂移门禁**未接入 CI**。DECISION_LOG "CI auto anti-drift gate via check-metrics.mjs" 与 ci.yml 不符。
-- `申报书.md:24-31` 核心功能确只列 MVP 6 项；`:36` "219 单元 + 22 黑盒"；`:39` "6891 行 / 76 commit"；`:9` 明文手机号 18718241181。
-- `SECURITY.md:18` 声称"point_decode 拒绝低阶点与非规范编码"，但 `ed25519.mbt:321` 无 y>=p 检查、`:344` 仅查 `x=0&&sign==1`——**安全声称超前于代码**。
+- `申报书.md:24-31` 核心功能确只列 MVP 6 项；`:36` "219 单元 + 22 黑盒"；`:39` "6891 行 / 76 commit"；`:9` 曾包含公开个人手机号，后续已改为官方报名表联系方式。
+- 当时的 `SECURITY.md:18` 声称"point_decode 拒绝低阶点与非规范编码"，但对应实现尚未补齐 y>=p 与 cofactor 检查；该问题后续已通过非规范编码拒绝、`8*A` cofactor 检查与安全文档收敛修复。
 - `demo/web/index.html:6` "MoonEvidence · Trust Workbench"——6 视图工作台存在但零材料提及。
 - moon test --target js 254/254 passed（无 SHA-512 端到端用例，bug 被盲区掩盖）。
 **对计划的更新：** 五个 P0 全部确认，新增"声称的 CI 门禁未接入"为元问题级 P1，"SECURITY.md 安全声称超前"为 P1。
@@ -69,7 +69,7 @@
 2. **根因 β：JS API 层是"先搭壳后填肉"的半成品。** api.mbt 一次性暴露 10 个 pub 函数，但只对前 2 个做了 wbtest + smoke。后 8 个是 c171f7f "API expansion" 提交批量加的，未走"先测后发"门禁。audit 因 audit_log 无 from_json 而成空壳。这是第 1 轮根因 B（后加功能绕过核心包门禁）在 API 层的重现。
 3. **根因 γ：治理机制"形似而神不至"——工具建了但门禁未接入。** check-metrics.mjs 建了但 ci.yml 没接；bench 标 continue-on-error:true；fuzz 无断言仅防 panic。DECISION_LOG 写"CI gate"但 CI 没有。第 2 轮根因 A'（机制程序性非自动化）升级为"声明性"——文档说有但 CI 没有，比程序性更糟。
 4. **根因 δ：申报材料停在 0.2/0.3 期，与 0.4.0 实际严重错配。** 申报书.md/tex/html 在 2026-06-10 申报期写定后未随 0.3/0.4 迭代；DEMO_SCRIPT/ROADMAP 同步停摆；check-metrics 盲区不覆盖申报材料。这是第 1 轮根因 C（材料分轨）的延续：0.4.0 后材料与代码未合轨。
-5. **根因 ε：安全声称超前于代码实现。** SECURITY.md 在 round 1/2 加固后写"已具备低阶点/非规范拒绝防护"，但 point_decode 只做了一半；SHA-512 标签同理；audit 无签名静默放行。文档跟着计划写、代码没跟着做完。
+5. **根因 ε：安全声称超前于代码实现（当时发现，后续已关闭）。** 当时 SECURITY.md 在 round 1/2 加固后写"已具备低阶点/非规范拒绝防护"，但 point_decode 只做了一半；SHA-512 标签同理；audit 无签名静默放行。后续已补实现与文档收敛，保留该记录用于解释治理来源。
 **对计划的更新：** 改进计划按根因治理组织——阶段 0 治根因 α+δ（多算法贯通 + 材料合轨），阶段 1 治根因 β（API 层填肉），阶段 2 治根因 γ（门禁真接入），阶段 3 治根因 ε（安全声称对齐），阶段 4 推竞争力。
 
 ### 第 4 轮：完整性与优先级校准
@@ -107,13 +107,13 @@
 
 **【P0-5】Trust Workbench（最新最大展示成果）在所有申报材料中缺失** ｜ `demo/web/index.html:6`（"Trust Workbench" 6 视图）；缺失于 `docs/申报书.{md,tex,html}`、`docs/report/DEVELOPMENT_REPORT.md`、`docs/DEMO_SCRIPT.md`、`README.md` ｜ 最新提交 c171f7f 把 demo 重写为 6 视图工作台（Verify/Create/Prove/Audit/Sign + Tamper Lab），但所有申报材料仍描述旧单页 demo。DEMO_SCRIPT.md:48-56 第 3 分钟仍演旧 demo。最强演示资产未进申报材料。 ｜ DEMO_SCRIPT 第 3 分钟改写为 Trust Workbench 6 视图演示；申报书 + 开发报告补"Trust Workbench 交互式工作台"作为展示亮点；README 补截图 ｜ `demo/web/index.html:6`；git log c171f7f；`DEMO_SCRIPT.md:48-56` ｜ 影响展示（最大短板）
 
-**【P0-6】申报书明文手机号 + SECURITY.md 指向申报书** ｜ `docs/申报书.md:9`、`docs/申报书.tex:35`、`docs/申报书.html:82`、`SECURITY.md:38` ｜ 三份申报书明文写手机号 18718241181，SECURITY.md:38 引导漏洞报告者"通过仓库所有者联系方式（见 docs/申报书.md）私下联系"——公开仓库暴露个人手机号。 ｜ 申报书改用邮箱或脱敏；SECURITY.md 改为指向自带联系方式段落或邮箱 ｜ `申报书.md:9`；`SECURITY.md:38` ｜ 影响合规（隐私）
+**【P0-6】申报书明文手机号 + SECURITY.md 指向申报书** ｜ `docs/申报书.md:9`、`docs/申报书.tex:35`、`docs/申报书.html:82`、`SECURITY.md:38` ｜ 三份公开申报书曾包含个人手机号，SECURITY.md 也曾引导漏洞报告者通过申报书联系方式私下联系。 ｜ 申报书改用官方报名表联系方式说明；SECURITY.md 改为 GitHub Security Advisory ｜ `申报书.md:9`；`SECURITY.md:38` ｜ 影响合规（隐私）
 
 ### P1 高（影响可信度/契约/竞争力）
 
 **【P1-1】声称的 CI 防漂移门禁未实际接入 CI（元问题）** ｜ `.github/workflows/ci.yml`（全文无 check-metrics/cross-verify/mutation-check）；`docs/records/DECISION_LOG.md`（"CI auto anti-drift gate via check-metrics.mjs"） ｜ DECISION_LOG 声称 check-metrics.mjs 是 CI 门禁，但 ci.yml 只跑 gen-fixtures/moon check/moon fmt/moon test/moon build/cli-test.ps1/smoke-api.mjs。cross-verify.mjs/mutation-check.mjs/check-metrics.mjs 全是手动工具。直接证据：DEVELOPMENT_REPORT/ACCEPTANCE_CHECKLIST 漂移到 86 未被发现。第 2 轮 #1 根因修复"未真正落地"。 ｜ ci.yml 加 `node tools/check-metrics.mjs` + `node tools/cross-verify.mjs` + `node tools/mutation-check.mjs` 三步；故意改错一个数字能红 CI ｜ ci.yml 全文；grep workflows 零命中 ｜ 影响工程质量（治理机制形似神不至）
 
-**【P1-2】SECURITY.md 声称"低阶点/非规范编码拒绝"与代码不符** ｜ `SECURITY.md:18`；`src/crypto/ed25519.mbt:321,344` ｜ SECURITY.md 声称 point_decode 拒绝低阶点 + 非规范编码，但 :321 `Fe::from_bytes` 后无 y>=p 检查（非规范 y 静默接受），:344 仅查 `x=0&&sign==1`（不覆盖所有低阶点），无 cofactor 乘法检查。libsodium/ref10 均拒绝这两类。 ｜ point_decode 加 y>=p 拒绝 + cofactor 乘法检查或显式低阶点拒绝；补负向攻击向量测试；SECURITY.md 残留限制段如实标注"低阶点拒绝仅 x=0&&sign=1" ｜ `ed25519.mbt:321,344`；`SECURITY.md:18` ｜ 影响工程质量（安全声称不实）
+**【P1-2】SECURITY.md 声称"低阶点/非规范编码拒绝"与代码不符（已关闭）** ｜ `SECURITY.md`；`src/crypto/ed25519.mbt` ｜ 当时 SECURITY.md 对低阶点/非规范编码的声称超前于代码实现。后续已补 `point_decode` 非规范 y 往返检查、`ed25519_verify` identity 拒绝与 `8*A` cofactor 检查，并补负向攻击向量与 mutation gate；当前 SECURITY.md 已与实现口径对齐。 ｜ 保持 `SECURITY.md`、`docs/ARCHITECTURE.md`、`docs/KNOWLEDGE_BASE.md` 与代码同步 ｜ `ed25519.mbt` cofactor check；`ed25519_wbtest.mbt` 低阶点测试 ｜ 影响工程质量（安全声称需持续对齐）
 
 **【P1-3】CLI_VERSION = "0.3.0" vs moon.mod 0.4.0** ｜ `src/cmd/main/main.mbt:10` ｜ `--version` 输出 0.3.0，与 moon.mod 0.4.0 不符。 ｜ 同步为 0.4.0；CI 加 CLI_VERSION == moon.mod 版本校验 ｜ `main.mbt:10` ｜ 影响工程规范
 
@@ -183,7 +183,7 @@
 | β. JS API 层先搭壳后填肉 | P0-2, P0-3, P1-5, P1-6, P2-1, P2-6 | API 层走"先测后发"：8 pub 函数补 round-trip 测试；audit 实现 from_json；字段名统一；硬编码密钥改 CSPRNG |
 | γ. 治理机制形似神不至（工具建了门禁没接） | P1-1, P2-2, P2-3 | ci.yml 真接 check-metrics/cross-verify/mutation-check；bench 改阻塞或标注非阻塞；fuzz 加不变量断言 |
 | δ. 申报材料停在 0.2/0.3 期 | P0-4, P0-5, P1-7, P1-9, P2-11, P2-12 | 申报书三格式 + DEMO_SCRIPT + ROADMAP 刷新到 0.4.0；check-metrics 覆盖申报材料；Mooncakes 碰撞重跑 |
-| ε. 安全声称超前于代码 | P1-2, P0-1 标签, P1-10 | point_decode 补全或 SECURITY.md 如实标注；audit 无签名 strict 模式；CLI_VERSION 同步 |
+| ε. 安全声称超前于代码（当时发现，后续已关闭） | P1-2, P0-1 标签, P1-10 | point_decode 补全或 SECURITY.md 如实标注；audit 无签名 strict 模式；CLI_VERSION 同步 |
 
 ---
 

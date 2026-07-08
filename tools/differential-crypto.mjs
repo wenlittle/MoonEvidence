@@ -4,7 +4,7 @@
 // compiled JS API artifact with an independent implementation from Node.
 //
 // Usage:
-//   moon build --target js
+//   moon build --target js --release src/api
 //   node tools/differential-crypto.mjs
 //   node tools/differential-crypto.mjs --rounds 1000
 
@@ -80,7 +80,7 @@ const rawPublicKey = (privateKey) => {
 const main = async () => {
   const { rounds } = parseArgs(process.argv.slice(2));
   if (!existsSync(apiPath)) {
-    throw new Error("JS artifact not found; run `moon build --target js` first");
+    throw new Error("JS artifact not found; run `moon build --target js --release src/api` first");
   }
 
   const {

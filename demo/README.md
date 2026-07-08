@@ -26,7 +26,7 @@
 
 ```bash
 # 在仓库根目录
-moon build --target js       # 当前 moon 0.3.0 产出到 _build/js/debug/build/src/api/api.js
+moon build --target js --release src/api
 
 # 启一个静态服务器（任选）
 python -m http.server 8000
@@ -41,15 +41,8 @@ python -m http.server 8000
 ## 产物依赖
 
 两个页面当前引用 `_build/js/release/build/src/api/api.js`（Release 路径）。
-当前 moon 0.3.0 工具链只产 debug 构建，所以启动前需要做一次软链接：
-
-```bash
-mkdir -p _build/js/release/build/src/api
-cp _build/js/debug/build/src/api/api.js _build/js/release/build/src/api/api.js
-```
-
-或者直接在 tamper-lab.html 里把 `import()` 的路径改成 `_build/js/debug/...`。
-Release 路径是面向未来工具链升级（0.4+）预留的位置。
+该路径由 `moon build --target js --release src/api` 直接生成，也是 CI
+中 `tools/smoke-api.mjs` 消费的同一个浏览器适配器产物。
 
 - `verify_evidence(manifest_json, files_hex)`：核心验证入口，返回 `{ ok, report, findings, explain }`
 - `compute_merkle_tree(manifest_json, files_hex)`：返回完整树（含 `levels` / `leaves_meta` / `root.recorded` / `root.actual` / `root.matches`）

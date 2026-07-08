@@ -41,8 +41,8 @@
 ### Added
 
 - **cli-test.sh 完整 1:1 对等移植**：`tools/cli-test.sh` 与 `tools/cli-test.ps1` 用例完全对等——补齐 Part 3（19 个 manifest 错误码矩阵夹具），修正 Part 1 多模式断言（与 PowerShell MustMatch 数组 AND 语义一致），jq 缺失时明确报错退出而非静默跳过。bash 版与 PowerShell 版均覆盖 41 用例（12 命令形状 + 10 篡改矩阵 + 19 manifest 矩阵）。
-- **ARCHITECTURE.md 0.3.1 根因加固说明**：记录 crypto（binary quotient decomposition、point_decode 低阶点拒绝、审计签名覆盖 canonical JSON）与 E3002 错误码契约的根因修复说明。E3002 错误码契约已明确（详见 `DECISION_LOG` 最新条目）。
-- **SECURITY.md 密码学实现更新**：反映 Ed25519 现已具备 binary quotient decomposition、cofactor / 低阶点检查、恒定时间标量乘法、审计签名覆盖 canonical JSON 等防护；更新残留限制说明。
+- **ARCHITECTURE.md 0.3.1 根因加固说明**：记录 crypto（binary quotient decomposition、非规范编码拒绝、低阶公钥拒绝、审计签名覆盖 canonical JSON）与 E3002 错误码契约的根因修复说明。E3002 错误码契约已明确（详见 `DECISION_LOG` 最新条目）。
+- **SECURITY.md 密码学实现更新**：反映 Ed25519 现已具备 binary quotient decomposition、源码级分支收敛、非规范编码拒绝、低阶公钥 cofactor 检查、审计签名覆盖 canonical JSON 等防护；同步保留后端机器码审计的生产化认证边界。
 
 ## [0.3.0] - 2026-07-04
 
@@ -85,8 +85,4 @@ MVP：可信证据包验证核心，三后端全绿，可发布 Mooncakes。
 - **测试体系**：篡改矩阵 fixtures、独立 Node 参考实现交叉验证 golden 数据、property test、benchmark。
 - **双语 README** 与用户指南、证据包规范、架构文档、决策/结果双日志。
 
-[0.4.0]: https://github.com/starlittle/MoonEvidence/releases/tag/v0.4.0
-[0.3.1]: https://github.com/starlittle/MoonEvidence/releases/tag/v0.3.1
-[0.3.0]: https://github.com/starlittle/MoonEvidence/releases/tag/v0.3.0
-[0.2.0]: https://github.com/starlittle/MoonEvidence/releases/tag/v0.2.0
-[0.1.0]: https://github.com/starlittle/MoonEvidence/releases/tag/v0.1.0
+[0.4.0]: https://github.com/wenlittle/MoonEvidence/releases/tag/v0.4.0

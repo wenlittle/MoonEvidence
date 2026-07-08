@@ -1696,6 +1696,43 @@ directly.
 | `node tools/check-metrics.mjs` | PASS: 20/20 metric assertions |
 | `git diff --check` | PASS |
 
+## 2026-07-09 Asia/Shanghai (public delivery polish after reviewer-style check)
+
+### Problem
+
+A cold reviewer pass found three public-delivery risks: browser-demo commands
+documented `moon build --target js` while the pages import the release API
+artifact, CHANGELOG release links pointed at the wrong GitHub owner and no
+remote tag existed, and public security/application material mixed engineering
+assurance with stale privacy and crypto wording.
+
+### Changes
+
+| Area | Result |
+| --- | --- |
+| README / README.zh | Added a 5-minute reviewer path: build CLI, verify valid pack, create a pack, tamper one byte, verify failure, build release API, run smoke |
+| demo docs / smoke docs | Standardized browser-adapter setup on `moon build --target js --release src/api`; removed the old debug-copy workaround |
+| CHANGELOG | Corrected release owner to `wenlittle/MoonEvidence` and kept only the live v0.4.0 release reference |
+| SECURITY / ARCHITECTURE / KNOWLEDGE_BASE | Unified the Ed25519 wording around non-canonical encoding rejection, low-order public-key cofactor check, source-level side-channel review, native timing evidence, and production certification route |
+| Application material | Removed the public phone number from markdown/html/tex/PDF sources; public repo now points to the official registration form contact path |
+| Browser demo | Fixed the Tamper Lab source link to the actual GitHub repository |
+
+### Verification
+
+| Command | Result |
+| --- | --- |
+| `xelatex -interaction=nonstopmode -halt-on-error -output-directory docs docs/申报书.tex` | PASS twice; regenerated one-page `docs/申报书.pdf` |
+| `pdftotext -enc UTF-8 docs/申报书.pdf -` | PASS: no public phone number; contact line points to official registration form |
+| `moon check --deny-warn --target all` | PASS |
+| `moon fmt --check` | PASS |
+| `moon info && git diff --exit-code -- 'src/**/*.mbti'` | PASS |
+| `moon test --deny-warn --target wasm-gc,js` | PASS: 344/344 on wasm-gc and js |
+| `moon build --target js` | PASS |
+| `moon build --target js --release src/api` | PASS |
+| `node tools/smoke-api.mjs` | PASS: 34/34 checks |
+| `node tools/check-metrics.mjs` | PASS: 20/20 metric assertions; current pre-commit count 142 |
+| `node tools/check-package-contents.mjs` | PASS: 228 package files checked |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

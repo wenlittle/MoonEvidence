@@ -11,7 +11,7 @@
 
 ```bash
 # 在仓库根目录构建 JS bundle
-moon build --target js
+moon build --target js --release src/api
 
 # 启一个静态服务器（任选），从仓库根目录启动
 python -m http.server 8000
@@ -24,11 +24,6 @@ python -m http.server 8000
 
 ## 产物依赖
 
-两个页面引用 `_build/js/release/build/src/api/api.js`（Release 路径）。当前 moon 工具链只产 debug 构建，启动前需要做一次软链接：
-
-```bash
-mkdir -p _build/js/release/build/src/api
-cp _build/js/debug/build/src/api/api.js _build/js/release/build/src/api/api.js
-```
-
-或者直接把 `import()` 的路径改成 `_build/js/debug/...`。
+两个页面引用 `_build/js/release/build/src/api/api.js`（Release 路径）。
+该路径由 `moon build --target js --release src/api` 直接生成，并与 CI
+里的 `tools/smoke-api.mjs` 使用同一个产物。

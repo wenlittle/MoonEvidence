@@ -1,6 +1,6 @@
 // Smoke check for the browser adapter, mirroring demo/web/index.html's
 // request building (hex-encoded bytes, optional version chain). Run from
-// the repository root after `moon build --target js`:
+// the repository root after `moon build --target js --release src/api`:
 //
 //   node tools/smoke-api.mjs
 //

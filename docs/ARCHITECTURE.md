@@ -162,10 +162,10 @@ below record the behavioural changes; see `CHANGELOG.md` 0.3.1 and
 ### Crypto hardening (Ed25519)
 
 - `ed25519_verify` now performs binary quotient decomposition for the scalar modulus
-  step (replacing the previous subtractive loop) and `point_decode` rejects
-  low-order points and non-canonical encodings (cofactor / small-subgroup
-  defence). These are internal changes; the three public `crypto` signatures
-  above are unchanged.
+  step (replacing the previous subtractive loop). `point_decode` rejects
+  non-canonical encodings, and verification rejects low-order public keys with
+  an explicit identity check plus `8*A` cofactor check. These are internal
+  changes; the three public `crypto` signatures above are unchanged.
 - Audit-log signatures (`audit.sign_last` / `verify_signatures`) now sign the
   RFC 8785 canonical JSON form of the entry, so the signed byte sequence is
   stable and unambiguous. Again the v2 signatures are unchanged.
@@ -182,4 +182,3 @@ inclusion-proof API (`@merkle.verify_inclusion` already exists in the v1
 freeze) will be surfaced as CLI subcommands; if "remove", the error-code
 table in `docs/spec/EVIDENCE_PACK_SPEC.md` will drop E3002. Either way the
 frozen v2 signatures above are not loosened.
-

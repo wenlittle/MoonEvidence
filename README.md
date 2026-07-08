@@ -10,7 +10,33 @@ The project goal is to provide a reusable MoonBit library and native CLI that ca
 
 ## Positioning
 
-MoonEvidence is not a blockchain application or smart contract framework. It is a chain-agnostic verification core that can be used before blockchain notarization, dataset archival, digital copyright packaging, AI output audit, or research artifact release.
+MoonEvidence is a chain-agnostic verification core for the step before notarization, archival, copyright packaging, AI output audit, or research artifact release: prove that the local evidence pack is complete, deterministic, and untampered before any external system records it.
+
+## 5-Minute Reviewer Path
+
+This path exercises the project value loop end to end: build the CLI, verify a
+known-good pack, create a new pack, tamper with one byte, and confirm the
+diagnostic catches it. Run from the repository root:
+
+```powershell
+moon build --target js
+$cli = "_build/js/debug/build/src/cmd/main/main.js"
+
+node $cli verify examples/valid-pack
+
+Remove-Item -Recurse -Force "$env:TEMP\moon-evidence-review-pack" -ErrorAction SilentlyContinue
+node $cli create examples/valid-pack/files "$env:TEMP\moon-evidence-review-pack"
+node $cli verify "$env:TEMP\moon-evidence-review-pack"
+
+Add-Content "$env:TEMP\moon-evidence-review-pack\files\a.txt" "tamper"
+node $cli explain "$env:TEMP\moon-evidence-review-pack"
+
+moon build --target js --release src/api
+node tools/smoke-api.mjs
+```
+
+The same release JS artifact powers `demo/web/`, so the browser demo verifies
+packs locally before any blockchain notarization or external archival step.
 
 ## Features
 
@@ -91,7 +117,7 @@ CLI, in CI's three-backend matrix, and in the browser.
 - [Architecture](docs/ARCHITECTURE.md)
 - [Evidence Pack Specification](docs/spec/EVIDENCE_PACK_SPEC.md)
 - [Roadmap](docs/ROADMAP.md)
-- Development Report (repo-only, [see GitHub](https://github.com/wenlittle/MoonEvidence/blob/main/docs/report/DEVELOPMENT_REPORT.md))
+- [Development Report](docs/report/DEVELOPMENT_REPORT.md)
 
 ### Engineering & Quality
 - [Project Index](docs/PROJECT_INDEX.md)
@@ -142,7 +168,7 @@ The same pure verification core compiles to a self-contained esm bundle
 can be verified entirely client-side - no upload, no server round-trip:
 
 ```powershell
-moon build --target js
+moon build --target js --release src/api
 
 # serve the repository root with any static server, then open
 #   http://localhost:8765/demo/web/
@@ -237,6 +263,7 @@ experiments.
 moon check
 moon test --target native,wasm-gc,js
 moon build --target js
+moon build --target js --release src/api
 moon build --target native
 powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target js
 powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target native

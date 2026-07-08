@@ -1596,6 +1596,41 @@ printout.
 | `moon publish --dry-run` | PASS validation; server returned dry-run accepted for `starlittle/MoonEvidence` v0.4.0 |
 | Mooncakes API query | PASS: `starlittle/MoonEvidence` v0.4.0, Apache-2.0, GitHub repository `wenlittle/MoonEvidence` |
 
+## 2026-07-08 Asia/Shanghai (OSC2026 guide self-check alignment)
+
+### Source Review
+
+| Source | Result |
+| --- | --- |
+| `https://gitlink.org.cn/MilkyNatas/osc2026-guide` | Acceptance hard gates distilled into: valid MoonBit project, `moon check`, `moon test`, standard CI latest pass, Mooncakes publication, clear license, clean structure, README reproducibility, runnable behavior, and no severe correctness/performance issues |
+| `github.com/wzzc-dev/MoUI` | Reference pattern: explicit baseline job with `moon check`, `moon test`, `moon info`, `git diff --exit-code`, plus platform evidence jobs |
+| `github.com/howtomakeaname/tokenizers-moonbit` | Reference pattern: target-matrix CI with `moon update`, `moon check --deny-warn`, `moon test --deny-warn`, release gates for `moon fmt`, `moon info`, and `moon package` |
+
+### Applied Changes
+
+| File | Result |
+| --- | --- |
+| `.github/workflows/ci.yml` | Added `workflow_dispatch`; upgraded type check to `moon check --deny-warn --target all`; added `moon info` + generated-interface drift gate; expanded portable tests to `wasm,wasm-gc,js` with `--deny-warn`; upgraded native test to `--deny-warn` |
+| `.github/workflows/release.yml` | Added `moon update`, `moon check --deny-warn`, and `moon info` drift gate before `moon package` |
+| `.github/workflows/README.md` | Synced workflow documentation to the stricter acceptance gates |
+| `docs/records/OSC2026_GUIDE_SELF_CHECK.md` | Added a dedicated guide-based self-review and reference-project comparison record |
+| `docs/PROJECT_INDEX.md` / `docs/records/ACCEPTANCE_CHECKLIST.md` | Updated next actions and CI evidence to reflect Mooncakes publication and the stricter CI gates |
+
+### Verification
+
+| Command | Result |
+| --- | --- |
+| `moon check --deny-warn --target all` | PASS |
+| `moon fmt --check` | PASS |
+| `moon info && git diff --exit-code -- 'src/**/*.mbti'` | PASS |
+| `moon test --deny-warn --target wasm,wasm-gc,js` | PASS: 344/344 on wasm, wasm-gc, and js |
+| `node tools/check-metrics.mjs` | PASS: 20/20 metric assertions; 13943 total lines = 5876 implementation + 8067 tests; 13 packages; 348 test declarations |
+| `moon package` | PASS: `_build/publish/starlittle-MoonEvidence-0.4.0.zip` |
+| WSL latest-toolchain native probe | PASS on moon 0.1.20260703 / moonc v0.10.3: `moon update`, `moon check --deny-warn --target all`, and `moon test --deny-warn --target native` |
+| `git diff --check` | PASS |
+
+Remaining external confirmation: GitHub Actions `main` latest run must be checked on the GitHub page after pushing this commit; local `gh` is unavailable in this environment.
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

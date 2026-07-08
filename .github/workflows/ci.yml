@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -60,8 +61,8 @@ jobs:
       - name: Branch coverage stale guard
         run: node tools/check-branch-coverage-stale.mjs
 
-      - name: Type check
-        run: moon check
+      - name: Type check (all targets, deny warnings)
+        run: moon check --deny-warn --target all
 
       # Format gate: the codebase was once normalized by `moon fmt` across all
       # 38 source files (RESULTS_LOG "moon fmt Normalization"). This step makes
@@ -69,8 +70,13 @@ jobs:
       - name: Format check
         run: moon fmt --check
 
-      - name: Run tests (wasm-gc + js)
-        run: moon test --target wasm-gc,js
+      - name: Public interface drift check
+        run: |
+          moon info
+          git diff --exit-code -- 'src/**/*.mbti'
+
+      - name: Run tests (wasm + wasm-gc + js, deny warnings)
+        run: moon test --deny-warn --target wasm,wasm-gc,js
 
       - name: Build native
         run: moon build --target native
@@ -81,8 +87,8 @@ jobs:
       # backend-agnostic; the cmd/main FFI paths stay covered by the
       # black-box suite below. Required step: if a native-only failure
       # surfaces, relax with `continue-on-error: true` and file an issue.
-      - name: Run tests (native)
-        run: moon test --target native
+      - name: Run tests (native, deny warnings)
+        run: moon test --deny-warn --target native
 
       - name: CLI black-box tests (native)
         shell: pwsh

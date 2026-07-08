@@ -30,8 +30,16 @@ jobs:
       - name: Show toolchain versions
         run: moon version --all
 
+      - name: Update MoonBit registry
+        run: moon update
+
       - name: Type check
-        run: moon check
+        run: moon check --deny-warn
+
+      - name: Public interface drift check
+        run: |
+          moon info
+          git diff --exit-code -- 'src/**/*.mbti'
 
       - name: Package module
         run: moon package

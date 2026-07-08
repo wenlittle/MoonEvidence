@@ -40,6 +40,7 @@ Build a reusable MoonBit library and CLI for trusted evidence pack verification:
 | `docs/records/RESULTS_LOG.md` | Timestamped research, verification, and environment results |
 | `docs/records/DECISION_LOG.md` | Stable decisions and why they were made |
 | `docs/records/ACCEPTANCE_CHECKLIST.md` | Acceptance requirements self-check |
+| `docs/records/OSC2026_GUIDE_SELF_CHECK.md` | OSC2026 guide hard-gate self-review and reference-project comparison |
 | `docs/research/MOONCAKES_COLLISION_CHECK.md` | Mooncakes keyword search and collision-risk record |
 | `docs/plans/2026-06-10-competition-master-plan.md` | Competition master plan: innovation points, step-by-step roadmap, and delivery checklist |
 | `docs/plans/2026-07-04-health-check-and-improvement-plan.md` | 2026-07-04 第 1 轮健康体检与改进计划（阶段 0-4 已执行） |
@@ -74,8 +75,8 @@ Use `docs/records/RESULTS_LOG.md` for measured facts and `docs/records/DECISION_
 
 ## Next Actions
 
-1. **Mooncakes 发布**：`moon login` 后发布 0.4.0 到 Mooncakes（碰撞检查已清、package 已构建，仅缺凭证）。
+1. **远端 CI 最终确认**：GitHub Actions `main` 最新 run 需要在页面上显示 green；本地与 WSL 已复现核心 gate，但远端状态以 Actions 页面为准。
 2. **演示视频**：按 `docs/DEMO_SCRIPT.md` 录制 5 分钟比赛展示视频。
-3. **流式哈希**：把流式 SHA-256 接入适配层，将大包内存峰值从 Σ(全部文件) 降到 max(单文件)。
-4. 仓库双推 GitHub + Gitlink，确认 CI 首跑绿，勾掉 `ACCEPTANCE_CHECKLIST.md` 第 2 条。
-5. 持续维护 `RESULTS_LOG.md`，每步交付前重跑并记录命令与结果。
+3. **Gitlink 默认分支确认**：确认 Gitlink 页面默认分支显示的是已同步的 `main`，且 README、LICENSE、源码、CI 文档可见。
+4. **流式哈希生产化增强**：把流式 SHA-256 接入适配层，将大包内存峰值从 Σ(全部文件) 降到 max(单文件)。
+5. 持续维护 `RESULTS_LOG.md` 与 `OSC2026_GUIDE_SELF_CHECK.md`，每次交付前重跑并记录命令与结果。

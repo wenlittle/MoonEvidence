@@ -89,8 +89,21 @@ MoonEvidence should not be framed as a generic Merkle tree package. The defensib
 - Linear version chain tracing.
 - Explainable diagnostics.
 - Library + CLI delivery for MoonBit users.
-- RFC 8785 (JCS) canonical JSON serialization — unique in the ecosystem as of 2026-07-05.
+- RFC 8785 (JCS) canonical JSON serialization — unique in the ecosystem as of 2026-07-08.
 
-## Recheck Before Submission
+## Recheck 2026-07-08 (pre-acceptance version-sync gate)
 
-Rerun this before project application and before final submission because Mooncakes changes quickly. Last recheck: 2026-07-05 (1400 modules).
+As of 2026-07-08 Asia/Shanghai, querying `https://mooncakes.io/api/v0/modules` returned **1485 modules**. MoonEvidence is registered as `starlittle/MoonEvidence` v0.4.0 with Apache-2.0 license and repository `https://github.com/wenlittle/MoonEvidence.git`.
+
+Focused overlap check:
+
+| Keyword | Matches | Functional overlap with MoonEvidence? |
+| --- | --- | --- |
+| `moonevidence` | `starlittle/MoonEvidence` | Self |
+| `rfc 8785` / `rfc8785` / `8785` / `jcs` | None | No competitor |
+| `canonical` | `Luna-Flow/luna-poly`; `starlittle/MoonEvidence` | No - `luna-poly` is polynomial canonical form, not canonical JSON |
+| `merkle` | `zploc/loci`; `starlittle/MoonEvidence` | No - `loci` remains a different-domain runtime substrate |
+
+Result: the release version mismatch is closed (`moon.mod` 0.4.0 == Mooncakes 0.4.0), and the RFC 8785/JCS uniqueness claim remains supported.
+
+Rerun this before project application and before final submission because Mooncakes changes quickly. Last recheck: 2026-07-08 (1485 modules).

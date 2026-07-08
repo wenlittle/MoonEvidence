@@ -15,6 +15,7 @@ pub(all) struct DeduplicateResult {
   bytes_saved : Int64
 }
 pub fn DeduplicateResult::reconstruct(Self) -> Map[String, Bytes]
+pub fn DeduplicateResult::reconstruct_strict(Self) -> Result[Map[String, Bytes], Array[String]]
 pub fn DeduplicateResult::to_json(Self) -> String
 pub fn DeduplicateResult::verify_integrity(Self) -> Bool
 

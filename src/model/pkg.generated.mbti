@@ -9,6 +9,8 @@ import {
 // Values
 pub fn parse_version_chain(String) -> Array[VersionNode] raise ModelError
 
+pub fn validate_entry_path(String, String) -> Unit raise ModelError
+
 // Errors
 pub(all) suberror ModelError {
   ParseFailed(String)

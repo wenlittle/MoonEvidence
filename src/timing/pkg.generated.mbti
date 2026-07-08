@@ -1,12 +1,11 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "starlittle/MoonEvidence/src/cmd/main"
+package "starlittle/MoonEvidence/src/timing"
 
 // Values
 
 // Errors
 
 // Types and methods
-type CreateCollectState
 
 // Type aliases
 

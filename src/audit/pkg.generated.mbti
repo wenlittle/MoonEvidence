@@ -39,6 +39,7 @@ pub struct AuditLog {
   mut last_hash : String?
 }
 pub fn AuditLog::append(Self, String, String, AuditAction, String, manifest_digest? : String) -> Unit
+pub fn AuditLog::from_json(String) -> Self?
 pub fn AuditLog::length(Self) -> Int
 pub fn AuditLog::new() -> Self
 pub fn AuditLog::sign_last(Self, Bytes) -> Unit

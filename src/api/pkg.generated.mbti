@@ -2,9 +2,29 @@
 package "starlittle/MoonEvidence/src/api"
 
 // Values
+pub fn audit_append(String) -> String
+
+pub fn audit_sign(String) -> String
+
+pub fn audit_verify(String) -> String
+
 pub fn compute_merkle_tree(String) -> String
 
+pub fn create_evidence_pack(String) -> String
+
+pub fn digest_compute(String) -> String
+
+pub fn ed25519_keypair(String) -> String
+
+pub fn ed25519_sign(String) -> String
+
+pub fn ed25519_verify(String) -> String
+
+pub fn generate_proof(String) -> String
+
 pub fn verify_evidence(String) -> String
+
+pub fn verify_proof(String) -> String
 
 // Errors
 

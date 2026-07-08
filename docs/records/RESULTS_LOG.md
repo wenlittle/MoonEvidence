@@ -1570,6 +1570,28 @@ printout.
 | `node tools/check-wycheproof-ed25519.mjs` | PASS: 150 vectors (88 valid + 62 invalid) |
 | `git diff --check` | PASS |
 
+## 2026-07-08 Asia/Shanghai (Pre-acceptance CI and release sync)
+
+### Committee Feedback Closure
+
+| Item | Result |
+| --- | --- |
+| Deprecated optional-try syntax | Removed all remaining deprecated optional-try usage from tests; negative-path canonjson tests now use explicit `try ... catch ... noraise` helpers |
+| `moon info` drift | Regenerated and committed `pkg.generated.mbti` updates, including the new `src/timing/pkg.generated.mbti` |
+| Mooncakes version | Published `starlittle/MoonEvidence` v0.4.0; registry now reports `moon.mod` 0.4.0 == Mooncakes 0.4.0 |
+| Registry recheck | `https://mooncakes.io/api/v0/modules` returned 1485 modules; RFC 8785/JCS keywords still have zero non-self hits |
+
+### Verification
+
+| Command | Result |
+| --- | --- |
+| `moon check --deny-warn` | PASS |
+| `moon test --deny-warn` | PASS: 344/344 |
+| `moon fmt --check` | PASS |
+| `node tools/check-metrics.mjs` | PASS: 20/20 metric assertions; 13943 total lines = 5876 implementation + 8067 tests; 13 packages; 348 test declarations |
+| `moon publish --dry-run` | PASS validation; server returned dry-run accepted for `starlittle/MoonEvidence` v0.4.0 |
+| Mooncakes API query | PASS: `starlittle/MoonEvidence` v0.4.0, Apache-2.0, GitHub repository `wenlittle/MoonEvidence` |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

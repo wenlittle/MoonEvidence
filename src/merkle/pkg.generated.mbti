@@ -3,20 +3,21 @@ package "starlittle/MoonEvidence/src/merkle"
 
 import {
   "moonbitlang/core/debug",
+  "starlittle/MoonEvidence/src/digest",
 }
 
 // Values
-pub fn compute_proof(Array[Bytes], Int) -> Array[ProofStep]?
+pub fn compute_proof(Array[Bytes], Int, algorithm? : @digest.HashAlgorithm) -> Array[ProofStep]?
 
-pub fn compute_root(Array[Bytes]) -> Bytes?
+pub fn compute_root(Array[Bytes], algorithm? : @digest.HashAlgorithm) -> Bytes?
 
-pub fn compute_tree(Array[Bytes]) -> MerkleTree?
+pub fn compute_tree(Array[Bytes], algorithm? : @digest.HashAlgorithm) -> MerkleTree?
 
-pub fn leaf_hash(Bytes) -> Bytes
+pub fn leaf_hash(Bytes, algorithm? : @digest.HashAlgorithm) -> Bytes
 
-pub fn node_hash(Bytes, Bytes) -> Bytes
+pub fn node_hash(Bytes, Bytes, algorithm? : @digest.HashAlgorithm) -> Bytes
 
-pub fn verify_inclusion(Bytes, Array[ProofStep], Bytes) -> Bool
+pub fn verify_inclusion(Bytes, Array[ProofStep], Bytes, algorithm? : @digest.HashAlgorithm) -> Bool
 
 // Errors
 

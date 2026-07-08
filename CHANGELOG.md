@@ -8,6 +8,7 @@
 
 ### Added
 
+- **Mooncakes 发布同步**：`starlittle/MoonEvidence` v0.4.0 已发布到 Mooncakes，仓库版本、CLI_VERSION、CHANGELOG 与注册表可查版本保持一致。
 - **Merkle 完整树物化**：`src/merkle` 新增 `compute_tree(leaves)`（→ `MerkleTree`）、`tree.root()`、`tree.level(i)`、`tree.height()`、`tree.leaf_count()`、`tree.leaf_path(index)` API。树高度 = 内部层数；奇数叶节点被无损提升到上一层（字节相等的复制，不重新哈希）。
 - **Merkle 路径节点**：`PathStep { level, node_index }` 描述从叶到根的完整爬升路径，含边界检查与索引校验。
 - **`compute_merkle_tree` 浏览器适配**：JS 字符串接口新增 `compute_merkle_tree(request)`，输出 `{ok, tree:{leaf_count, height, levels, root:{recorded, actual, matches}, leaves_meta, example_path}, error?}`，便于可视化 audit 视图直接消费。

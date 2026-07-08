@@ -102,6 +102,12 @@ CLI, in CI's three-backend matrix, and in the browser.
 
 ## Quick Start (CLI)
 
+Mooncakes registry version: `starlittle/MoonEvidence` v0.4.0.
+
+```powershell
+moon add starlittle/MoonEvidence
+```
+
 ```powershell
 # build the CLI (js artifact, runs via node; native works wherever a C compiler exists)
 moon build --target js
@@ -242,6 +248,6 @@ moon bench --target js
 
 As of 2026-07-07 Asia/Shanghai, the local native/wasm-gc/js test baseline is
 green; native was verified on Windows with MSVC 19.44 and Windows SDK
-10.0.26100.0. Codebase is 13925
-effective MoonBit lines (implementation 5876 + tests 8049); the implementation
+10.0.26100.0. Codebase is 13943
+effective MoonBit lines (implementation 5876 + tests 8067); the implementation
 size remains within the 4-10k competition range.

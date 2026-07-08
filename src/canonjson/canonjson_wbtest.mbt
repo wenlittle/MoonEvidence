@@ -8,6 +8,24 @@ fn must_canonicalize(input : String) -> String raise {
   }
 }
 
+///|
+fn canonicalize_error(input : String) -> CanonError raise {
+  try canonicalize(input) catch {
+    error => error
+  } noraise {
+    _ => fail("expected CanonError, canonicalization succeeded")
+  }
+}
+
+///|
+fn format_number_error(number : Double, repr : String?) -> CanonError raise {
+  try format_number(number, repr) catch {
+    error => error
+  } noraise {
+    _ => fail("expected CanonError, number formatting succeeded")
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Structure
 // ---------------------------------------------------------------------------
@@ -32,8 +50,8 @@ test "canonicalize invalid json returns none" {
 
 ///|
 test "canonicalize invalid json raises parse failed" {
-  let result = try? canonicalize("{")
-  assert_true(result is Err(ParseFailed(_)))
+  let error = canonicalize_error("{")
+  assert_true(error is ParseFailed(_))
 }
 
 ///|
@@ -190,26 +208,26 @@ test "numbers reject overflow to infinity" {
   // Values beyond IEEE 754 double range resolve to Infinity, which JCS
   // must reject (RFC 8785 section 3.2.2.3 note). The parser keeps the
   // source text for both the exponent and long-literal overflow paths.
-  let exponent_overflow = try? canonicalize("[1e999]")
-  assert_true(exponent_overflow is Err(UnsupportedNumber("1e999")))
-  let digits_overflow = try? canonicalize("[-1e309]")
-  assert_true(digits_overflow is Err(UnsupportedNumber("-1e309")))
+  let exponent_overflow = canonicalize_error("[1e999]")
+  assert_true(exponent_overflow is UnsupportedNumber("1e999"))
+  let digits_overflow = canonicalize_error("[-1e309]")
+  assert_true(digits_overflow is UnsupportedNumber("-1e309"))
 }
 
 ///|
 test "format_number rejects nan and infinity bit patterns" {
   // JSON cannot spell NaN/Infinity, but the formatter is also the boundary
   // for report rendering; pin the RFC-mandated error on the raw values.
-  let nan = try? format_number(
+  let nan = format_number_error(
     0x7FFFFFFFFFFFFFFFUL.reinterpret_as_double(),
     None,
   )
-  assert_true(nan is Err(UnsupportedNumber("NaN")))
-  let infinity = try? format_number(
+  assert_true(nan is UnsupportedNumber("NaN"))
+  let infinity = format_number_error(
     0x7FF0000000000000UL.reinterpret_as_double(),
     None,
   )
-  assert_true(infinity is Err(UnsupportedNumber("Infinity")))
+  assert_true(infinity is UnsupportedNumber("Infinity"))
 }
 
 ///|

@@ -2,6 +2,16 @@
 
 本文件记录 MoonEvidence 的版本演进。版本号遵循语义化版本（SemVer）。
 
+## [0.4.1] - 2026-07-09
+
+发布面收口补丁：把当前仓库的包卫生规则、浏览器复现命令和公开 API 文档同步到 Mooncakes 可安装版本。
+
+### Changed
+
+- **Mooncakes 包卫生同步**：发布 `starlittle/MoonEvidence` v0.4.1，使 Mooncakes 安装包与当前仓库的 `moon.mod` exclude 规则、许可证、README 和源码交付面一致。
+- **浏览器 demo 复现命令统一**：`docs/GUIDE.md` 明确浏览器端需要 `moon build --target js --release src/api`，与 demo 页面和 smoke 脚本消费的 release API 产物一致。
+- **公开 API 文档补齐**：`docs/ARCHITECTURE.md` 与 `docs/KNOWLEDGE_BASE.md` 同步列出 `src/api` 的 12 个 ESM 导出，包括 `digest_compute`。
+
 ## [0.4.0] - 2026-07-04
 
 可视化公开 + 增量验证契约对齐 + CI 防漂移门禁：把 Merkle 树从内部数据结构暴露为可观察、可验证的运行时对象；修复增量验证路径跳过 E2004 的安全缺口；建立自动化数字对齐门禁。
@@ -85,4 +95,5 @@ MVP：可信证据包验证核心，三后端全绿，可发布 Mooncakes。
 - **测试体系**：篡改矩阵 fixtures、独立 Node 参考实现交叉验证 golden 数据、property test、benchmark。
 - **双语 README** 与用户指南、证据包规范、架构文档、决策/结果双日志。
 
+[0.4.1]: https://github.com/wenlittle/MoonEvidence/releases/tag/v0.4.1
 [0.4.0]: https://github.com/wenlittle/MoonEvidence/releases/tag/v0.4.0

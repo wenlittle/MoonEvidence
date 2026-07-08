@@ -60,7 +60,7 @@ Remove-Item -Recurse -Force $env:TEMP/live-demo
 ## 第 4 分钟 · 质量底座（一屏讲完）
 
 ```powershell
-moon test --target wasm-gc,js    # 333/333 双后端
+moon test --target wasm-gc,js    # 344/344 双后端
 powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target js   # 54/54 黑盒
 bash ./tools/cli-test.sh js      # 54/54 bash 对等黑盒
 ```

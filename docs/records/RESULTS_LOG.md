@@ -1391,6 +1391,7 @@ explicit format review note so the branch-coverage stale gate remains honest.
 | `powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target js` | PASS: 53/53 |
 | `bash ./tools/cli-test.sh js` | PASS: 53/53 |
 | `node tools/smoke-api.mjs` | PASS: 34/34 |
+
 | `node tools/fuzz-api-malformed.mjs --rounds 64` | PASS: 279 cases across 12 exports |
 | `node tools/property-api-semantic.mjs --rounds 16` | PASS: 48 closed-loop checks |
 | `node tools/differential-crypto.mjs --rounds 64` | PASS: 64/64 Ed25519 vectors |
@@ -1732,6 +1733,30 @@ assurance with stale privacy and crypto wording.
 | `node tools/smoke-api.mjs` | PASS: 34/34 checks |
 | `node tools/check-metrics.mjs` | PASS: 20/20 metric assertions; current pre-commit count 142 |
 | `node tools/check-package-contents.mjs` | PASS: 228 package files checked |
+
+## 2026-07-09 Asia/Shanghai (subagent public-delivery recheck and v0.4.1 sync)
+
+| Item | Result |
+| --- | --- |
+| Independent review | Subagent found 3 public-delivery risks: Mooncakes v0.4.0 was older than the current package-hygiene rules, `docs/GUIDE.md` missed the release API build command for browser demo reproduction, and API docs listed 11/12 browser ESM exports |
+| Fixes | Bumped `moon.mod`/CLI/CHANGELOG to 0.4.1; updated README registry version; documented all 12 `src/api` exports including `digest_compute`; aligned `docs/GUIDE.md` with `moon build --target js --release src/api`; refreshed acceptance/self-check package references |
+| Mooncakes | Published `starlittle/MoonEvidence` v0.4.1; API query returned version 0.4.1, Apache-2.0, repository `https://github.com/wenlittle/MoonEvidence.git` |
+| GitHub/GitLink pre-push state | Local HEAD before this fix was `c8ab219991d572385d154ac63f909a3a14d5b2b8`; both GitHub and GitLink `main`/`codex/test-hardening-phase2` plus `v0.4.0^{}` were confirmed synced there; GitHub CI run `28959209902` was success |
+
+| Verification | Result |
+| --- | --- |
+| `moon check --deny-warn --target all` | PASS |
+| `moon fmt --check` | PASS |
+| `moon info && git diff --exit-code -- src/**/*.mbti` | PASS |
+| `moon test --deny-warn --target wasm,wasm-gc,js` | PASS: 344/344 on wasm, wasm-gc, and js |
+| `moon build --target js --release src/api` | PASS |
+| `node tools/smoke-api.mjs` | PASS: 34/34 |
+| `node tools/check-metrics.mjs` | PASS: 20/20; `moon.mod` 0.4.1 == CHANGELOG 0.4.1 == CLI_VERSION 0.4.1 |
+| `node tools/check-package-contents.mjs` | PASS: 228 files checked |
+| `moon package` | PASS: `_build/publish/starlittle-MoonEvidence-0.4.1.zip` |
+| `moon publish --dry-run` | Server accepted dry-run for `starlittle/MoonEvidence` v0.4.1 (moon CLI exits non-zero after printing dry-run success) |
+| `moon publish` | PASS: server status 200 OK |
+| `git diff --check` | PASS |
 
 ## Logging Rule
 

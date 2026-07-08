@@ -123,7 +123,18 @@ entry.
 @crypto.ed25519_verify(pk : Bytes, message : Bytes, sig : Bytes) -> Bool
 
 // api — browser ESM adapter; the only cross-boundary type is String
+@api.digest_compute(request_json : String) -> String
 @api.verify_evidence(request_json : String) -> String
+@api.compute_merkle_tree(request_json : String) -> String
+@api.create_evidence_pack(request_json : String) -> String
+@api.generate_proof(request_json : String) -> String
+@api.verify_proof(request_json : String) -> String
+@api.audit_append(request_json : String) -> String
+@api.audit_verify(request_json : String) -> String
+@api.audit_sign(request_json : String) -> String
+@api.ed25519_keypair(request_json : String) -> String
+@api.ed25519_sign(request_json : String) -> String
+@api.ed25519_verify(request_json : String) -> String
 ```
 
 Notes on the v2 extensions:
@@ -143,9 +154,11 @@ Notes on the v2 extensions:
   `verify_signatures` checks every signed entry against the public key.
 - `crypto` is implemented from the field up (`field25519` -> `point25519` ->
   `ed25519`); the three functions above are the only public surface.
-- `api.verify_evidence` takes a JSON request string (manifest + file bytes +
-  optional version chain) and returns a JSON report string, so any JS host
-  integrates with zero MoonBit types crossing the boundary.
+- Every `api` export takes a JSON request string and returns a JSON response
+  string, so any JS host integrates with zero MoonBit types crossing the
+  boundary. `verify_evidence` remains the main Evidence Pack verifier; the
+  other exports expose digest, Merkle, creation, proof, audit, and Ed25519
+  workflows to the browser demo and smoke tests.
 
 The v1 signatures above remain valid; `verify_manifest` gained an optional
 labeled parameter `~expected_manifest_digest?` (manifest-digest assertion,

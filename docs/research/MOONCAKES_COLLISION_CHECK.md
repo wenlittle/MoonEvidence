@@ -106,4 +106,15 @@ Focused overlap check:
 
 Result: the release version mismatch is closed (`moon.mod` 0.4.0 == Mooncakes 0.4.0), and the RFC 8785/JCS uniqueness claim remains supported.
 
+## Recheck 2026-07-09 (package-hygiene sync)
+
+As of 2026-07-09 Asia/Shanghai, querying `https://mooncakes.io/api/v0/modules`
+returned **1497 modules**. MoonEvidence is registered as
+`starlittle/MoonEvidence` v0.4.1 with Apache-2.0 license and repository
+`https://github.com/wenlittle/MoonEvidence.git`.
+
+Result: the installable Mooncakes package now matches the current repository
+package hygiene rules and reviewer-facing documentation. The version-sync gate
+is `moon.mod` 0.4.1 == Mooncakes 0.4.1.
+
 Rerun this before project application and before final submission because Mooncakes changes quickly. Last recheck: 2026-07-08 (1485 modules).

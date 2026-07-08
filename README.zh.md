@@ -39,7 +39,7 @@ node tools/smoke-api.mjs
 
 ## 30 秒上手
 
-Mooncakes 注册表版本：`starlittle/MoonEvidence` v0.4.0。
+Mooncakes 注册表版本：`starlittle/MoonEvidence` v0.4.1。
 
 ```powershell
 moon add starlittle/MoonEvidence

@@ -128,7 +128,7 @@ CLI, in CI's three-backend matrix, and in the browser.
 
 ## Quick Start (CLI)
 
-Mooncakes registry version: `starlittle/MoonEvidence` v0.4.0.
+Mooncakes registry version: `starlittle/MoonEvidence` v0.4.1.
 
 ```powershell
 moon add starlittle/MoonEvidence

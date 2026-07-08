@@ -1,10 +1,11 @@
 # MoonEvidence 用户指南
 
-本指南用三个真实场景走通 MoonEvidence 的核心工作流。所有命令都可以在本仓库根目录直接复制运行（前置条件：`moon build --target js`，或在有 C 编译器的机器上用 native 产物）。
+本指南用三个真实场景走通 MoonEvidence 的核心工作流。所有命令都可以在本仓库根目录直接复制运行（CLI 前置条件：`moon build --target js`；浏览器 demo 前置条件：`moon build --target js --release src/api`；有 C 编译器的机器也可用 native 产物）。
 
 ```powershell
 # 本指南统一使用 js 产物 + node；native 用户把命令换成可执行文件即可
 moon build --target js
+moon build --target js --release src/api
 $cli = "_build/js/debug/build/src/cmd/main/main.js"
 ```
 

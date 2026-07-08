@@ -47,6 +47,7 @@ Build a reusable MoonBit library and CLI for trusted evidence pack verification:
 | `docs/plans/2026-07-04-health-check-round2-and-improvement-plan.md` | 2026-07-04 第 2 轮健康体检与改进计划（5 轮扫描，仅计划不改代码） |
 | `tools/env-check.ps1` | Read-only local environment check script |
 | `tools/check-branch-coverage-stale.mjs` | Branch-coverage drift guard: audited source changes must review `docs/BRANCH_COVERAGE.md` |
+| `tools/check-package-contents.mjs` | Mooncakes package hygiene guard: repository-only contest/report/local-agent files must not ship |
 | `tools/check-wycheproof-ed25519.mjs` | Wycheproof Ed25519 vector inventory guard |
 | `tools/fuzz-api-malformed.mjs` | Deterministic malformed-request fuzz guard for all 12 public JS string adapters |
 | `tools/property-api-semantic.mjs` | Deterministic semantic property guard for valid public JS API closed loops and tamper rejection |

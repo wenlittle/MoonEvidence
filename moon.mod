@@ -26,5 +26,18 @@ import {
 }
 
 options(
-  exclude: [ "docs/plans", "docs/research", "docs/report", "docs/records" ],
+  exclude: [
+    "docs/application",
+    "docs/plans",
+    "docs/records",
+    "docs/report",
+    "docs/research",
+    "docs/申报书.html",
+    "docs/申报书.log",
+    "docs/申报书.md",
+    "docs/申报书.pdf",
+    "docs/申报书.tex",
+    "report",
+    "比赛要求.txt",
+  ],
 )

@@ -26,6 +26,7 @@ GitHub Actions `main` run turning green on the hosting page.
 | Public interface drift | Pass | `moon info && git diff --exit-code -- '**/pkg.generated.mbti'` passed locally |
 | Formatting | Pass | `moon fmt --check` passed locally |
 | Packaging | Pass | `moon package` produced `_build/publish/starlittle-MoonEvidence-0.4.0.zip` |
+| Package hygiene | Pass | `tools/check-package-contents.mjs` keeps contest application PDFs, legacy course reports, and local agent files out of the Mooncakes package |
 | Mooncakes publication | Pass | `starlittle/MoonEvidence` v0.4.0 is published; version matches `moon.mod` |
 | License | Pass | Root `LICENSE` is Apache-2.0 |
 | README and examples | Pass | `README.md`, `README.zh.md`, `docs/GUIDE.md`, `examples/`, and `demo/web/` describe runnable CLI/API/browser flows |
@@ -55,6 +56,9 @@ workflows.
 - Upgraded native unit tests in CI to `moon test --deny-warn --target native`.
 - Added `moon update`, `moon check --deny-warn`, and `moon info` drift checking
   to the release workflow before `moon package`.
+- Added `tools/check-package-contents.mjs` and tightened `moon.mod` excludes so
+  the public Mooncakes package ships the reusable library surface instead of
+  repository-only application/report artifacts.
 
 ## Remaining Checks Before Final Submission
 
@@ -71,5 +75,6 @@ moon info
 git diff --exit-code -- '**/pkg.generated.mbti'
 moon test --deny-warn --target wasm,wasm-gc,js
 moon package
+node tools/check-package-contents.mjs
 node tools/check-metrics.mjs
 ```

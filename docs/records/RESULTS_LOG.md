@@ -1631,6 +1631,37 @@ printout.
 
 Remaining external confirmation: GitHub Actions `main` latest run must be checked on the GitHub page after pushing this commit; local `gh` is unavailable in this environment.
 
+## 2026-07-08 Asia/Shanghai (Mooncakes package hygiene gate)
+
+### Problem
+
+`moon package --list` showed repository-only materials in the published package
+surface, including root `report/` course artifacts, generated report
+screenshots, application PDFs, and the contest requirements text. These files
+are useful in the repository, but not in a reusable MoonBit library package.
+
+### Changes
+
+| File | Result |
+| --- | --- |
+| `moon.mod` | Expanded `options.exclude` to remove `docs/application`, `docs/申报书.*`, root `report/`, and `比赛要求.txt` from the Mooncakes package |
+| `tools/check-package-contents.mjs` | Added a package content guard that runs `moon package --list`, rejects repository-only prefixes, and asserts required library files remain present |
+| `.github/workflows/ci.yml` / `release.yml` | Wired the package content guard into CI and release gates |
+| `.github/workflows/README.md` / `docs/records/OSC2026_GUIDE_SELF_CHECK.md` / `docs/PROJECT_INDEX.md` | Documented the package hygiene gate and final-submission checklist update |
+
+### Verification
+
+| Command | Result |
+| --- | --- |
+| `node tools/check-package-contents.mjs` | PASS: 228 package files checked |
+| `moon package --list` | PASS: package surface now excludes application PDFs, root report artifacts, and contest requirements text |
+| `moon check --deny-warn --target all` | PASS |
+| `moon fmt --check` | PASS |
+| `moon info && git diff --exit-code -- 'src/**/*.mbti'` | PASS |
+| `moon test --deny-warn --target wasm,wasm-gc,js` | PASS: 344/344 on wasm, wasm-gc, and js |
+| `node tools/check-metrics.mjs` | PASS: 20/20 metric assertions |
+| `git diff --check` | PASS |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

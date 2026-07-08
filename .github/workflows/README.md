@@ -17,38 +17,41 @@ manually with `workflow_dispatch`. Two jobs:
    means a generator/fixture mismatch and fails CI.
 6. **Cross-verify / Wycheproof guards** - Node.js independent verification and
    Ed25519 vector inventory checks.
-7. `moon check --deny-warn --target all` - type check every backend and fail
+7. **Package content guard** - `node tools/check-package-contents.mjs` confirms
+   Mooncakes packages contain the reusable library/docs/examples surface, not
+   contest application PDFs, legacy course reports, or local agent files.
+8. `moon check --deny-warn --target all` - type check every backend and fail
    on warnings.
-8. **`moon fmt --check`** - format gate. The codebase was once normalized by
+9. **`moon fmt --check`** - format gate. The codebase was once normalized by
    `moon fmt` across all 38 source files (RESULTS_LOG "moon fmt
    Normalization"); this step makes any future fmt drift fail CI instead of
    silently accumulating. Run `moon fmt` locally to fix.
-9. **`moon info` + `git diff --exit-code -- 'src/**/*.mbti'`** - public
+10. **`moon info` + `git diff --exit-code -- 'src/**/*.mbti'`** - public
    interface drift gate. Generated `pkg.generated.mbti` files must be checked
    in and stable.
-10. `moon test --deny-warn --target wasm,wasm-gc,js` - unit tests on all
+11. `moon test --deny-warn --target wasm,wasm-gc,js` - unit tests on all
     portable backends.
-11. `moon build --target native` - native build (ubuntu runners ship gcc, so
+12. `moon build --target native` - native build (ubuntu runners ship gcc, so
    linking succeeds where the local Windows machine cannot).
-12. **`moon test --deny-warn --target native`** - native unit tests now run on
+13. **`moon test --deny-warn --target native`** - native unit tests now run on
    ubuntu CI.
    Unit tests live in the pure packages (canonjson/digest/merkle/model/
    diag/verify) and are backend-agnostic; the `cmd/main` FFI paths stay
    covered by the black-box suite below. If a native-only failure surfaces,
    relax with `continue-on-error: true` and file an issue.
-13. CLI black-box tests (native) - `tools/cli-test.ps1 -Target native`.
-14. CLI black-box tests (native, bash parity) - `tools/cli-test.sh native`.
-15. `moon build --target wasm-gc` / `moon build --target js`, plus
+14. CLI black-box tests (native) - `tools/cli-test.ps1 -Target native`.
+15. CLI black-box tests (native, bash parity) - `tools/cli-test.sh native`.
+16. `moon build --target wasm-gc` / `moon build --target js`, plus
    `moon build --target js --release src/api` for the browser-adapter artifact
    consumed by smoke and differential tools.
-16. CLI black-box tests (js) - `tools/cli-test.ps1 -Target js`.
-17. CLI black-box tests (js, bash parity) - `tools/cli-test.sh js`.
-18. Browser adapter smoke - `node tools/smoke-api.mjs` over the js artifact.
-19. Malformed API request fuzz - `node tools/fuzz-api-malformed.mjs --rounds 64`.
-20. API semantic property checks - `node tools/property-api-semantic.mjs --rounds 16`.
-21. Differential crypto - `node tools/differential-crypto.mjs --rounds 64`.
-22. Differential digest - `node tools/differential-digest.mjs --rounds 64`.
-23. Mutation testing - `node tools/mutation-check.mjs`.
+17. CLI black-box tests (js) - `tools/cli-test.ps1 -Target js`.
+18. CLI black-box tests (js, bash parity) - `tools/cli-test.sh js`.
+19. Browser adapter smoke - `node tools/smoke-api.mjs` over the js artifact.
+20. Malformed API request fuzz - `node tools/fuzz-api-malformed.mjs --rounds 64`.
+21. API semantic property checks - `node tools/property-api-semantic.mjs --rounds 16`.
+22. Differential crypto - `node tools/differential-crypto.mjs --rounds 64`.
+23. Differential digest - `node tools/differential-digest.mjs --rounds 64`.
+24. Mutation testing - `node tools/mutation-check.mjs`.
 
 All commands in the workflow must pass locally before being added here, so a
 red main branch always signals a real regression instead of CI drift.
@@ -80,10 +83,12 @@ Triggered by pushing a version tag matching `v*` (e.g. `v0.3.0`). On tag:
    warnings.
 4. `moon info` + `git diff --exit-code -- 'src/**/*.mbti'` - ensure the
    generated public interface files are committed and stable.
-5. `moon package` - produce the publish zip under `_build/publish/`
+5. `node tools/check-package-contents.mjs` - ensure repository-only materials
+   are excluded from the Mooncakes package.
+6. `moon package` - produce the publish zip under `_build/publish/`
    (`<owner>-<Module>-<version>.zip`, e.g. `starlittle-MoonEvidence-0.3.0.zip`).
-6. Compute the SHA256 of the zip and write it alongside (`.sha256` sidecar).
-7. Create a GitHub Release (via `gh release create`) attaching both the zip
+7. Compute the SHA256 of the zip and write it alongside (`.sha256` sidecar).
+8. Create a GitHub Release (via `gh release create`) attaching both the zip
    and the `.sha256` digest, with auto-generated release notes.
 
 The SHA256 sidecar lets downstream consumers verify the published package was

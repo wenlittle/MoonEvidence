@@ -61,6 +61,11 @@ jobs:
       - name: Branch coverage stale guard
         run: node tools/check-branch-coverage-stale.mjs
 
+      # Mooncakes package hygiene: repository-only contest materials, legacy
+      # reports, and local agent files must not ship in the reusable package.
+      - name: Package content guard
+        run: node tools/check-package-contents.mjs
+
       - name: Type check (all targets, deny warnings)
         run: moon check --deny-warn --target all
 

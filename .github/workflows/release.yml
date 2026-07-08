@@ -41,6 +41,9 @@ jobs:
           moon info
           git diff --exit-code -- 'src/**/*.mbti'
 
+      - name: Package content guard
+        run: node tools/check-package-contents.mjs
+
       - name: Package module
         run: moon package
 

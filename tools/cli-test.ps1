@@ -60,6 +60,14 @@ $artifact = Find-CliArtifact -BuildTarget $Target
 $node = if ($Target -eq "js") { Find-Node } else { $null }
 Write-Host "artifact: $artifact"
 
+function Get-TempRoot {
+  if ($env:TEMP) { return $env:TEMP }
+  if ($env:TMPDIR) { return $env:TMPDIR }
+  return [System.IO.Path]::GetTempPath()
+}
+
+$tempRoot = Get-TempRoot
+
 function Invoke-Cli {
   param([string[]]$CliArgs)
 
@@ -254,7 +262,7 @@ foreach ($case in $manifestMatrix) {
 # tests exercise the create→verify closed loop with flat, nested, and
 # empty directory layouts, plus argument validation.
 
-$createTmp = Join-Path $env:TEMP "moon-evidence-cli-test-creation"
+$createTmp = Join-Path $tempRoot "moon-evidence-cli-test-creation"
 if (Test-Path $createTmp) { Remove-Item $createTmp -Recurse -Force }
 New-Item -ItemType Directory -Path $createTmp -Force | Out-Null
 
@@ -447,7 +455,7 @@ Remove-Item $createTmp -Recurse -Force -ErrorAction SilentlyContinue
 # The Merkle root is always recomputed, so security is identical to full
 # verification.
 
-$incCache = Join-Path $env:TEMP "moon-evidence-cli-test-incremental"
+$incCache = Join-Path $tempRoot "moon-evidence-cli-test-incremental"
 if (Test-Path $incCache) { Remove-Item $incCache -Recurse -Force }
 New-Item -ItemType Directory -Path $incCache -Force | Out-Null
 

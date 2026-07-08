@@ -1,6 +1,6 @@
 # Structure Tree
 
-Current preparation tree as of 2026-07-04 Asia/Shanghai.
+Current preparation tree as of 2026-07-08 Asia/Shanghai.
 
 ```text
 moon-evidence/
@@ -193,6 +193,7 @@ moon-evidence/
     mutation-check.mjs         # 变异验证（故意破坏实现确认测试会红）
     check-fixtures.mjs         # fixtures 防腐化校验
     check-metrics.mjs          # CI 数字对齐门禁（提交/行/测试/包/版本一致性断言）
+    check-package-contents.mjs # Mooncakes 包内容卫生门禁
 ```
 
 ## Package Summary
@@ -207,3 +208,11 @@ moon-evidence/
 ## Tracking Rule
 
 Update this file when a top-level directory, package boundary, or reusable tool changes.
+
+## Repository Surface Rule
+
+Root-level local agent folders (`.cursor/`, `.workbuddy/`) and legacy generated
+course-report outputs (`report/`) are intentionally excluded from the public
+repository surface. The authoritative project report is
+`docs/report/DEVELOPMENT_REPORT.md`; contest application materials stay under
+`docs/`.

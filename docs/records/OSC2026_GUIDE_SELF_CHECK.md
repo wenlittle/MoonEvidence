@@ -31,6 +31,7 @@ GitHub Actions `main` run turning green on the hosting page.
 | License | Pass | Root `LICENSE` is Apache-2.0 |
 | README and examples | Pass | `README.md`, `README.zh.md`, `docs/GUIDE.md`, `examples/`, and `demo/web/` describe runnable CLI/API/browser flows |
 | Repository CI | Pass locally, remote pending page check | CI now includes `moon update`, `moon check --deny-warn --target all`, `moon fmt --check`, `moon info` drift gate, `moon test --deny-warn` on portable/native targets, builds, CLI black-box tests, fuzz/property/differential/mutation gates |
+| Repository surface | Pass | Public tree keeps source, reusable docs, examples, tests, and CI; local agent folders and legacy root course-report artifacts are ignored/removed |
 
 ## Reference Project Takeaways
 
@@ -59,6 +60,8 @@ workflows.
 - Added `tools/check-package-contents.mjs` and tightened `moon.mod` excludes so
   the public Mooncakes package ships the reusable library surface instead of
   repository-only application/report artifacts.
+- Removed tracked local-agent folders and legacy root report outputs from the
+  public repository surface; `.gitignore` now keeps them local if regenerated.
 
 ## Remaining Checks Before Final Submission
 

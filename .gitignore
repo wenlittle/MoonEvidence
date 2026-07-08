@@ -8,12 +8,15 @@ _build/
 *.log
 *.tmp
 *.bak
+report/
 
 # OS/editor
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
+.cursor/
+.workbuddy/
 
 # Local generated evidence packs
 examples/generated/

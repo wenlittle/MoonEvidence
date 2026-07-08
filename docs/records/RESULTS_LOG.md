@@ -1662,6 +1662,40 @@ are useful in the repository, but not in a reusable MoonBit library package.
 | `node tools/check-metrics.mjs` | PASS: 20/20 metric assertions |
 | `git diff --check` | PASS |
 
+## 2026-07-08 Asia/Shanghai (repository surface cleanup)
+
+### Problem
+
+The repository default branch still exposed local-agent configuration folders
+and legacy generated course-report outputs at the root. They were already kept
+out of the Mooncakes package by the package hygiene gate, but they still made
+the public source tree less focused for reviewers who browse the repository
+directly.
+
+### Changes
+
+| File / path | Result |
+| --- | --- |
+| `.cursor/` | Removed from tracked files; local Cursor rules/skills are not part of the reusable MoonBit library |
+| `.workbuddy/` | Removed from tracked files; local memory notes are not part of the public project surface |
+| `report/` | Removed from tracked files; authoritative report remains `docs/report/DEVELOPMENT_REPORT.md` and contest application material remains under `docs/` |
+| `.gitignore` | Added `.cursor/`, `.workbuddy/`, and `report/` so regenerated local artifacts stay local |
+| `docs/STRUCTURE_TREE.md` | Updated current date, package guard tool entry, and repository surface rule |
+| `docs/records/OSC2026_GUIDE_SELF_CHECK.md` | Added repository-surface pass item |
+
+### Verification
+
+| Command | Result |
+| --- | --- |
+| `git ls-files .cursor .workbuddy report` | PASS: no tracked files remain after the cleanup |
+| `node tools/check-package-contents.mjs` | PASS: 228 package files checked |
+| `moon check --deny-warn --target all` | PASS |
+| `moon fmt --check` | PASS |
+| `moon info && git diff --exit-code -- 'src/**/*.mbti'` | PASS |
+| `moon test --deny-warn --target wasm,wasm-gc,js` | PASS: 344/344 on wasm, wasm-gc, and js |
+| `node tools/check-metrics.mjs` | PASS: 20/20 metric assertions |
+| `git diff --check` | PASS |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

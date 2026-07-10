@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { FileWarning, FlaskConical, FolderOpen, RotateCcw, Zap } from "lucide-react";
 import { callMoon } from "../moon-rpc";
 import type { EvidenceScenario, VerifyResponse } from "../types";
-import { EmptyState, Pane, StatusLine, ToolTitle } from "./shared";
+import { CodeBlock, EmptyState, Pane, ResultHero, StatusLine, TechnicalDetails, ToolTitle } from "./shared";
 import type { ToolStatus, TreeApiResponse } from "./types";
 import { flipHexByte, inputDirectoryProps, readPackDirectory, shortValue } from "./utils";
 
@@ -127,9 +127,10 @@ export function TamperTool({ scenario }: { scenario: EvidenceScenario }) {
   return (
     <div className="wb-tool-page wb-tamper-page">
       <ToolTitle
+        id="workbench-title-tamper"
         icon={<FlaskConical size={21} />}
-        title="篡改传播实验"
-        detail="改变一个真实文件字节，观察摘要、Merkle 祖先节点与诊断如何同步转为拒绝。"
+        title="篡改实验"
+        detail="改变一个文件字节，观察这次变化如何被发现并定位到具体文件。"
       />
       <div className="wb-tamper-toolbar">
         <label className="wb-file-button">
@@ -162,7 +163,7 @@ export function TamperTool({ scenario }: { scenario: EvidenceScenario }) {
                   <FileWarning size={16} />
                   <span>{path}</span>
                   <code>{hex.length / 2} B</code>
-                  <strong>{changed ? "CHANGED" : "STABLE"}</strong>
+                  <strong>{changed ? "已改变" : "未改变"}</strong>
                 </button>
               );
             })}
@@ -170,8 +171,8 @@ export function TamperTool({ scenario }: { scenario: EvidenceScenario }) {
         </Pane>
 
         <Pane
-          title="Merkle 传播路径"
-          action={<span className={`wb-verdict ${tree.root?.matches ? "ok" : "bad"}`}>{tree.root?.matches ? "ROOT OK" : "ROOT MISMATCH"}</span>}
+          title="变化传播路径"
+          action={<span className={`wb-verdict ${tree.root?.matches ? "ok" : "bad"}`}>{tree.root?.matches ? "证据根匹配" : "证据根不匹配"}</span>}
         >
           {tree.levels.length > 0 ? (
             <div className="wb-tree-view">
@@ -185,7 +186,7 @@ export function TamperTool({ scenario }: { scenario: EvidenceScenario }) {
                       const isLeaf = level === 0;
                       return (
                         <div className={`${highlighted ? "changed" : ""}${level === tree.levels.length - 1 ? " root" : ""}`} key={`${level}-${hash}-${nodeIndex}`}>
-                          <span>{level === tree.levels.length - 1 ? "ROOT" : isLeaf ? `LEAF ${nodeIndex}` : `L${level}.${nodeIndex}`}</span>
+                          <span>{level === tree.levels.length - 1 ? "证据根" : isLeaf ? `文件节点 ${nodeIndex + 1}` : `中间节点 ${level}.${nodeIndex}`}</span>
                           <code>{shortValue(hash, 15)}</code>
                         </div>
                       );
@@ -194,30 +195,41 @@ export function TamperTool({ scenario }: { scenario: EvidenceScenario }) {
                 );
               })}
               <div className="wb-root-comparison">
-                <div><span>RECORDED</span><code>{shortValue(tree.root?.recorded, 24)}</code></div>
-                <div><span>ACTUAL</span><code>{shortValue(tree.root?.actual, 24)}</code></div>
+                <div><span>清单记录</span><code>{shortValue(tree.root?.recorded, 24)}</code></div>
+                <div><span>当前计算</span><code>{shortValue(tree.root?.actual, 24)}</code></div>
               </div>
             </div>
           ) : <EmptyState>当前 Manifest 没有可显示的 Merkle 节点</EmptyState>}
         </Pane>
 
-        <Pane title="诊断">
+        <Pane title="检查结论" className={busy ? "wb-pane-running" : ""}>
+          <ResultHero
+            tone={verification.ok ? "success" : "danger"}
+            title={verification.ok ? "证据包保持一致" : "篡改已被发现"}
+            detail={verification.ok
+              ? `${Object.keys(files).length} 个文件与证据清单记录一致`
+              : `${modifiedPaths[0] ?? selectedPath} 的变化已经传播到证据根`}
+          />
           {findings.length > 0 ? (
             <div className="wb-diagnostic-list">
               {findings.map((finding, index) => (
                 <div key={`${finding.code}-${index}`}>
-                  <strong>{finding.code}</strong>
+                  <strong>文件内容与记录不一致</strong>
                   <code>{finding.path}</code>
-                  <p>{finding.message}</p>
+                  <p>当前文件摘要无法与证据清单中的记录匹配。</p>
                 </div>
               ))}
             </div>
           ) : (
             <div className="wb-diagnostic-pass">
-              <span>PASS</span>
               <strong>没有诊断发现</strong>
               <p>文件摘要与记录的 Merkle 根一致。</p>
             </div>
+          )}
+          {findings.length > 0 && (
+            <TechnicalDetails>
+              <CodeBlock label="完整诊断报告">{verification.explain ?? JSON.stringify(findings, null, 2)}</CodeBlock>
+            </TechnicalDetails>
           )}
         </Pane>
       </div>

@@ -45,7 +45,7 @@ export type VerifyResponse = {
   report?: {
     ok: boolean;
     findings: Finding[];
-    checked: {
+    stats: {
       files_total: number;
       files_passed: number;
       merkle_checked: boolean;

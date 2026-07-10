@@ -169,6 +169,19 @@ textarea:focus-visible {
   padding: 8px 10px;
 }
 
+.site-back-workbench {
+  min-height: 36px;
+  justify-self: end;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+}
+
+.site-back-workbench:hover {
+  border-color: #414a43;
+  background: #111512;
+}
+
 .site-start,
 .primary-action,
 .secondary-action {
@@ -739,16 +752,27 @@ textarea:focus-visible {
   position: fixed;
   z-index: 20;
   inset: 64px 0 0;
-  background: #0b0e12;
+  background: #0a0d0a;
   visibility: hidden;
   opacity: 0;
   pointer-events: none;
+  transition: opacity 140ms ease, visibility 0s linear 140ms;
+}
+
+.workbench-shell > .workbench-app {
+  transform: translateY(6px);
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .workbench-shell.active {
   visibility: visible;
   opacity: 1;
   pointer-events: auto;
+  transition: opacity 180ms ease, visibility 0s;
+}
+
+.workbench-shell.active > .workbench-app {
+  transform: translateY(0);
 }
 
 .loading-screen {
@@ -857,8 +881,15 @@ textarea:focus-visible {
   }
 
   .site-nav,
-  .site-back {
+  .site-header-spacer {
     display: none;
+  }
+
+  .site-back-workbench {
+    min-height: 34px;
+    display: inline-flex;
+    padding: 0 8px;
+    font-size: 12px;
   }
 
   .site-brand-mark {

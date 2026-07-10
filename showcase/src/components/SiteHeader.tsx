@@ -31,15 +31,19 @@ export function SiteHeader({
           </a>
         </nav>
       ) : (
-        <button type="button" className="site-back" onClick={onHome}>
+        <span className="site-header-spacer" aria-hidden="true" />
+      )}
+
+      {surface === "home" ? (
+        <button type="button" className="site-start" onClick={onStart}>
+          开始使用
+        </button>
+      ) : (
+        <button type="button" className="site-back site-back-workbench" onClick={onHome}>
           <ArrowLeft size={16} />
           返回首页
         </button>
       )}
-
-      <button type="button" className="site-start" onClick={onStart}>
-        {surface === "home" ? "开始使用" : "验证证据"}
-      </button>
     </header>
   );
 }

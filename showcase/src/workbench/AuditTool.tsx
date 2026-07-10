@@ -1,7 +1,16 @@
 import { useMemo, useState } from "react";
-import { BadgeCheck, KeyRound, Link2, ListPlus, ScrollText, ShieldCheck } from "lucide-react";
+import { BadgeCheck, Download, KeyRound, Link2, ListPlus, ScrollText, ShieldCheck } from "lucide-react";
 import { callMoon } from "../moon-rpc";
-import { EmptyState, Pane, StatusLine, ToolTitle } from "./shared";
+import {
+  CodeBlock,
+  EmptyState,
+  NextActions,
+  Pane,
+  ResultHero,
+  StatusLine,
+  TechnicalDetails,
+  ToolTitle,
+} from "./shared";
 import type {
   AuditAppendResponse,
   AuditEntry,
@@ -10,7 +19,19 @@ import type {
   Keypair,
   ToolStatus,
 } from "./types";
-import { shortValue } from "./utils";
+import { downloadText, formatJson, shortValue } from "./utils";
+
+const ACTIONS = [
+  { value: "created", label: "创建材料" },
+  { value: "verified", label: "完成验证" },
+  { value: "sealed", label: "完成封存" },
+  { value: "signed", label: "完成签名" },
+  { value: "shared", label: "共享材料" },
+] as const;
+
+function actionLabel(value: string | undefined): string {
+  return ACTIONS.find((item) => item.value === value)?.label ?? value ?? "操作";
+}
 
 export function AuditTool({
   keypair,
@@ -25,6 +46,7 @@ export function AuditTool({
   const [manifestDigest, setManifestDigest] = useState("");
   const [log, setLog] = useState("");
   const [verification, setVerification] = useState<AuditVerifyResponse | null>(null);
+  const [signatureCheck, setSignatureCheck] = useState(false);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<ToolStatus>({ tone: "neutral", text: "追加第一条记录以建立哈希链" });
 
@@ -52,6 +74,7 @@ export function AuditTool({
       if (!response.ok) throw new Error(response.error ?? "Audit append failed");
       setLog(response.log);
       setVerification(null);
+      setSignatureCheck(false);
       setStatus({ tone: "success", text: `记录已追加：${shortValue(response.entry_hash, 16)}` });
     } catch (error) {
       setStatus({ tone: "danger", text: error instanceof Error ? error.message : String(error) });
@@ -76,6 +99,7 @@ export function AuditTool({
       });
       if (!response.ok) throw new Error(response.error ?? "Audit verification failed");
       setVerification(response);
+      setSignatureCheck(signatures);
       const passed = response.chain_valid && (!signatures || response.signatures_valid);
       setStatus({
         tone: passed ? "success" : "danger",
@@ -103,6 +127,7 @@ export function AuditTool({
       if (!response.ok) throw new Error(response.error ?? "Audit signing failed");
       setLog(response.log);
       setVerification(null);
+      setSignatureCheck(false);
       setStatus({ tone: "success", text: "最后一条记录已使用 Ed25519 签名" });
     } catch (error) {
       setStatus({ tone: "danger", text: error instanceof Error ? error.message : String(error) });
@@ -114,29 +139,30 @@ export function AuditTool({
   return (
     <div className="wb-tool-page">
       <ToolTitle
+        id="workbench-title-audit"
         icon={<ScrollText size={21} />}
-        title="哈希链审计日志"
-        detail="每条操作记录绑定前序哈希，并可使用共享 Ed25519 密钥签署最后一条记录。"
+        title="操作记录"
+        detail="连续记录材料的创建、验证和签署操作，并检查记录是否被改写。"
       />
       <div className="wb-split wb-split-audit">
-        <Pane title="追加操作">
+        <Pane title="记录一次操作">
           <div className="wb-form-grid">
             <label className="wb-field wb-field-span-2">
-              <span>Actor</span>
+              <span>操作者</span>
               <input value={actor} onChange={(event) => setActor(event.target.value)} />
             </label>
             <label className="wb-field">
-              <span>Action</span>
+              <span>操作类型</span>
               <select value={action} onChange={(event) => setAction(event.target.value)}>
-                {['created', 'verified', 'sealed', 'signed', 'shared'].map((value) => <option key={value}>{value}</option>)}
+                {ACTIONS.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
               </select>
             </label>
             <label className="wb-field">
-              <span>Subject ID</span>
+              <span>材料标识</span>
               <input value={subjectId} onChange={(event) => setSubjectId(event.target.value)} />
             </label>
             <label className="wb-field wb-field-span-2">
-              <span>Manifest Digest（可选）</span>
+              <span>证据清单摘要（可选）</span>
               <input value={manifestDigest} onChange={(event) => setManifestDigest(event.target.value)} placeholder="sha256:..." />
             </label>
           </div>
@@ -161,14 +187,14 @@ export function AuditTool({
           </div>
         </Pane>
 
-        <Pane
-          title="审计时间线"
-          action={verification ? (
-            <span className={`wb-verdict ${verification.chain_valid ? "ok" : "bad"}`}>
-              {verification.chain_valid ? "CHAIN OK" : "BROKEN"}
-            </span>
-          ) : undefined}
-        >
+        <Pane title="记录与核验结果" className={busy ? "wb-pane-running" : ""}>
+          {verification && (
+            <ResultHero
+              tone={verification.chain_valid && (!signatureCheck || verification.signatures_valid) ? "success" : "danger"}
+              title={verification.chain_valid ? "操作记录链条完整" : "操作记录已断裂"}
+              detail={`${verification.length} 条记录已完成连续性检查${signatureCheck ? verification.signatures_valid ? "，签名有效" : "，签名无效" : ""}`}
+            />
+          )}
           {entries.length > 0 ? (
             <div className="wb-audit-timeline">
               {entries.map((entry, index) => (
@@ -176,7 +202,7 @@ export function AuditTool({
                   <div className="wb-audit-index">{String(index + 1).padStart(2, "0")}</div>
                   <div>
                     <header>
-                      <strong>{entry.action ?? "operation"}</strong>
+                      <strong>{actionLabel(entry.action)}</strong>
                       {entry.signature && <BadgeCheck size={15} />}
                       <time>{entry.timestamp ?? ""}</time>
                     </header>
@@ -188,6 +214,18 @@ export function AuditTool({
             </div>
           ) : (
             <EmptyState>审计记录会按哈希链顺序显示在这里</EmptyState>
+          )}
+          {entries.length > 0 && (
+            <>
+              <NextActions>
+                <button type="button" className="wb-button wb-button-secondary" onClick={() => downloadText("audit-log.json", log)}>
+                  <Download size={16} />导出操作记录
+                </button>
+              </NextActions>
+              <TechnicalDetails>
+                <CodeBlock label="完整记录数据">{formatJson(log)}</CodeBlock>
+              </TechnicalDetails>
+            </>
           )}
         </Pane>
       </div>

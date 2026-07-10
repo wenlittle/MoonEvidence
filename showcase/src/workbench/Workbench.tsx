@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   FileCheck2,
   FilePlus2,
@@ -6,6 +6,7 @@ import {
   GitBranch,
   KeyRound,
   ScrollText,
+  ShieldCheck,
 } from "lucide-react";
 import { callMoon, toHex } from "../moon-rpc";
 import type { EvidenceScenario } from "../types";
@@ -20,14 +21,34 @@ import "./workbench.css";
 
 export type WorkbenchView = "verify" | "create" | "proof" | "audit" | "sign" | "tamper";
 
-const TABS: Array<{ id: WorkbenchView; label: string; icon: typeof FileCheck2 }> = [
-  { id: "verify", label: "检查证据", icon: FileCheck2 },
-  { id: "create", label: "创建证据包", icon: FilePlus2 },
-  { id: "tamper", label: "篡改演示", icon: FlaskConical },
-  { id: "proof", label: "文件证明", icon: GitBranch },
-  { id: "audit", label: "操作记录", icon: ScrollText },
-  { id: "sign", label: "数字签名", icon: KeyRound },
+const NAV_GROUPS: Array<{
+  label: string;
+  items: Array<{ id: WorkbenchView; label: string; icon: typeof FileCheck2 }>;
+}> = [
+  {
+    label: "常用任务",
+    items: [
+      { id: "verify", label: "验证证据包", icon: FileCheck2 },
+      { id: "create", label: "创建证据清单", icon: FilePlus2 },
+    ],
+  },
+  {
+    label: "证明与记录",
+    items: [
+      { id: "proof", label: "文件收录证明", icon: GitBranch },
+      { id: "sign", label: "签名与验签", icon: KeyRound },
+      { id: "audit", label: "操作记录", icon: ScrollText },
+    ],
+  },
+  {
+    label: "学习实验",
+    items: [
+      { id: "tamper", label: "篡改实验", icon: FlaskConical },
+    ],
+  },
 ];
+
+const NAV_ITEMS = NAV_GROUPS.flatMap((group) => group.items);
 
 export function Workbench({
   scenario,
@@ -40,8 +61,18 @@ export function Workbench({
 }) {
   const [activeView, setActiveView] = useState<WorkbenchView>(requestedView);
   const [keypair, setKeypair] = useState<Keypair | null>(null);
+  const contentRef = useRef<HTMLElement>(null);
 
-  useEffect(() => setActiveView(requestedView), [requestedView]);
+  useEffect(() => {
+    setActiveView(requestedView);
+    contentRef.current?.scrollTo({ top: 0 });
+  }, [requestedView]);
+
+  const selectView = (view: WorkbenchView) => {
+    setActiveView(view);
+    onViewChange?.(view);
+    contentRef.current?.scrollTo({ top: 0 });
+  };
 
   const ensureKeypair = async (): Promise<Keypair> => {
     if (keypair) return keypair;
@@ -55,32 +86,50 @@ export function Workbench({
 
   return (
     <div className="workbench-app">
-      <nav className="wb-tabs" aria-label="证据工作台工具">
-        <div className="wb-tabs-inner">
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button
-                type="button"
-                key={tab.id}
-                className={activeView === tab.id ? "active" : ""}
-                onClick={() => {
-                  setActiveView(tab.id);
-                  onViewChange?.(tab.id);
-                }}
-                aria-pressed={activeView === tab.id}
-              >
-                <Icon size={16} />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </nav>
+      <aside className="wb-sidebar">
+        <header className="wb-sidebar-header">
+          <strong>证据工作台</strong>
+          <span><ShieldCheck size={14} />MoonBit 本地运行</span>
+        </header>
+        <nav aria-label="证据工作台工具">
+          {NAV_GROUPS.map((group) => (
+            <section key={group.label} className="wb-nav-group">
+              <h2>{group.label}</h2>
+              {group.items.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    type="button"
+                    key={item.id}
+                    className={activeView === item.id ? "active" : ""}
+                    onClick={() => selectView(item.id)}
+                    aria-current={activeView === item.id ? "page" : undefined}
+                  >
+                    <Icon size={17} />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </section>
+          ))}
+        </nav>
+        <p className="wb-sidebar-foot">文件不会离开当前浏览器</p>
+      </aside>
 
-      <div className="wb-content">
+      <div className="wb-mobile-tools">
+        <label htmlFor="wb-tool-select">当前工具</label>
+        <select
+          id="wb-tool-select"
+          value={activeView}
+          onChange={(event) => selectView(event.target.value as WorkbenchView)}
+        >
+          {NAV_ITEMS.map((item) => <option value={item.id} key={item.id}>{item.label}</option>)}
+        </select>
+      </div>
+
+      <main className="wb-content" ref={contentRef}>
         <section className={`wb-view${activeView === "verify" ? " active" : ""}`} aria-hidden={activeView !== "verify"}>
-          <VerifyTool scenario={scenario} />
+          <VerifyTool scenario={scenario} onNavigate={selectView} />
         </section>
         <section className={`wb-view${activeView === "create" ? " active" : ""}`} aria-hidden={activeView !== "create"}>
           <CreateTool scenario={scenario} />
@@ -97,7 +146,7 @@ export function Workbench({
         <section className={`wb-view${activeView === "tamper" ? " active" : ""}`} aria-hidden={activeView !== "tamper"}>
           <TamperTool scenario={scenario} />
         </section>
-      </div>
+      </main>
     </div>
   );
 }

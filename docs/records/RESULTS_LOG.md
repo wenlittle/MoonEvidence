@@ -1864,6 +1864,31 @@ assurance with stale privacy and crypto wording.
 | Console note | Zero application exceptions; only the previously recorded upstream React Three Fiber `THREE.Clock` warning remains |
 | `git diff --check` | PASS |
 
+## 2026-07-11 Asia/Shanghai (Evidence Workbench result-first redesign)
+
+### Changes
+
+| Area | Result |
+| --- | --- |
+| Information architecture | Replaced the flat six-tab row with grouped desktop navigation (`常用任务` / `证明与记录` / `学习实验`) and a current-tool selector on compact screens |
+| Result hierarchy | Added shared conclusion-first result blocks, plain-language success/rejection copy, next actions, and collapsible technical evidence across the six tools |
+| State correctness | Aligned the browser response type with the API's serialized `report.stats` field and invalidates stale verification, creation, proof, and signature results whenever their inputs change |
+| Visual system | Unified the Workbench with the homepage's neutral-black and trusted-green palette, removed the cyan primary hierarchy, raised the minimum visible type size to 12 px, and reduced nested border noise |
+| Motion | Added restrained shell entry, tool-switch, result reveal, disclosure, and control transitions with the existing reduced-motion fallback |
+| Guidance and safety | Added local-processing cues, localized visible operation/signature terminology, hid the demonstration private key by default, and moved raw JSON, hashes, error codes, and API output behind technical-detail disclosures |
+| Delivery material | Updated the Workbench screenshot, showcase guide, and five-minute demo script to match the current navigation and result-first flow |
+
+### Verification
+
+| Command / flow | Result |
+| --- | --- |
+| `npm run check` / `npm run build` in `showcase/` | PASS; TypeScript clean and production Vite bundle generated |
+| In-app browser, 1600x900 | PASS: verification, creation, proof, signing, audit-chain, and tamper interactions produced their expected user-facing conclusions with zero application console errors |
+| Verification positive/negative pair | PASS: the valid sample produced `验证通过` with 2/2 files; the changed-byte sample produced `发现内容不一致` at `files/a.txt` |
+| Stale-result guard | PASS: editing the loaded Manifest immediately removed the previous success conclusion and displayed `证据清单已修改，请重新验证` |
+| In-app browser, 390x844 | PASS: current-tool selector, title, local-processing badge, input, action, and result remain readable with `scrollWidth == clientWidth == 390` |
+| `git diff --check` | PASS |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { Check, Copy, KeyRound, PenLine, ShieldCheck, ShieldX } from "lucide-react";
+import { useRef, useState } from "react";
+import { Check, Copy, Eye, EyeOff, KeyRound, PenLine, ShieldCheck, ShieldX } from "lucide-react";
 import { callMoon } from "../moon-rpc";
-import { EmptyState, Pane, StatusLine, ToolTitle } from "./shared";
+import { EmptyState, Pane, ResultHero, StatusLine, ToolTitle } from "./shared";
 import type { Keypair, SignatureResponse, SignatureVerifyResponse, ToolStatus } from "./types";
-import { shortValue, utf8Hex } from "./utils";
+import { utf8Hex } from "./utils";
 
 export function SignTool({
   keypair,
@@ -17,8 +17,10 @@ export function SignTool({
   const [valid, setValid] = useState<boolean | null>(null);
   const [tamperedValid, setTamperedValid] = useState<boolean | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [showSecret, setShowSecret] = useState(false);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<ToolStatus>({ tone: "neutral", text: "生成浏览器随机密钥开始签名流程" });
+  const revision = useRef(0);
 
   const generate = async () => {
     setBusy(true);
@@ -36,6 +38,7 @@ export function SignTool({
   };
 
   const sign = async () => {
+    const activeRevision = revision.current;
     setBusy(true);
     try {
       const activeKeypair = keypair ?? await ensureKeypair();
@@ -44,11 +47,13 @@ export function SignTool({
         message: utf8Hex(message),
       });
       if (!response.ok) throw new Error(response.error ?? "Signing failed");
+      if (activeRevision !== revision.current) return;
       setSignature(response.signature);
       setValid(null);
       setTamperedValid(null);
       setStatus({ tone: "success", text: "消息已由 MoonBit Ed25519 签名" });
     } catch (error) {
+      if (activeRevision !== revision.current) return;
       setStatus({ tone: "danger", text: error instanceof Error ? error.message : String(error) });
     } finally {
       setBusy(false);
@@ -57,6 +62,7 @@ export function SignTool({
 
   const verify = async () => {
     if (!keypair || !signature) return;
+    const activeRevision = revision.current;
     setBusy(true);
     try {
       const [accepted, rejected] = await Promise.all([
@@ -71,6 +77,7 @@ export function SignTool({
           signature,
         }),
       ]);
+      if (activeRevision !== revision.current) return;
       setValid(accepted.valid);
       setTamperedValid(rejected.valid);
       const oraclePassed = accepted.valid && !rejected.valid;
@@ -79,6 +86,7 @@ export function SignTool({
         text: oraclePassed ? "原消息验签通过，篡改消息被拒绝" : "签名正反验证未满足预期",
       });
     } catch (error) {
+      if (activeRevision !== revision.current) return;
       setStatus({ tone: "danger", text: error instanceof Error ? error.message : String(error) });
     } finally {
       setBusy(false);
@@ -94,9 +102,10 @@ export function SignTool({
   return (
     <div className="wb-tool-page">
       <ToolTitle
+        id="workbench-title-sign"
         icon={<KeyRound size={21} />}
-        title="Ed25519 数字签名"
-        detail="随机密钥、签名、验签与篡改拒绝均在浏览器内调用纯 MoonBit 实现。"
+        title="签名与验签"
+        detail="为一段内容生成数字签名，并确认修改后的内容无法继续通过验签。"
       />
       <div className="wb-sign-grid">
         <Pane title="1 · 密钥">
@@ -106,19 +115,20 @@ export function SignTool({
           {keypair ? (
             <div className="wb-key-output">
               <div>
-                <span>PUBLIC KEY</span>
+                <span>公钥</span>
                 <code>{keypair.public_key}</code>
                 <button type="button" className="wb-icon-button" onClick={() => void copy("pk", keypair.public_key)} title="复制公钥" aria-label="复制公钥">
                   {copied === "pk" ? <Check size={15} /> : <Copy size={15} />}
                 </button>
               </div>
               <div>
-                <span>SECRET KEY</span>
-                <code>{keypair.secret_key}</code>
-                <button type="button" className="wb-icon-button" onClick={() => void copy("sk", keypair.secret_key)} title="复制私钥" aria-label="复制私钥">
-                  {copied === "sk" ? <Check size={15} /> : <Copy size={15} />}
+                <span>演示私钥</span>
+                <code>{showSecret ? keypair.secret_key : "仅保留在当前浏览器会话中"}</code>
+                <button type="button" className="wb-icon-button" onClick={() => setShowSecret((value) => !value)} title={showSecret ? "隐藏私钥" : "显示私钥"} aria-label={showSecret ? "隐藏私钥" : "显示私钥"}>
+                  {showSecret ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
+              <p className="wb-security-note"><ShieldCheck size={14} />演示密钥不会上传，刷新页面后失效。</p>
             </div>
           ) : <EmptyState>尚未生成密钥</EmptyState>}
         </Pane>
@@ -126,14 +136,24 @@ export function SignTool({
         <Pane title="2 · 签名">
           <label className="wb-field">
             <span>消息</span>
-            <textarea value={message} onChange={(event) => setMessage(event.target.value)} />
+            <textarea
+              value={message}
+              onChange={(event) => {
+                revision.current += 1;
+                setMessage(event.target.value);
+                setSignature("");
+                setValid(null);
+                setTamperedValid(null);
+                setStatus({ tone: "warning", text: "消息已修改，请重新签名" });
+              }}
+            />
           </label>
           <button type="button" className="wb-button wb-button-primary" onClick={() => void sign()} disabled={busy || !message.trim()}>
             <PenLine size={16} />签名消息
           </button>
           {signature ? (
             <div className="wb-signature-value">
-              <span>SIGNATURE</span>
+              <span>数字签名</span>
               <code>{signature}</code>
               <button type="button" className="wb-icon-button" onClick={() => void copy("sig", signature)} title="复制签名" aria-label="复制签名">
                 {copied === "sig" ? <Check size={15} /> : <Copy size={15} />}
@@ -150,16 +170,22 @@ export function SignTool({
             <div className={valid ? "pass" : valid === false ? "fail" : "idle"}>
               <ShieldCheck size={19} />
               <span>原始消息</span>
-              <strong>{valid === null ? "WAIT" : valid ? "VALID" : "INVALID"}</strong>
+              <strong>{valid === null ? "等待" : valid ? "有效" : "无效"}</strong>
             </div>
             <div className={tamperedValid === false ? "pass" : tamperedValid ? "fail" : "idle"}>
               <ShieldX size={19} />
               <span>篡改消息</span>
-              <strong>{tamperedValid === null ? "WAIT" : tamperedValid ? "VALID" : "REJECTED"}</strong>
+              <strong>{tamperedValid === null ? "等待" : tamperedValid ? "异常有效" : "已拒绝"}</strong>
             </div>
           </div>
+          {valid !== null && tamperedValid !== null && (
+            <ResultHero
+              tone={valid && !tamperedValid ? "success" : "danger"}
+              title={valid && !tamperedValid ? "签名验证通过" : "签名验证未通过"}
+              detail={valid && !tamperedValid ? "签名与当前公钥和消息匹配，篡改对照已被拒绝" : "当前签名结果未满足正反验证要求"}
+            />
+          )}
           <StatusLine status={status} busy={busy} />
-          {keypair && signature && <code className="wb-compact-proof">pk {shortValue(keypair.public_key)} · sig {shortValue(signature)}</code>}
         </Pane>
       </div>
     </div>

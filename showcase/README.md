@@ -18,7 +18,13 @@ It uses a centered product hero and a four-chapter scroll narrative:
 cover verification, creation, Merkle proofs, audit logs, Ed25519 signatures,
 and byte-level tamper propagation. Homepage calls to action can deep-link to
 verification or the tamper experiment, and browser history restores the
-selected Workbench tool.
+selected Workbench tool. Desktop tools are grouped by task in a persistent
+navigation rail; compact screens use a current-tool selector.
+
+Each tool follows the same result-first structure: choose material, run one
+primary action, read a plain-language conclusion, then expand the raw
+Manifest, hashes, proof path, or API report only when technical review is
+needed. Changing a relevant input immediately invalidates the previous result.
 
 The Workbench shares one Web Worker and all 12 compiled MoonBit browser APIs.
 There is no iframe or backend, and tool state stays mounted while the user
@@ -77,4 +83,5 @@ npm run build
 
 The experience is designed for desktop, short-wide, and mobile viewports. The
 homepage keeps technical detail subordinate to the user-facing conclusion;
-the Workbench exposes the complete MoonBit result for review.
+the Workbench presents the conclusion first and keeps the complete MoonBit
+result available in an accessible disclosure.

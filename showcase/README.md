@@ -1,27 +1,28 @@
-# MoonEvidence Trust Observatory
+# MoonEvidence Web Experience
 
-An interactive 3D walkthrough of the MoonEvidence verification pipeline.
+The public product homepage and native Evidence Workbench for MoonEvidence.
 
-[Open the live observatory](https://wenlittle.github.io/MoonEvidence/)
+[Open the live experience](https://wenlittle.github.io/MoonEvidence/)
 
-## What It Demonstrates
+## Surfaces
 
-Every digest, Merkle root, verification result, and Ed25519 verdict shown in
-the scene is computed at runtime by the repository's compiled MoonBit API. The
-browser worker loads `examples/valid-pack`, changes byte 6 of `files/a.txt`,
-and compares the original and tampered evidence paths through the same core
-used by the CLI.
+The root route is an immersive introduction rather than an operations screen.
+It uses a centered product hero and a four-chapter scroll narrative:
 
-- **Auto** plays the eight-stage verification story.
-- **Inspect** pauses the timeline for direct evidence-node inspection.
-- **Challenge** asks the reviewer to locate the modified file and reveals the
-  complete rejection path.
-- **Evidence Workbench** switches from the visual home view into six native
-  React tools: verify, create, proof, audit, signature, and tamper lab.
+1. material enters an evidence pack;
+2. a reviewable credential is formed;
+3. one changed byte forks the result;
+4. verification locates and rejects the inconsistent file.
 
-Both surfaces share one Web Worker and all 12 compiled MoonBit browser APIs.
-There is no iframe or backend; tool state stays live when the reviewer moves
-between the observatory and workbench.
+`#workbench/verify` opens the operational surface. Its six native React tools
+cover verification, creation, Merkle proofs, audit logs, Ed25519 signatures,
+and byte-level tamper propagation. Homepage calls to action can deep-link to
+verification or the tamper experiment, and browser history restores the
+selected Workbench tool.
+
+The Workbench shares one Web Worker and all 12 compiled MoonBit browser APIs.
+There is no iframe or backend, and tool state stays mounted while the user
+moves between the homepage and Workbench.
 
 ## Run Locally
 
@@ -49,9 +50,11 @@ npm run preview
 ```text
 React navigation shell
         |
-        +---- React HUD + GSAP timeline
+        +---- Product homepage
         |            |
-        |     Zustand story state ---- React Three Fiber / Three.js scene
+        |     hero scene + scroll narrative
+        |            |
+        |     desktop Three.js graph / mobile compact flow
         |
         +---- Native React Evidence Workbench ---- six operational tools
                          |
@@ -60,10 +63,10 @@ React navigation shell
                12 MoonBit release JS APIs ---- examples/valid-pack
 ```
 
-The single worker boundary keeps MoonBit computation away from rendering and
-makes the UI responsive while hashes, Merkle trees, verification reports, and
-signature checks are produced. The same worker serves both the 3D story and
-all six workbench tools.
+The single worker boundary keeps MoonBit computation away from rendering while
+hashes, Merkle trees, verification reports, and signature checks are produced.
+Only the visible 3D scene is mounted, so the hero and scroll story do not keep
+two WebGL render loops active at the same time.
 
 ## Quality Checks
 
@@ -72,5 +75,6 @@ npm run check
 npm run build
 ```
 
-The experience is designed for desktop and mobile viewports, supports
-keyboard-accessible HUD controls, and respects reduced-motion preferences.
+The experience is designed for desktop, short-wide, and mobile viewports. The
+homepage keeps technical detail subordinate to the user-facing conclusion;
+the Workbench exposes the complete MoonBit result for review.

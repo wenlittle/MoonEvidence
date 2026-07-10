@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   FileCheck2,
   FilePlus2,
@@ -18,20 +18,30 @@ import type { Keypair } from "./types";
 import { VerifyTool } from "./VerifyTool";
 import "./workbench.css";
 
-type WorkbenchView = "verify" | "create" | "proof" | "audit" | "sign" | "tamper";
+export type WorkbenchView = "verify" | "create" | "proof" | "audit" | "sign" | "tamper";
 
 const TABS: Array<{ id: WorkbenchView; label: string; icon: typeof FileCheck2 }> = [
-  { id: "verify", label: "验证", icon: FileCheck2 },
-  { id: "create", label: "创建", icon: FilePlus2 },
-  { id: "proof", label: "证明", icon: GitBranch },
-  { id: "audit", label: "审计", icon: ScrollText },
-  { id: "sign", label: "签名", icon: KeyRound },
-  { id: "tamper", label: "篡改实验", icon: FlaskConical },
+  { id: "verify", label: "检查证据", icon: FileCheck2 },
+  { id: "create", label: "创建证据包", icon: FilePlus2 },
+  { id: "tamper", label: "篡改演示", icon: FlaskConical },
+  { id: "proof", label: "文件证明", icon: GitBranch },
+  { id: "audit", label: "操作记录", icon: ScrollText },
+  { id: "sign", label: "数字签名", icon: KeyRound },
 ];
 
-export function Workbench({ scenario }: { scenario: EvidenceScenario }) {
-  const [activeView, setActiveView] = useState<WorkbenchView>("verify");
+export function Workbench({
+  scenario,
+  requestedView = "verify",
+  onViewChange,
+}: {
+  scenario: EvidenceScenario;
+  requestedView?: WorkbenchView;
+  onViewChange?: (view: WorkbenchView) => void;
+}) {
+  const [activeView, setActiveView] = useState<WorkbenchView>(requestedView);
   const [keypair, setKeypair] = useState<Keypair | null>(null);
+
+  useEffect(() => setActiveView(requestedView), [requestedView]);
 
   const ensureKeypair = async (): Promise<Keypair> => {
     if (keypair) return keypair;
@@ -54,7 +64,10 @@ export function Workbench({ scenario }: { scenario: EvidenceScenario }) {
                 type="button"
                 key={tab.id}
                 className={activeView === tab.id ? "active" : ""}
-                onClick={() => setActiveView(tab.id)}
+                onClick={() => {
+                  setActiveView(tab.id);
+                  onViewChange?.(tab.id);
+                }}
                 aria-pressed={activeView === tab.id}
               >
                 <Icon size={16} />
@@ -62,10 +75,6 @@ export function Workbench({ scenario }: { scenario: EvidenceScenario }) {
               </button>
             );
           })}
-        </div>
-        <div className="wb-runtime-contract">
-          <span />
-          1 Worker · 12 MoonBit APIs
         </div>
       </nav>
 

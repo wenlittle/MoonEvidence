@@ -67,16 +67,20 @@ moon-evidence/
         version_chain.json
       README.md
       manifest.json
-  showcase/                   # 交互式 3D 可信证据观测台
+  showcase/                   # 沉浸式产品首页 + 原生证据工作台
     public/
       favicon.svg
     src/
       components/
-        Hud.tsx
+        HomePage.tsx
+        SiteHeader.tsx
       scene/
         EvidenceScene.tsx
+        HeroScene.tsx
+        useSceneVisibility.ts
       story/
-        useStoryTimeline.ts
+        useScrollNarrative.ts
+      workbench/              # 验证、创建、证明、审计、签名、篡改六项工具
       workers/
         moon.worker.ts
       App.tsx

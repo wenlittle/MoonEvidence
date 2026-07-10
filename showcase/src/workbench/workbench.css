@@ -184,7 +184,7 @@
 .wb-signature-value > span {
   color: #84919d;
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
 }
@@ -415,7 +415,7 @@
   padding: 4px 7px;
   border-radius: 3px;
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
 }
 
@@ -445,7 +445,7 @@
 
 .wb-metrics span {
   color: #7e8a96;
-  font-size: 9px;
+  font-size: 10px;
   text-transform: uppercase;
 }
 
@@ -494,7 +494,7 @@
 .wb-findings-head {
   color: #788591;
   background: #171d24;
-  font-size: 9px;
+  font-size: 10px;
   text-transform: uppercase;
 }
 
@@ -531,7 +531,7 @@
 
 .wb-pass-list svg { color: var(--wb-green); }
 .wb-pass-list code,
-.wb-file-inventory code { color: #7f8b97; font-size: 9px; }
+.wb-file-inventory code { color: #7f8b97; font-size: 10px; }
 
 .wb-empty {
   min-height: 150px;
@@ -592,7 +592,7 @@
 
 .wb-proof-node.root { border-color: rgba(87, 196, 125, 0.68); }
 .wb-proof-node.leaf { border-color: rgba(54, 194, 217, 0.68); }
-.wb-proof-node span { color: #84919d; font-size: 9px; }
+.wb-proof-node span { color: #84919d; font-size: 10px; }
 .wb-proof-node code { color: #e3e9ee; font-size: 11px; }
 
 .wb-proof-steps {
@@ -656,7 +656,7 @@
   margin-top: 12px;
   color: #7f8c98;
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .wb-audit-timeline {
@@ -682,7 +682,7 @@
   border: 1px solid #34515a;
   border-radius: 50%;
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .wb-audit-timeline header {
@@ -694,9 +694,9 @@
 
 .wb-audit-timeline header strong { font-size: 12px; }
 .wb-audit-timeline header svg { color: var(--wb-green); }
-.wb-audit-timeline time { margin-left: auto; color: #727f8b; font-size: 9px; }
+.wb-audit-timeline time { margin-left: auto; color: #727f8b; font-size: 10px; }
 .wb-audit-timeline p { margin: 5px 0; color: #98a4af; font-size: 10px; }
-.wb-audit-timeline code { color: #71808d; font-size: 9px; }
+.wb-audit-timeline code { color: #71808d; font-size: 10px; }
 
 .wb-sign-grid {
   display: grid;
@@ -728,7 +728,7 @@
   min-width: 0;
   overflow: hidden;
   color: #aebbc6;
-  font-size: 9px;
+  font-size: 10px;
   overflow-wrap: anywhere;
 }
 
@@ -754,7 +754,7 @@
   display: block;
   margin-top: 10px;
   color: #697682;
-  font-size: 8px;
+  font-size: 10px;
   text-align: center;
 }
 
@@ -820,8 +820,8 @@
 .wb-tamper-files button.changed svg,
 .wb-tamper-files button.changed strong { color: var(--wb-red); }
 .wb-tamper-files span { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
-.wb-tamper-files code { color: #76838f; font-size: 9px; }
-.wb-tamper-files strong { grid-column: 2; color: #6f7c88; font-family: var(--mono); font-size: 8px; }
+.wb-tamper-files code { color: #76838f; font-size: 10px; }
+.wb-tamper-files strong { grid-column: 2; color: #6f7c88; font-family: var(--mono); font-size: 10px; }
 
 .wb-tree-view {
   min-height: 330px;
@@ -855,8 +855,8 @@
 }
 
 .wb-tree-level > div.root:not(.changed) { border-color: #3e7551; }
-.wb-tree-level span { color: #788591; font-size: 8px; }
-.wb-tree-level code { overflow: hidden; font-size: 9px; text-overflow: ellipsis; }
+.wb-tree-level span { color: #788591; font-size: 10px; }
+.wb-tree-level code { overflow: hidden; font-size: 10px; text-overflow: ellipsis; }
 
 .wb-root-comparison {
   display: grid;
@@ -873,8 +873,8 @@
   background: #0e1318;
 }
 
-.wb-root-comparison span { color: #77848f; font-size: 8px; }
-.wb-root-comparison code { overflow: hidden; color: #aeb8c2; font-size: 9px; text-overflow: ellipsis; }
+.wb-root-comparison span { color: #77848f; font-size: 10px; }
+.wb-root-comparison code { overflow: hidden; color: #aeb8c2; font-size: 10px; text-overflow: ellipsis; }
 
 .wb-diagnostic-list {
   display: grid;
@@ -888,7 +888,7 @@
 }
 
 .wb-diagnostic-list strong { color: #f49191; font-family: var(--mono); font-size: 10px; }
-.wb-diagnostic-list code { display: block; margin-top: 4px; color: #b9c2ca; font-size: 9px; }
+.wb-diagnostic-list code { display: block; margin-top: 4px; color: #b9c2ca; font-size: 10px; }
 .wb-diagnostic-list p { margin: 5px 0 0; color: #98a4ae; font-size: 10px; line-height: 1.45; }
 
 .wb-diagnostic-pass {

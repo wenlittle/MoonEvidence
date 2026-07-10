@@ -37,16 +37,15 @@ node tools/smoke-api.mjs
 
 `demo/web/` 使用同一个 release JS 产物，展示的是上链存证、外部归档或审计交付之前的本地可信校验闭环。
 
-## 交互式可信证据观测台
+## 交互式网页体验
 
-[打开在线 3D 观测台](https://wenlittle.github.io/MoonEvidence/)
+[打开 MoonEvidence 在线体验](https://wenlittle.github.io/MoonEvidence/)
 
-观测台把完整证据路径展开为可交互场景：文件、RFC 8785 规范化、
-SHA-256 摘要、Merkle 聚合、Ed25519 签名和篡改拒绝。屏幕上的每一个值
-都由 Web Worker 调用仓库实际编译出的 MoonBit API，在运行时基于
-`examples/valid-pack` 计算得到。
+公开首页先说明项目价值，再用四章滚动叙事展示一次字节级变化如何被发现：
+材料进入证据包、形成可复核凭证、修改后结果分叉、准确定位并拒绝不一致材料。
+桌面端复用实时 Three.js 证据图，移动端使用专门排布的紧凑流程，结论保持一致。
 
-![MoonEvidence 可信证据观测台](docs/images/trust-observatory.png)
+![MoonEvidence 沉浸式首页](docs/images/trust-observatory.png)
 
 本地启动：
 
@@ -56,10 +55,11 @@ npm ci
 npm run dev
 ```
 
-自动、检查、挑战三种模式支持连续播放、逐步查看，或亲自定位被修改的
-字节并追踪它如何触发最终的 `E2003` 拒绝。观测台现在就是公开首页，
-旁边的“证据工作台”可在同一站点进入验证、创建、证明、审计、签名与
-篡改实验六项工具。架构与生产构建命令见 [`showcase/README.md`](showcase/README.md)。
+点击“开始验证”进入独立的原生 React 证据工作台，使用验证、创建、证明、
+审计、签名与篡改实验六项真实工具。首页与工作台各自承担介绍和操作职责，
+切换时保留工作台状态；所有结果都由同一个 Web Worker 调用 12 个已编译
+MoonBit API 产生，无 iframe、无后端。架构与生产构建命令见
+[`showcase/README.md`](showcase/README.md)。
 
 ## 30 秒上手
 

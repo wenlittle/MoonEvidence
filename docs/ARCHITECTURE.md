@@ -17,7 +17,7 @@ src/audit      -> hash-chained append-only audit log
 src/crypto     -> Ed25519 digital signatures (pure MoonBit)
 src/cmd/main   -> native CLI adapter
 src/api        -> browser ESM adapter (string-in/string-out)
-showcase/      -> React/Three.js observatory + native React workbench sharing one Web Worker
+showcase/      -> immersive React/Three.js homepage + separate native React workbench
 examples/      -> valid and tampered evidence packs
 tests/         -> fixtures and black-box regression tests
 ```
@@ -160,10 +160,12 @@ Notes on the v2 extensions:
   boundary. `verify_evidence` remains the main Evidence Pack verifier; the
   other exports expose digest, Merkle, creation, proof, audit, and Ed25519
   workflows to the browser demo and smoke tests.
-- `showcase` is one React application with one navigation shell and one
-  MoonBit worker. Its 3D observatory and six-tool Evidence Workbench call all
-  12 `api` exports through the same RPC boundary; no iframe or backend is part
-  of the runtime path.
+- `showcase` is one React application with two explicit surfaces: a product
+  homepage with a four-chapter scroll narrative, and a six-tool Evidence
+  Workbench reached through hash routes. The desktop narrative reuses the 3D
+  evidence graph; mobile uses a compact equivalent flow. Only the visible 3D
+  scene is mounted. The Workbench calls all 12 `api` exports through one
+  MoonBit worker; no iframe or backend is part of the runtime path.
 
 The v1 signatures above remain valid; `verify_manifest` gained an optional
 labeled parameter `~expected_manifest_digest?` (manifest-digest assertion,

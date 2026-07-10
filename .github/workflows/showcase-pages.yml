@@ -37,10 +37,11 @@ jobs:
           cache: npm
           cache-dependency-path: showcase/package-lock.json
 
-      - name: Build trust observatory
+      - name: Check and build web experience
         working-directory: showcase
         run: |
           npm ci
+          npm run check
           npm run build
 
       - name: Configure GitHub Pages

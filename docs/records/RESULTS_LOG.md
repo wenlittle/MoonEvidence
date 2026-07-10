@@ -1786,6 +1786,36 @@ assurance with stale privacy and crypto wording.
 | `node tools/check-package-contents.mjs` / `node tools/check-metrics.mjs` | PASS: package guard and 20/20 metric assertions |
 | `git diff --check` | PASS |
 
+## 2026-07-10 Asia/Shanghai (immersive homepage and scroll narrative)
+
+### Changes
+
+| Area | Result |
+| --- | --- |
+| Information architecture | Split the public experience into a product homepage and a separate operational Workbench; the homepage no longer embeds the six tools in its first screen |
+| Homepage | Added a centered full-bleed Three.js hero, one primary action, one principle action, a visible next-section hint, and a closing call to action |
+| Scroll narrative | Reframed the former eight-stage observatory as four user-facing chapters: material entry, credential formation, byte-change fork, and precise rejection |
+| Responsive story | Desktop keeps the live evidence graph in a dedicated right-hand stage; mobile uses a purpose-built compact flow so labels remain readable instead of shrinking the full graph |
+| Workbench routing | Added `#workbench/<tool>` routes, deep links from homepage actions, browser-history restoration, and state-preserving homepage/Workbench transitions |
+| Rendering lifecycle | Mounts only the visible WebGL scene; removed the retired HUD, challenge timeline, GSAP dependency, and obsolete story state |
+| Delivery surface | Updated bilingual README, showcase guide, architecture, demo script, project index, application material, acceptance checklist, structure tree, screenshot, and Pages workflow; Pages now runs TypeScript check before build |
+
+### Verification
+
+| Command / flow | Result |
+| --- | --- |
+| `npm ci` / `npm run check` / `npm run build` in `showcase/` | PASS; lockfile clean-install verified, TypeScript clean, production Vite bundle generated |
+| In-app browser, 1440x900 and 390x844 | PASS: hero, four chapters, mobile compact flow, no horizontal overflow, and at most one mounted canvas; no application console errors |
+| Route interaction | PASS: `开始使用 -> #workbench/verify`, Workbench tab -> `#workbench/tamper`, brand -> homepage, browser Back -> tamper view restored |
+| Standalone Playwright, 1600x510 | PASS: short-wide hero fits, actions and animated objects do not cover text, and the next section remains visible; used after the in-app viewport override stopped applying |
+| Console note | React Three Fiber emits the upstream `THREE.Clock` deprecation warning with Three r185; rendering and interaction remain correct, with zero application exceptions |
+| `moon check --deny-warn --target all` / `moon fmt --check` / `moon info` | PASS; generated interfaces unchanged |
+| `moon test --deny-warn --target wasm,wasm-gc,js` | PASS: 344/344 on each portable backend |
+| Visual Studio Developer PowerShell + native tests | PASS: 344/344 native |
+| CLI black-box, js and native | PASS: 54/54 on each target |
+| `node tools/smoke-api.mjs` | PASS: 34/34 API assertions |
+| `node tools/check-package-contents.mjs` / `node tools/check-metrics.mjs` | PASS: 230 packaged files checked and 20/20 metric assertions |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

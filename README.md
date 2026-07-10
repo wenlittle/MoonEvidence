@@ -38,17 +38,17 @@ node tools/smoke-api.mjs
 The same release JS artifact powers `demo/web/`, so the browser demo verifies
 packs locally before any blockchain notarization or external archival step.
 
-## Interactive Trust Observatory
+## Interactive Web Experience
 
-[Launch the live 3D observatory](https://wenlittle.github.io/MoonEvidence/)
+[Open the live MoonEvidence experience](https://wenlittle.github.io/MoonEvidence/)
 
-The observatory turns the complete evidence path into an interactive scene:
-files, RFC 8785 canonicalization, SHA-256 digests, Merkle aggregation,
-Ed25519 signing, and tamper rejection. Every value on screen is computed at
-runtime through the compiled MoonBit API in a Web Worker against the real
-`examples/valid-pack` fixture.
+The public homepage introduces the product first, then turns one byte-level
+change into a four-chapter scroll story: collect the material, create a
+reviewable credential, observe the result fork, and locate the rejected file.
+The desktop story reuses the live Three.js evidence graph; mobile presents the
+same conclusions in a purpose-built compact flow.
 
-![MoonEvidence Trust Observatory](docs/images/trust-observatory.png)
+![MoonEvidence immersive homepage](docs/images/trust-observatory.png)
 
 Run it locally:
 
@@ -58,13 +58,12 @@ npm ci
 npm run dev
 ```
 
-Auto, inspect, and challenge modes let a reviewer play the story, pause on a
-node, or locate the modified byte and follow its effect through the final
-`E2003` rejection. The observatory is the public home view; the adjacent
-Evidence Workbench is a native React surface with six operational tools:
-verify, create, Merkle proof, audit log, Ed25519 signing, and a byte-level
-tamper lab. Both surfaces share one Web Worker and the same 12 compiled
-MoonBit APIs, with no iframe or backend involved.
+`Start verification` opens a separate native React Evidence Workbench with six
+operational tools: verify, create, Merkle proof, audit log, Ed25519 signing,
+and a byte-level tamper lab. The homepage and Workbench are distinct surfaces,
+while the Workbench keeps its state when navigating between them. All real
+results come from one Web Worker and the same 12 compiled MoonBit APIs, with no
+iframe or backend involved.
 
 ![MoonEvidence Evidence Workbench](docs/images/evidence-workbench.png)
 

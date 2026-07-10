@@ -73,6 +73,15 @@ native unit tests, and native black-box run are all delegated to CI (ubuntu
 runners ship gcc). The native black-box step runs the exact script and cases
 that pass 12/12 on the js target; see RESULTS_LOG step 6 for details.
 
+## `showcase-pages.yml`
+
+Runs on every push to `main` and by manual dispatch. It installs MoonBit and
+Node.js 22, runs `npm ci`, TypeScript checking, and the production Vite build
+inside `showcase/`, then deploys the generated homepage and Evidence Workbench
+to GitHub Pages. The build step compiles the release `src/api` artifact and
+copies the real example evidence pack before bundling, so a Pages deployment
+cannot silently fall back to mocked MoonBit results.
+
 ## `release.yml`
 
 Triggered by pushing a version tag matching `v*` (e.g. `v0.3.0`). On tag:

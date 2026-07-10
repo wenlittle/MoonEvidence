@@ -1,9 +1,9 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Grid, Html, Line, RoundedBox } from "@react-three/drei";
-import { useMemo, useRef, useState } from "react";
+import { Html, Line, RoundedBox } from "@react-three/drei";
+import { useMemo, useRef } from "react";
 import * as THREE from "three";
-import { useStoryStore } from "../store";
 import type { EvidenceScenario } from "../types";
+import { useSceneVisibility } from "./useSceneVisibility";
 
 type Vec3 = [number, number, number];
 
@@ -19,11 +19,6 @@ const COLORS = {
   line: "#3e4752",
 };
 
-function shortHash(value: string, length = 11): string {
-  const clean = value.includes(":") ? value.split(":")[1] : value;
-  return clean.length > length ? `${clean.slice(0, length)}...` : clean;
-}
-
 function stageVisibility(progress: number, threshold: number): number {
   return THREE.MathUtils.smoothstep(progress, threshold - 0.28, threshold + 0.28);
 }
@@ -38,9 +33,8 @@ type NodeBlockProps = {
   detail: string;
   width?: number;
   height?: number;
-  selected?: boolean;
   dimmed?: boolean;
-  onClick?: () => void;
+  hideAt?: number;
 };
 
 function NodeBlock({
@@ -53,19 +47,18 @@ function NodeBlock({
   detail,
   width = 1.16,
   height = 0.56,
-  selected = false,
   dimmed = false,
-  onClick,
+  hideAt,
 }: NodeBlockProps) {
   const group = useRef<THREE.Group>(null);
   const { size } = useThree();
-  const [hovered, setHovered] = useState(false);
-  const visibility = stageVisibility(progress, appearAt);
-  const responsiveScale = size.width < 720 ? 0.52 : size.height < 680 ? 0.92 : 1;
+  const exitVisibility = hideAt === undefined ? 1 : 1 - stageVisibility(progress, hideAt);
+  const visibility = stageVisibility(progress, appearAt) * exitVisibility;
+  const responsiveScale = size.width < 520 ? 0.64 : size.width < 760 ? 0.82 : size.height < 680 ? 0.92 : 1;
 
   useFrame((state, delta) => {
     if (!group.current) return;
-    const targetScale = visibility * (hovered ? 1.05 : 1) * responsiveScale;
+    const targetScale = visibility * responsiveScale;
     const damp = 1 - Math.exp(-8 * delta);
     group.current.scale.lerp(
       new THREE.Vector3(targetScale, targetScale, targetScale),
@@ -92,23 +85,11 @@ function NodeBlock({
         args={[width, height, 0.16]}
         radius={0.07}
         smoothness={4}
-        onClick={(event) => {
-          event.stopPropagation();
-          onClick?.();
-        }}
-        onPointerEnter={() => {
-          if (onClick) document.body.style.cursor = "pointer";
-          setHovered(true);
-        }}
-        onPointerLeave={() => {
-          document.body.style.cursor = "default";
-          setHovered(false);
-        }}
       >
         <meshStandardMaterial
           color={dimmed ? COLORS.surface : COLORS.surface}
           emissive={color}
-          emissiveIntensity={selected ? 0.72 : dimmed ? 0.08 : 0.28}
+          emissiveIntensity={dimmed ? 0.08 : 0.28}
           roughness={0.48}
           metalness={0.24}
           transparent
@@ -121,8 +102,8 @@ function NodeBlock({
       </mesh>
       <Html transform position={[0, 0, 0.12]} distanceFactor={7.2} center>
         <div
-          className={`scene-label${onClick ? " scene-label-clickable" : ""}`}
-          style={{ width: `${Math.round(width * 116)}px`, opacity: dimmed ? 0.5 : 1 }}
+          className="scene-label"
+          style={{ width: `${Math.round(width * 140)}px`, opacity: dimmed ? 0.5 : 1 }}
         >
           <span className="scene-eyebrow" style={{ color }}>
             {eyebrow}
@@ -142,6 +123,7 @@ type EdgeProps = {
   appearAt: number;
   color?: string;
   dashed?: boolean;
+  dimmed?: boolean;
 };
 
 function EvidenceEdge({
@@ -151,6 +133,7 @@ function EvidenceEdge({
   appearAt,
   color = COLORS.line,
   dashed = false,
+  dimmed = false,
 }: EdgeProps) {
   const opacity = stageVisibility(progress, appearAt);
   if (opacity < 0.02) return null;
@@ -160,7 +143,7 @@ function EvidenceEdge({
       color={color}
       lineWidth={1.15}
       transparent
-      opacity={opacity * 0.78}
+      opacity={opacity * (dimmed ? 0.2 : 0.78)}
       dashed={dashed}
       dashSize={0.13}
       gapSize={0.1}
@@ -195,6 +178,7 @@ function HexSeal({
   color,
   label,
   detail,
+  dimmed = false,
 }: {
   position: Vec3;
   progress: number;
@@ -202,11 +186,12 @@ function HexSeal({
   color: string;
   label: string;
   detail: string;
+  dimmed?: boolean;
 }) {
   const group = useRef<THREE.Group>(null);
   const { size } = useThree();
   const visibility = stageVisibility(progress, appearAt);
-  const responsiveScale = size.width < 720 ? 0.58 : 1;
+  const responsiveScale = size.width < 520 ? 0.6 : size.width < 760 ? 0.82 : 1;
   useFrame((state, delta) => {
     if (!group.current) return;
     const scale = THREE.MathUtils.damp(
@@ -225,13 +210,15 @@ function HexSeal({
         <meshStandardMaterial
           color={COLORS.surface}
           emissive={color}
-          emissiveIntensity={0.42}
+          emissiveIntensity={dimmed ? 0.08 : 0.42}
           metalness={0.48}
           roughness={0.32}
+          transparent
+          opacity={dimmed ? 0.42 : 1}
         />
       </mesh>
       <Html transform position={[0, 0, 0.12]} distanceFactor={7.2} center>
-        <div className="seal-label">
+        <div className="seal-label" style={{ opacity: dimmed ? 0.45 : 1 }}>
           <strong style={{ color }}>{label}</strong>
           <code>{detail}</code>
         </div>
@@ -243,14 +230,15 @@ function HexSeal({
 function CameraRig({ progress }: { progress: number }) {
   const { camera, size } = useThree();
   useFrame((_, delta) => {
-    const mobile = size.width < 760;
+    const mobile = size.width < 520;
+    const narrow = !mobile && size.width < 760;
     const compactHeight = !mobile && size.height < 680;
     const split = stageVisibility(progress, 6);
     const target = new THREE.Vector3(
-      split * 0.45,
+      (mobile ? 0 : narrow ? 0.72 : 1.25) + split * 0.25,
       mobile ? 0.2 : compactHeight ? 0.15 : split * -0.1,
-      (mobile ? 17.8 : compactHeight ? 9.8 : 12.6) +
-        split * (mobile ? 1.3 : compactHeight ? 0.8 : 1.1),
+      (mobile ? 17.8 : narrow ? 16.8 : compactHeight ? 9.8 : 13.2) +
+        split * (mobile ? 1.3 : narrow ? 1 : compactHeight ? 0.8 : 1.1),
     );
     camera.position.lerp(target, 1 - Math.exp(-2.8 * delta));
     camera.lookAt(0, mobile ? -0.2 : 0, 0);
@@ -260,22 +248,16 @@ function CameraRig({ progress }: { progress: number }) {
 
 function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progress: number }) {
   const { size } = useThree();
-  const mode = useStoryStore((state) => state.mode);
-  const challenge = useStoryStore((state) => state.challenge);
-  const selectedPath = useStoryStore((state) => state.selectedPath);
-  const setSelectedPath = useStoryStore((state) => state.setSelectedPath);
-  const submitChallenge = useStoryStore((state) => state.submitChallenge);
   const split = stageVisibility(progress, 6);
+  const originalDimmed = progress > 5.72;
   const originalOffset = split * 1.52;
   const tamperedOffset = -split * 1.72;
-  const originalRoot = scenario.originalTree.root.actual;
-  const tamperedRoot = scenario.tamperedTree.root.actual;
-  const signature = scenario.signature;
-  const mobile = size.width < 720;
+  const mobile = size.width < 520;
+  const narrow = !mobile && size.width < 760;
   const compactHeight = !mobile && size.height < 680;
-  const xScale = mobile ? 0.42 : 1;
-  const yScale = compactHeight ? 0.7 : 1;
-  const xOffset = compactHeight ? 1.05 : 0;
+  const xScale = mobile ? 0.42 : narrow ? 0.68 : 0.9;
+  const yScale = compactHeight ? 0.7 : narrow ? 0.86 : 1;
+  const xOffset = mobile ? 0 : narrow ? 1.15 : compactHeight ? 1.55 : 1.7;
   const yOffset = mobile ? -0.82 : compactHeight ? -0.5 : -0.68;
   const x = (value: number) => value * xScale + xOffset;
   const y = (value: number) => value * yScale + yOffset;
@@ -292,9 +274,9 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
     [x(-1.55), y(0.72 + originalOffset), 0],
     [x(-1.55), y(-0.72 + originalOffset), 0],
   ];
-  const rootPosition: Vec3 = [x(0.35), y(originalOffset), 0];
-  const signaturePosition: Vec3 = [x(2.35), y(originalOffset), 0];
-  const anchorPosition: Vec3 = [x(4.45), y(originalOffset), 0];
+  const rootPosition: Vec3 = [x(0), y(originalOffset), 0];
+  const signaturePosition: Vec3 = [x(2.5), y(originalOffset), 0];
+  const anchorPosition: Vec3 = [x(3.8), y(originalOffset), 0];
 
   const tamperedFilePositions: Vec3[] = [
     [x(-5.25), y(0.72 + tamperedOffset), -0.1],
@@ -308,23 +290,17 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
     [x(-1.55), y(0.72 + tamperedOffset), -0.1],
     [x(-1.55), y(-0.72 + tamperedOffset), -0.1],
   ];
-  const tamperedRootPosition: Vec3 = [x(0.35), y(tamperedOffset), -0.1];
-  const tamperedSignaturePosition: Vec3 = [x(2.35), y(tamperedOffset), -0.1];
-  const tamperedAnchorPosition: Vec3 = [x(4.45), y(tamperedOffset), -0.1];
-
-  const chooseFile = (path: string) => {
-    setSelectedPath(path);
-    if (mode === "challenge") submitChallenge(path);
-  };
+  const tamperedRootPosition: Vec3 = [x(0), y(tamperedOffset), -0.1];
+  const tamperedSignaturePosition: Vec3 = [x(2.5), y(tamperedOffset), -0.1];
+  const tamperedAnchorPosition: Vec3 = [x(3.8), y(tamperedOffset), -0.1];
 
   return (
     <group>
-      <Html transform position={[x(0.35), y(2.58 + originalOffset), 0]} distanceFactor={8} center>
-        <div className="lane-label lane-label-valid">ORIGINAL EVIDENCE</div>
+      <Html transform position={[x(0.35), y(2 + originalOffset), 0]} distanceFactor={8} center>
+        <div className="lane-label lane-label-valid">原始材料</div>
       </Html>
 
       {scenario.files.map((file, index) => {
-        const selected = selectedPath === file.path;
         return (
           <NodeBlock
             key={`file-${file.path}`}
@@ -332,11 +308,10 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
             appearAt={0}
             progress={progress}
             color={COLORS.neutral}
-            eyebrow="FILE"
+            eyebrow="原始文件"
             label={file.path.replace("files/", "")}
-            detail={`${file.size} bytes`}
-            selected={selected}
-            onClick={mode === "challenge" || mode === "inspect" ? () => chooseFile(file.path) : undefined}
+            detail={`${file.size} 字节`}
+            dimmed={originalDimmed}
           />
         );
       })}
@@ -346,10 +321,11 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
         appearAt={1}
         progress={progress}
         color={COLORS.amber}
-        eyebrow="RFC 8785"
-        label="manifest.json"
-        detail={scenario.manifest.subject.id}
+        eyebrow="证据清单"
+        label="材料信息已整理"
+        detail="等待生成凭证"
         width={1.5}
+        hideAt={5.6}
       />
 
       {scenario.files.map((file, index) => (
@@ -359,9 +335,10 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
           appearAt={2}
           progress={progress}
             color={COLORS.cyan}
-            eyebrow="SHA-256"
-            label={`摘要 ${index + 1}`}
-          detail={shortHash(file.originalDigest)}
+            eyebrow="文件指纹"
+            label={`内容 ${index + 1} 已确认`}
+          detail="唯一结果已生成"
+          dimmed={originalDimmed}
         />
       ))}
 
@@ -372,9 +349,10 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
           appearAt={2.5}
           progress={progress}
           color={COLORS.green}
-          eyebrow={`LEAF ${index}`}
-          label="规范条目"
-          detail={shortHash(hash)}
+          eyebrow={`材料 ${index + 1}`}
+          label="纳入整体校验"
+          detail="与文件指纹绑定"
+          dimmed={originalDimmed}
         />
       ))}
 
@@ -383,11 +361,12 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
         appearAt={3}
         progress={progress}
         color={COLORS.green}
-        eyebrow="MERKLE ROOT"
-        label="可信根"
-        detail={shortHash(originalRoot)}
+        eyebrow="整体指纹"
+        label="全部材料已锁定"
+        detail={`${scenario.files.length} 个文件形成一个结果`}
         width={1.28}
         height={0.64}
+        dimmed={originalDimmed}
       />
 
       <NodeBlock
@@ -395,10 +374,11 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
         appearAt={4}
         progress={progress}
         color={COLORS.amber}
-        eyebrow="ED25519"
-        label="签名有效"
-        detail={shortHash(signature)}
+        eyebrow="数字签名"
+        label="来源已经确认"
+        detail="当前整体结果已签署"
         width={1.3}
+        dimmed={originalDimmed}
       />
 
       <HexSeal
@@ -406,8 +386,9 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
         progress={progress}
         appearAt={5}
         color={COLORS.green}
-        label="READY"
-        detail={scenario.manifest.version.id}
+        label="证据已生成"
+        detail="可以交付或归档"
+        dimmed={originalDimmed}
       />
 
       {scenario.files.map((_, index) => (
@@ -418,6 +399,7 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
           progress={progress}
           appearAt={2}
           color={COLORS.cyan}
+          dimmed={originalDimmed}
         />
       ))}
       {scenario.files.map((_, index) => (
@@ -428,6 +410,7 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
           progress={progress}
           appearAt={2.5}
           color={COLORS.green}
+          dimmed={originalDimmed}
         />
       ))}
       {leafPositions.map((position, index) => (
@@ -438,6 +421,7 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
           progress={progress}
           appearAt={3}
           color={COLORS.green}
+          dimmed={originalDimmed}
         />
       ))}
       <EvidenceEdge
@@ -446,6 +430,7 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
         progress={progress}
         appearAt={4}
         color={COLORS.amber}
+        dimmed={originalDimmed}
       />
       <EvidenceEdge
         from={signaturePosition}
@@ -453,6 +438,7 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
         progress={progress}
         appearAt={5}
         color={COLORS.green}
+        dimmed={originalDimmed}
       />
       <DataPacket
         from={digestPositions[0]}
@@ -470,11 +456,10 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
       {split > 0.02 && (
         <group>
           <Html transform position={[x(0.35), y(0.92 + tamperedOffset), -0.1]} distanceFactor={8} center>
-            <div className="lane-label lane-label-tampered">TAMPERED EVIDENCE</div>
+            <div className="lane-label lane-label-tampered">修改后的材料</div>
           </Html>
           {scenario.files.map((file, index) => {
             const changed = file.path === scenario.tamperedPath;
-            const selected = selectedPath === file.path;
             return (
               <NodeBlock
                 key={`tampered-file-${file.path}`}
@@ -482,12 +467,10 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
                 appearAt={6}
                 progress={progress}
                 color={changed ? COLORS.red : COLORS.muted}
-                eyebrow={changed ? "BYTE CHANGED" : "UNCHANGED"}
+                eyebrow={changed ? "内容变化" : "内容一致"}
                 label={file.path.replace("files/", "")}
-                detail={changed ? `offset ${file.changedByte}` : `${file.size} bytes`}
-                selected={selected || (challenge === "correct" && changed)}
-                dimmed={!changed && challenge !== "wrong"}
-                onClick={mode === "challenge" || mode === "inspect" ? () => chooseFile(file.path) : undefined}
+                detail={changed ? `第 ${file.changedByte} 个字节被修改` : `${file.size} 字节未变化`}
+                dimmed={!changed}
               />
             );
           })}
@@ -500,9 +483,9 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
                 appearAt={6.12}
                 progress={progress}
                 color={changed ? COLORS.red : COLORS.muted}
-                eyebrow="SHA-256"
-                label={changed ? "摘要分叉" : "摘要稳定"}
-                detail={shortHash(file.tamperedDigest)}
+                eyebrow="文件指纹"
+                label={changed ? "结果已经改变" : "结果保持一致"}
+                detail={changed ? "修改留下了差异" : "未发现变化"}
                 dimmed={!changed}
               />
             );
@@ -516,9 +499,9 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
                 appearAt={6.25}
                 progress={progress}
                 color={changed ? COLORS.red : COLORS.muted}
-                eyebrow={`LEAF ${index}`}
-                label={changed ? "叶子分叉" : "叶子稳定"}
-                detail={shortHash(hash)}
+                eyebrow={`材料 ${index + 1}`}
+                label={changed ? "变化向上传播" : "仍与原记录一致"}
+                detail={changed ? "影响整体结果" : "未受影响"}
                 dimmed={!changed}
               />
             );
@@ -528,9 +511,9 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
             appearAt={6.42}
             progress={progress}
             color={COLORS.red}
-            eyebrow="MERKLE ROOT"
-            label="根不匹配"
-            detail={shortHash(tamperedRoot)}
+            eyebrow="整体指纹"
+            label="整体结果不一致"
+            detail="一处修改改变了整体凭证"
             width={1.28}
             height={0.64}
           />
@@ -539,9 +522,9 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
             appearAt={6.64}
             progress={progress}
             color={COLORS.red}
-            eyebrow="ED25519"
-            label="签名拒绝"
-            detail={shortHash(signature)}
+            eyebrow="数字签名"
+            label="原签名不再匹配"
+            detail="当前内容无法通过确认"
             width={1.3}
           />
           <HexSeal
@@ -549,8 +532,8 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
             progress={progress}
             appearAt={6.82}
             color={COLORS.red}
-            label="REJECTED"
-            detail="E2003"
+            label="验证未通过"
+            detail="发现 1 处内容变化"
           />
           {scenario.files.map((file, index) => {
             const changed = file.path === scenario.tamperedPath;
@@ -610,34 +593,25 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
 }
 
 export function EvidenceScene({ scenario, progress }: { scenario: EvidenceScenario; progress: number }) {
+  const { ref, visible } = useSceneVisibility(false);
+
   return (
-    <div className="scene-shell" aria-hidden="true">
-      <Canvas
-        dpr={[1, 1.75]}
-        gl={{ antialias: true, powerPreference: "high-performance" }}
-        camera={{ position: [0, 0.4, 12.6], fov: 42, near: 0.1, far: 100 }}
-      >
-        <color attach="background" args={[COLORS.background]} />
-        <fog attach="fog" args={[COLORS.background, 12, 28]} />
-        <ambientLight intensity={1.2} />
-        <directionalLight position={[4, 7, 8]} intensity={2.1} color="#f4f0e7" />
-        <directionalLight position={[-6, 2, 4]} intensity={1.35} color={COLORS.cyan} />
-        <CameraRig progress={progress} />
-        <TrustGraph scenario={scenario} progress={progress} />
-        <Grid
-          position={[0, -4.5, -1.6]}
-          args={[30, 20]}
-          cellSize={0.5}
-          cellThickness={0.45}
-          cellColor="#2a3037"
-          sectionSize={2.5}
-          sectionThickness={0.8}
-          sectionColor="#4a4031"
-          fadeDistance={18}
-          fadeStrength={1.8}
-          infiniteGrid
-        />
-      </Canvas>
+    <div ref={ref} className="story-scene" aria-hidden="true">
+      {visible && (
+        <Canvas
+          dpr={[1, 1.75]}
+          gl={{ antialias: true, powerPreference: "high-performance" }}
+          camera={{ position: [0, 0.4, 12.6], fov: 42, near: 0.1, far: 100 }}
+        >
+          <color attach="background" args={[COLORS.background]} />
+          <fog attach="fog" args={[COLORS.background, 12, 28]} />
+          <ambientLight intensity={1.2} />
+          <directionalLight position={[4, 7, 8]} intensity={2.1} color="#f4f0e7" />
+          <directionalLight position={[-6, 2, 4]} intensity={1.35} color={COLORS.cyan} />
+          <CameraRig progress={progress} />
+          <TrustGraph scenario={scenario} progress={progress} />
+        </Canvas>
+      )}
     </div>
   );
 }

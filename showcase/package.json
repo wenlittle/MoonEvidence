@@ -1,5 +1,5 @@
 {
-  "name": "moonevidence-trust-observatory",
+  "name": "moonevidence-showcase",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -13,7 +13,6 @@
   "dependencies": {
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
-    "gsap": "^3.15.0",
     "lucide-react": "^1.24.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",

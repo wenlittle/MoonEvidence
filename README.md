@@ -38,6 +38,31 @@ node tools/smoke-api.mjs
 The same release JS artifact powers `demo/web/`, so the browser demo verifies
 packs locally before any blockchain notarization or external archival step.
 
+## Interactive Trust Observatory
+
+[Launch the live 3D observatory](https://wenlittle.github.io/MoonEvidence/)
+
+The observatory turns the complete evidence path into an interactive scene:
+files, RFC 8785 canonicalization, SHA-256 digests, Merkle aggregation,
+Ed25519 signing, and tamper rejection. Every value on screen is computed at
+runtime through the compiled MoonBit API in a Web Worker against the real
+`examples/valid-pack` fixture.
+
+![MoonEvidence Trust Observatory](docs/images/trust-observatory.png)
+
+Run it locally:
+
+```powershell
+cd showcase
+npm ci
+npm run dev
+```
+
+Auto, inspect, and challenge modes let a reviewer play the story, pause on a
+node, or locate the modified byte and follow its effect through the final
+`E2003` rejection. See [`showcase/README.md`](showcase/README.md) for the
+architecture and production build commands.
+
 ## Features
 
 ### Core Verification

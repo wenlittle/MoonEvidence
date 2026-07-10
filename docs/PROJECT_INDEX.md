@@ -12,7 +12,7 @@ Build a reusable MoonBit library and CLI for trusted evidence pack verification:
 | --- | --- |
 | Project name | MoonEvidence |
 | Primary contribution | MoonBit ecosystem trusted data verification infrastructure |
-| Primary deliverable | MoonBit library + native CLI + examples + tests + CI |
+| Primary deliverable | MoonBit library + native CLI + browser experiences + examples + tests + CI |
 | Not the goal | Full blockchain system, smart contract framework, PKI platform, or vertical mural-costume business system |
 | MVP priority | Verification first, generation/seal later |
 
@@ -21,6 +21,7 @@ Build a reusable MoonBit library and CLI for trusted evidence pack verification:
 | File | Purpose |
 | --- | --- |
 | `README.md` / `README.zh.md` | Public project overview (bilingual) |
+| `showcase/README.md` | Trust Observatory architecture, runtime data path, and launch commands |
 | `docs/GUIDE.md` | User guide with three real scenarios |
 | `docs/DEMO_SCRIPT.md` | 5-minute presentation demo script |
 | `docs/ARCHITECTURE.md` | Layered package structure and frozen public API |
@@ -55,6 +56,7 @@ Build a reusable MoonBit library and CLI for trusted evidence pack verification:
 | `tools/timing-ed25519-verify.mjs` | Informational Ed25519 verify timing sampler for release/security audit notes |
 | `tools/timing-ed25519-native.ps1` | Native Ed25519 dudect-style verify/sign timing runner for Windows/MSVC release builds |
 | `tools/symlink-junction-probe.ps1` | Windows junction traversal probe for CLI create/verify depth-cap behavior |
+| `.github/workflows/showcase-pages.yml` | Builds the MoonBit-powered 3D observatory and deploys it to GitHub Pages |
 
 Important source packages:
 
@@ -77,7 +79,7 @@ Use `docs/records/RESULTS_LOG.md` for measured facts and `docs/records/DECISION_
 ## Next Actions
 
 1. **远端 CI 最终确认**：GitHub Actions `main` 最新 run 需要在页面上显示 green；本地与 WSL 已复现核心 gate，但远端状态以 Actions 页面为准。
-2. **演示视频**：按 `docs/DEMO_SCRIPT.md` 录制 5 分钟比赛展示视频。
+2. **演示视频**：按 `docs/DEMO_SCRIPT.md` 录制 5 分钟比赛展示视频，主视觉使用 Trust Observatory 的自动与挑战模式。
 3. **Gitlink 默认分支确认**：确认 Gitlink 页面默认分支显示的是已同步的 `main`，且 README、LICENSE、源码、CI 文档可见。
 4. **流式哈希生产化增强**：把流式 SHA-256 接入适配层，将大包内存峰值从 Σ(全部文件) 降到 max(单文件)。
 5. 持续维护 `RESULTS_LOG.md` 与 `OSC2026_GUIDE_SELF_CHECK.md`，每次交付前重跑并记录命令与结果。

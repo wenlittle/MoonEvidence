@@ -37,6 +37,29 @@ node tools/smoke-api.mjs
 
 `demo/web/` 使用同一个 release JS 产物，展示的是上链存证、外部归档或审计交付之前的本地可信校验闭环。
 
+## 交互式可信证据观测台
+
+[打开在线 3D 观测台](https://wenlittle.github.io/MoonEvidence/)
+
+观测台把完整证据路径展开为可交互场景：文件、RFC 8785 规范化、
+SHA-256 摘要、Merkle 聚合、Ed25519 签名和篡改拒绝。屏幕上的每一个值
+都由 Web Worker 调用仓库实际编译出的 MoonBit API，在运行时基于
+`examples/valid-pack` 计算得到。
+
+![MoonEvidence 可信证据观测台](docs/images/trust-observatory.png)
+
+本地启动：
+
+```powershell
+cd showcase
+npm ci
+npm run dev
+```
+
+自动、检查、挑战三种模式支持连续播放、逐步查看，或亲自定位被修改的
+字节并追踪它如何触发最终的 `E2003` 拒绝。架构与生产构建命令见
+[`showcase/README.md`](showcase/README.md)。
+
 ## 30 秒上手
 
 Mooncakes 注册表版本：`starlittle/MoonEvidence` v0.4.1。

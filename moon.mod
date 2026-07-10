@@ -38,6 +38,7 @@ options(
     "docs/申报书.pdf",
     "docs/申报书.tex",
     "report",
+    "showcase",
     "比赛要求.txt",
   ],
 )

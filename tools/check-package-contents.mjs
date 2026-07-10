@@ -21,6 +21,7 @@ const forbiddenPrefixes = [
   "docs/research/",
   "docs/申报书",
   "report/",
+  "showcase/",
 ];
 
 const forbiddenExact = new Set([

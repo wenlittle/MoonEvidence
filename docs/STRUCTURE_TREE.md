@@ -1,6 +1,6 @@
 # Structure Tree
 
-Current preparation tree as of 2026-07-08 Asia/Shanghai.
+Current preparation tree as of 2026-07-10 Asia/Shanghai.
 
 ```text
 moon-evidence/
@@ -8,6 +8,7 @@ moon-evidence/
     workflows/
       ci.yml
       release.yml
+      showcase-pages.yml
       README.md
   .gitattributes
   .gitignore
@@ -32,6 +33,7 @@ moon-evidence/
       OSC2026_APPLICATION.md
     images/
       demo-web.png
+      trust-observatory.png
     plans/
       2026-06-10-competition-master-plan.md
       2026-07-04-health-check-and-improvement-plan.md
@@ -65,6 +67,29 @@ moon-evidence/
         version_chain.json
       README.md
       manifest.json
+  showcase/                   # 交互式 3D 可信证据观测台
+    public/
+      favicon.svg
+    src/
+      components/
+        Hud.tsx
+      scene/
+        EvidenceScene.tsx
+      story/
+        useStoryTimeline.ts
+      workers/
+        moon.worker.ts
+      App.tsx
+      main.tsx
+      moon-rpc.ts
+      store.ts
+      styles.css
+      types.ts
+    tools/
+      prepare-api.mjs
+    README.md
+    package.json
+    vite.config.ts
   src/
     README.md
     api/                       # 浏览器 ESM 适配器

@@ -17,6 +17,7 @@ src/audit      -> hash-chained append-only audit log
 src/crypto     -> Ed25519 digital signatures (pure MoonBit)
 src/cmd/main   -> native CLI adapter
 src/api        -> browser ESM adapter (string-in/string-out)
+showcase/      -> React/Three.js trust observatory using src/api in a Web Worker
 examples/      -> valid and tampered evidence packs
 tests/         -> fixtures and black-box regression tests
 ```

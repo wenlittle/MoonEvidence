@@ -14,6 +14,7 @@ import {
 import { useRef } from "react";
 import { EvidenceScene } from "../scene/EvidenceScene";
 import { HeroScene } from "../scene/HeroScene";
+import { useHeroProgress, useRevealOnce } from "../story/useHomeMotion";
 import { useScrollNarrative } from "../story/useScrollNarrative";
 import type { EvidenceScenario } from "../types";
 import type { WorkbenchView } from "../workbench/Workbench";
@@ -95,7 +96,11 @@ export function HomePage({
   scenario: EvidenceScenario;
   openWorkbench: (view: WorkbenchView) => void;
 }) {
+  const hero = useRef<HTMLElement>(null);
   const storyRail = useRef<HTMLElement>(null);
+  const storyIntro = useRevealOnce<HTMLElement>(0.3);
+  const closing = useRevealOnce<HTMLElement>(0.24);
+  const heroProgress = useHeroProgress(hero);
   const narrative = useScrollNarrative(storyRail);
   const chapter = STORY_CHAPTERS[narrative.chapter];
 
@@ -105,8 +110,8 @@ export function HomePage({
 
   return (
     <div className="home-page">
-      <section className="hero" aria-labelledby="hero-title">
-        <HeroScene scenario={scenario} />
+      <section className="hero" ref={hero} aria-labelledby="hero-title">
+        <HeroScene scenario={scenario} scrollProgress={heroProgress} />
         <div className="hero-copy">
           <h1 id="hero-title">MoonEvidence</h1>
           <p className="hero-statement">让文件在提交、归档或上链前，经得起修改与追查</p>
@@ -127,7 +132,11 @@ export function HomePage({
         </button>
       </section>
 
-      <section className="story-intro" id="story-intro">
+      <section
+        className={`story-intro${storyIntro.visible ? " is-visible" : ""}`}
+        id="story-intro"
+        ref={storyIntro.ref}
+      >
         <div className="story-intro-inner">
           <h2>一次改动，如何被发现</h2>
           <p>不从术语开始，只跟随一份材料完成一次验证。</p>
@@ -171,7 +180,10 @@ export function HomePage({
         </div>
       </section>
 
-      <section className="home-closing">
+      <section
+        className={`home-closing${closing.visible ? " is-visible" : ""}`}
+        ref={closing.ref}
+      >
         <div className="home-closing-inner">
           <CheckCircle2 size={34} />
           <h2>现在，验证你的第一份证据包</h2>

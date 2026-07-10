@@ -1839,6 +1839,31 @@ assurance with stale privacy and crypto wording.
 | Console note | Zero application exceptions; React Three Fiber continues to emit the previously recorded upstream `THREE.Clock` deprecation warning with Three r185 |
 | `git diff --check` | PASS |
 
+## 2026-07-11 Asia/Shanghai (homepage entrance and scroll motion)
+
+### Changes
+
+| Area | Result |
+| --- | --- |
+| Hero entrance | Added a staged title mask/blur reveal, supporting-copy and action stagger, document-card ingress, path drawing, and a delayed evidence-seal confirmation |
+| Scroll response | Hero copy now rises and recedes with measured scroll progress while the Three.js camera, document cards, seal, and scene opacity produce coordinated parallax |
+| Section reveals | Story introduction, summary connectors, and closing call to action reveal once when entering the viewport |
+| Interaction detail | Added restrained button lift and arrow travel while retaining the existing scroll-hint motion |
+| Accessibility | `prefers-reduced-motion` bypasses scroll transforms, ambient Three.js motion, and long transitions while leaving all content visible |
+
+### Verification
+
+| Command / flow | Result |
+| --- | --- |
+| `npm run check` / `npm run build` in `showcase/` | PASS; TypeScript clean and production Vite bundle generated |
+| Entrance state, 1600x900 | PASS: title progressed from opacity 0.284 / 71.6% clipped / 7.16 px blur to fully visible; seal label stayed hidden until its geometry entered |
+| Scroll response, 1600x900 | PASS: at y=304.5 hero progress was 0.4485, copy opacity 0.677, scene opacity 0.812, and the intro section revealed without overlap |
+| Navigation interaction | PASS: `了解原理` produced smooth scroll to y=828 and activated the story-intro reveal |
+| Responsive motion | PASS at 2048x665, 1600x510, and 390x844; no horizontal overflow, and the 1600x510 hero controls had zero pairwise overlap |
+| Rendered-frame check | PASS: entrance comparison changed 146,914 of 1,413,820 pixels and the settled hero contained 44,892 colored pixels |
+| Console note | Zero application exceptions; only the previously recorded upstream React Three Fiber `THREE.Clock` warning remains |
+| `git diff --check` | PASS |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

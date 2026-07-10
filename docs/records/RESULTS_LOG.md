@@ -1758,6 +1758,34 @@ assurance with stale privacy and crypto wording.
 | `moon publish` | PASS: server status 200 OK |
 | `git diff --check` | PASS |
 
+## 2026-07-10 Asia/Shanghai (native Evidence Workbench integration)
+
+### Changes
+
+| Area | Result |
+| --- | --- |
+| Unified browser shell | Replaced the legacy embedded workbench with one React application and one navigation shell; observatory and tool state remain live when switching surfaces |
+| Native Evidence Workbench | Added six React tools for verify, create, Merkle proof, audit log, Ed25519 signing, and byte-level tamper propagation |
+| MoonBit runtime boundary | All tool results use the same Web Worker and all 12 compiled MoonBit browser APIs; no iframe or backend remains in the showcase path |
+| Tamper visualization | Recomputes changed file digests and the materialized Merkle tree while verifying against the original commitment, exposing the changed leaf, root mismatch, and `E2003` together |
+| Public delivery | Added a current Workbench screenshot and synchronized README, architecture, showcase, and application descriptions |
+
+### Verification
+
+| Command / flow | Result |
+| --- | --- |
+| `npm run check` / `npm run build` in `showcase/` | PASS; production Vite bundle generated |
+| Desktop Playwright, all six tools | PASS: verify `REJECT/E2003`; create closure `PASS`; proof `ACCEPT/REJECT`; audit `CHAIN OK`; sign `VALID/REJECTED`; tamper `ROOT MISMATCH/E2003`; zero console errors |
+| Mobile Playwright, 390x844 | PASS: all six views fit the viewport with no horizontal overflow; tamper path reaches `ROOT MISMATCH`; zero console errors |
+| Observatory visual regression | PASS at 1440x900, 390x844, and 1600x510 at DPR 1.6; canvas screenshots contain 124-186 sampled colors and no text overlap was observed |
+| GitHub Pages subpath simulation | PASS at `/MoonEvidence/`; all assets and Worker requests loaded, tamper path reached `ROOT MISMATCH`, zero failed requests |
+| `moon check --deny-warn --target all` / `moon fmt --check` / `moon info` | PASS; generated interfaces unchanged |
+| `moon test --deny-warn --target wasm,wasm-gc,js` | PASS: 344/344 on each backend |
+| Visual Studio Developer PowerShell + `moon test --deny-warn --target native` | PASS: 344/344 |
+| `node tools/smoke-api.mjs` | PASS: 34/34 API assertions |
+| `node tools/check-package-contents.mjs` / `node tools/check-metrics.mjs` | PASS: package guard and 20/20 metric assertions |
+| `git diff --check` | PASS |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

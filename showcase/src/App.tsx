@@ -5,6 +5,7 @@ import { buildEvidenceScenario } from "./moon-rpc";
 import { useStoryStore } from "./store";
 import { useStoryTimeline } from "./story/useStoryTimeline";
 import { LoaderCircle, ShieldAlert } from "lucide-react";
+import { Workbench } from "./workbench/Workbench";
 
 export default function App() {
   const [surface, setSurface] = useState<SiteSurface>("observatory");
@@ -67,7 +68,7 @@ export default function App() {
           aria-label="MoonEvidence 证据工作台"
           aria-hidden={surface !== "workbench"}
         >
-          <iframe src="./demo/web/index.html?embedded=1" title="MoonEvidence Trust Workbench" />
+          <Workbench scenario={scenario} />
         </section>
       )}
       <Hud

@@ -84,6 +84,12 @@ export type WorkerMethod =
   | "digest_compute"
   | "verify_evidence"
   | "compute_merkle_tree"
+  | "create_evidence_pack"
+  | "generate_proof"
+  | "verify_proof"
+  | "audit_append"
+  | "audit_verify"
+  | "audit_sign"
   | "ed25519_keypair"
   | "ed25519_sign"
   | "ed25519_verify";

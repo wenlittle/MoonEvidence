@@ -4,6 +4,3 @@ artifacts/
 *.tsbuildinfo
 public/moon-api.js
 public/packs/
-public/_build/
-public/demo/
-public/examples/

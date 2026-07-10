@@ -57,7 +57,11 @@ class MoonRpc {
 
 const rpc = new MoonRpc();
 
-function toHex(bytes: Uint8Array): string {
+export function callMoon<T>(method: WorkerMethod, payload: object): Promise<T> {
+  return rpc.call<T>(method, payload);
+}
+
+export function toHex(bytes: Uint8Array): string {
   let output = "";
   for (const byte of bytes) output += byte.toString(16).padStart(2, "0");
   return output;

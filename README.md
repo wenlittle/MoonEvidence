@@ -61,8 +61,14 @@ npm run dev
 Auto, inspect, and challenge modes let a reviewer play the story, pause on a
 node, or locate the modified byte and follow its effect through the final
 `E2003` rejection. The observatory is the public home view; the adjacent
-Evidence Workbench opens the six operational browser tools without leaving the
-site. See [`showcase/README.md`](showcase/README.md) for the architecture and
+Evidence Workbench is a native React surface with six operational tools:
+verify, create, Merkle proof, audit log, Ed25519 signing, and a byte-level
+tamper lab. Both surfaces share one Web Worker and the same 12 compiled
+MoonBit APIs, with no iframe or backend involved.
+
+![MoonEvidence Evidence Workbench](docs/images/evidence-workbench.png)
+
+See [`showcase/README.md`](showcase/README.md) for the architecture and
 production build commands.
 
 ## Features

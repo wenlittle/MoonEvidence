@@ -16,10 +16,12 @@ used by the CLI.
 - **Inspect** pauses the timeline for direct evidence-node inspection.
 - **Challenge** asks the reviewer to locate the modified file and reveals the
   complete rejection path.
-- **Evidence Workbench** switches from the visual home view into the existing
-  verify, create, proof, audit, signature, and tamper-lab tools in one site.
+- **Evidence Workbench** switches from the visual home view into six native
+  React tools: verify, create, proof, audit, signature, and tamper lab.
 
-All processing stays in the browser. The app has no backend.
+Both surfaces share one Web Worker and all 12 compiled MoonBit browser APIs.
+There is no iframe or backend; tool state stays live when the reviewer moves
+between the observatory and workbench.
 
 ## Run Locally
 
@@ -45,20 +47,23 @@ npm run preview
 ## Architecture
 
 ```text
-React HUD + GSAP timeline
+React navigation shell
         |
-Zustand story state ---- React Three Fiber / Three.js scene
+        +---- React HUD + GSAP timeline
+        |            |
+        |     Zustand story state ---- React Three Fiber / Three.js scene
         |
-Web Worker RPC
-        |
-MoonBit release JS API ---- examples/valid-pack
-        |
-Integrated Trust Workbench ---- six operational browser tools
+        +---- Native React Evidence Workbench ---- six operational tools
+                         |
+                  shared Web Worker RPC
+                         |
+               12 MoonBit release JS APIs ---- examples/valid-pack
 ```
 
-The worker boundary keeps MoonBit computation away from rendering and makes
-the UI responsive while hashes, Merkle trees, verification reports, and
-signature checks are produced.
+The single worker boundary keeps MoonBit computation away from rendering and
+makes the UI responsive while hashes, Merkle trees, verification reports, and
+signature checks are produced. The same worker serves both the 3D story and
+all six workbench tools.
 
 ## Quality Checks
 

@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MoonEvidence · Trust Workbench</title>
+<script>if (new URLSearchParams(location.search).get("embedded") === "1") document.documentElement.classList.add("embedded");</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='%236e40c9'/%3E%3Cpath d='M5 8.2l2 2 4-4.4' stroke='%23fff' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
 <style>
   :root {
@@ -89,6 +90,36 @@
   .topbar nav button:hover { background: var(--accent-light); color: var(--accent); }
   .topbar nav button.active { background: var(--accent); color: #fff; }
   .topbar .meta { color: var(--muted); font-size: 12px; }
+  html.embedded {
+    color-scheme: dark;
+    --bg: #0b0e12;
+    --card: #12171d;
+    --ink: #eef2f5;
+    --muted: #99a5b1;
+    --line: #303944;
+    --accent: #36c2d9;
+    --accent-light: #132d33;
+    --ok: #57c47d;
+    --ok-bg: #10271a;
+    --fail: #ef6f6f;
+    --fail-bg: #2b1316;
+    --warn: #e2aa3a;
+    --warn-bg: #2b230f;
+    --info: #54b9e8;
+    --info-bg: #102532;
+  }
+  html.embedded .topbar { min-height: 54px; padding: 9px 18px; }
+  html.embedded .topbar .logo,
+  html.embedded .topbar .meta { display: none; }
+  html.embedded .topbar nav {
+    justify-content: center;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+  html.embedded .view { max-width: 1440px; }
+  html.embedded .card { border-radius: 6px; }
+  html.embedded .topbar nav button.active { color: #071014; }
+  html.embedded footer { display: none; }
 
   .view { display: none; padding: 24px; max-width: 1280px; margin: 0 auto; }
   .view.active { display: block; }
@@ -136,6 +167,12 @@
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
   @media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+  @media (max-width: 768px) {
+    html.embedded .topbar { padding: 7px 10px; }
+    html.embedded .topbar nav { justify-content: flex-start; }
+    html.embedded .topbar nav button { flex: 0 0 auto; padding: 6px 10px; }
+    html.embedded .view { padding: 14px; }
+  }
 
   .result-box {
     padding: 12px 16px;
@@ -340,7 +377,7 @@
       <h2 style="margin:0">篡改实验室</h2>
       <a href="tamper-lab.html" target="_blank" style="color:var(--accent);font-size:13px">在新标签打开完整版 →</a>
     </div>
-    <iframe src="tamper-lab.html" style="width:100%;height:calc(100vh - 200px);border:none;display:block"></iframe>
+    <iframe src="tamper-lab.html?embedded=1" style="width:100%;height:calc(100vh - 200px);border:none;display:block"></iframe>
   </div>
 </div>
 

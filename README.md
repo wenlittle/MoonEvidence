@@ -60,8 +60,10 @@ npm run dev
 
 Auto, inspect, and challenge modes let a reviewer play the story, pause on a
 node, or locate the modified byte and follow its effect through the final
-`E2003` rejection. See [`showcase/README.md`](showcase/README.md) for the
-architecture and production build commands.
+`E2003` rejection. The observatory is the public home view; the adjacent
+Evidence Workbench opens the six operational browser tools without leaving the
+site. See [`showcase/README.md`](showcase/README.md) for the architecture and
+production build commands.
 
 ## Features
 

@@ -1,5 +1,4 @@
 import {
-  Activity,
   BadgeCheck,
   Braces,
   ChevronLeft,
@@ -10,12 +9,16 @@ import {
   Pause,
   Play,
   RefreshCw,
+  Orbit,
   ScanSearch,
   ShieldCheck,
+  Wrench,
 } from "lucide-react";
 import { useMemo } from "react";
 import { useStoryStore } from "../store";
 import { LAST_STAGE, STORY_STAGES, type EvidenceScenario, type StoryMode } from "../types";
+
+export type SiteSurface = "observatory" | "workbench";
 
 function shortHash(value: string, length = 16): string {
   const clean = value.includes(":") ? value.split(":")[1] : value;
@@ -28,9 +31,16 @@ function modeLabel(mode: StoryMode): string {
   return "篡改挑战";
 }
 
-function TopBar() {
+function TopBar({
+  surface,
+  setSurface,
+}: {
+  surface: SiteSurface;
+  setSurface: (surface: SiteSurface) => void;
+}) {
   const mode = useStoryStore((state) => state.mode);
   const setMode = useStoryStore((state) => state.setMode);
+  const setPlaying = useStoryStore((state) => state.setPlaying);
   const modes: { value: StoryMode; label: string }[] = [
     { value: "auto", label: "自动" },
     { value: "inspect", label: "检查" },
@@ -38,33 +48,58 @@ function TopBar() {
   ];
 
   return (
-    <header className="topbar">
+    <header className={`topbar topbar-${surface}`}>
       <div className="brand-lockup">
         <div className="brand-mark" aria-hidden="true">
           <ShieldCheck size={22} strokeWidth={1.8} />
         </div>
         <div>
           <strong>MoonEvidence</strong>
-          <span>Trust Observatory</span>
+          <span><i className="core-live-dot" /> MoonBit core live</span>
         </div>
       </div>
-      <div className="runtime-status">
-        <Activity size={15} aria-hidden="true" />
-        <span>MoonBit core live</span>
+      <div className="surface-nav" aria-label="产品页面">
+        <button
+          type="button"
+          className={surface === "observatory" ? "active" : ""}
+          onClick={() => setSurface("observatory")}
+          aria-pressed={surface === "observatory"}
+          title="观测首页"
+        >
+          <Orbit size={15} />
+          <span>观测首页</span>
+        </button>
+        <button
+          type="button"
+          className={surface === "workbench" ? "active" : ""}
+          onClick={() => {
+            setPlaying(false);
+            setSurface("workbench");
+          }}
+          aria-pressed={surface === "workbench"}
+          title="证据工作台"
+        >
+          <Wrench size={15} />
+          <span>证据工作台</span>
+        </button>
       </div>
-      <div className="mode-control" aria-label="演示模式">
-        {modes.map((item) => (
-          <button
-            key={item.value}
-            type="button"
-            className={mode === item.value ? "active" : ""}
-            onClick={() => setMode(item.value)}
-            aria-pressed={mode === item.value}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
+      {surface === "observatory" ? (
+        <div className="mode-control" aria-label="演示模式">
+          {modes.map((item) => (
+            <button
+              key={item.value}
+              type="button"
+              className={mode === item.value ? "active" : ""}
+              onClick={() => setMode(item.value)}
+              aria-pressed={mode === item.value}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="topbar-spacer" />
+      )}
     </header>
   );
 }
@@ -301,22 +336,30 @@ function TimelineControls({
 
 export function Hud({
   scenario,
+  surface,
+  setSurface,
   seek,
   step,
   restart,
 }: {
   scenario: EvidenceScenario;
+  surface: SiteSurface;
+  setSurface: (surface: SiteSurface) => void;
   seek: (value: number) => void;
   step: (direction: -1 | 1) => void;
   restart: () => void;
 }) {
   return (
     <div className="hud-root">
-      <TopBar />
-      <StagePanel scenario={scenario} />
-      <EvidenceTelemetry scenario={scenario} />
-      <ChallengePanel scenario={scenario} />
-      <TimelineControls seek={seek} step={step} restart={restart} />
+      <TopBar surface={surface} setSurface={setSurface} />
+      {surface === "observatory" && (
+        <>
+          <StagePanel scenario={scenario} />
+          <EvidenceTelemetry scenario={scenario} />
+          <ChallengePanel scenario={scenario} />
+          <TimelineControls seek={seek} step={step} restart={restart} />
+        </>
+      )}
     </div>
   );
 }

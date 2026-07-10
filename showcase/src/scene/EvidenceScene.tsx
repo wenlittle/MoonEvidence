@@ -51,8 +51,8 @@ function NodeBlock({
   eyebrow,
   label,
   detail,
-  width = 1.34,
-  height = 0.62,
+  width = 1.16,
+  height = 0.56,
   selected = false,
   dimmed = false,
   onClick,
@@ -61,7 +61,7 @@ function NodeBlock({
   const { size } = useThree();
   const [hovered, setHovered] = useState(false);
   const visibility = stageVisibility(progress, appearAt);
-  const responsiveScale = size.width < 720 ? 0.46 : 1;
+  const responsiveScale = size.width < 720 ? 0.52 : size.height < 680 ? 0.92 : 1;
 
   useFrame((state, delta) => {
     if (!group.current) return;
@@ -244,11 +244,13 @@ function CameraRig({ progress }: { progress: number }) {
   const { camera, size } = useThree();
   useFrame((_, delta) => {
     const mobile = size.width < 760;
+    const compactHeight = !mobile && size.height < 680;
     const split = stageVisibility(progress, 6);
     const target = new THREE.Vector3(
       split * 0.45,
-      mobile ? 0.2 : split * -0.1,
-      (mobile ? 17.8 : 12.6) + split * (mobile ? 1.3 : 1.1),
+      mobile ? 0.2 : compactHeight ? 0.15 : split * -0.1,
+      (mobile ? 17.8 : compactHeight ? 9.8 : 12.6) +
+        split * (mobile ? 1.3 : compactHeight ? 0.8 : 1.1),
     );
     camera.position.lerp(target, 1 - Math.exp(-2.8 * delta));
     camera.lookAt(0, mobile ? -0.2 : 0, 0);
@@ -270,10 +272,13 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
   const tamperedRoot = scenario.tamperedTree.root.actual;
   const signature = scenario.signature;
   const mobile = size.width < 720;
+  const compactHeight = !mobile && size.height < 680;
   const xScale = mobile ? 0.42 : 1;
-  const yOffset = mobile ? -0.82 : -0.68;
-  const x = (value: number) => value * xScale;
-  const y = (value: number) => value + yOffset;
+  const yScale = compactHeight ? 0.7 : 1;
+  const xOffset = compactHeight ? 1.05 : 0;
+  const yOffset = mobile ? -0.82 : compactHeight ? -0.5 : -0.68;
+  const x = (value: number) => value * xScale + xOffset;
+  const y = (value: number) => value * yScale + yOffset;
 
   const filePositions: Vec3[] = [
     [x(-5.25), y(0.72 + originalOffset), 0],
@@ -337,7 +342,7 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
       })}
 
       <NodeBlock
-        position={[x(-5.25), y(-2.1 + originalOffset), 0]}
+        position={[x(-5.25), y(-2.1 + originalOffset + split * 0.55), 0]}
         appearAt={1}
         progress={progress}
         color={COLORS.amber}
@@ -353,9 +358,9 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
           position={digestPositions[index] ?? digestPositions[0]}
           appearAt={2}
           progress={progress}
-          color={COLORS.cyan}
-          eyebrow="SHA-256"
-          label={`digest ${index + 1}`}
+            color={COLORS.cyan}
+            eyebrow="SHA-256"
+            label={`摘要 ${index + 1}`}
           detail={shortHash(file.originalDigest)}
         />
       ))}
@@ -368,7 +373,7 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
           progress={progress}
           color={COLORS.green}
           eyebrow={`LEAF ${index}`}
-          label="canonical entry"
+          label="规范条目"
           detail={shortHash(hash)}
         />
       ))}
@@ -379,10 +384,10 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
         progress={progress}
         color={COLORS.green}
         eyebrow="MERKLE ROOT"
-        label="trusted root"
+        label="可信根"
         detail={shortHash(originalRoot)}
-        width={1.48}
-        height={0.7}
+        width={1.28}
+        height={0.64}
       />
 
       <NodeBlock
@@ -391,9 +396,9 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
         progress={progress}
         color={COLORS.amber}
         eyebrow="ED25519"
-        label="signature valid"
+        label="签名有效"
         detail={shortHash(signature)}
-        width={1.52}
+        width={1.3}
       />
 
       <HexSeal
@@ -496,7 +501,7 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
                 progress={progress}
                 color={changed ? COLORS.red : COLORS.muted}
                 eyebrow="SHA-256"
-                label={changed ? "digest diverged" : "digest stable"}
+                label={changed ? "摘要分叉" : "摘要稳定"}
                 detail={shortHash(file.tamperedDigest)}
                 dimmed={!changed}
               />
@@ -512,7 +517,7 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
                 progress={progress}
                 color={changed ? COLORS.red : COLORS.muted}
                 eyebrow={`LEAF ${index}`}
-                label={changed ? "leaf diverged" : "leaf stable"}
+                label={changed ? "叶子分叉" : "叶子稳定"}
                 detail={shortHash(hash)}
                 dimmed={!changed}
               />
@@ -524,10 +529,10 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
             progress={progress}
             color={COLORS.red}
             eyebrow="MERKLE ROOT"
-            label="root mismatch"
+            label="根不匹配"
             detail={shortHash(tamperedRoot)}
-            width={1.48}
-            height={0.7}
+            width={1.28}
+            height={0.64}
           />
           <NodeBlock
             position={tamperedSignaturePosition}
@@ -535,9 +540,9 @@ function TrustGraph({ scenario, progress }: { scenario: EvidenceScenario; progre
             progress={progress}
             color={COLORS.red}
             eyebrow="ED25519"
-            label="signature rejected"
+            label="签名拒绝"
             detail={shortHash(signature)}
-            width={1.52}
+            width={1.3}
           />
           <HexSeal
             position={tamperedAnchorPosition}

@@ -16,6 +16,8 @@ used by the CLI.
 - **Inspect** pauses the timeline for direct evidence-node inspection.
 - **Challenge** asks the reviewer to locate the modified file and reveals the
   complete rejection path.
+- **Evidence Workbench** switches from the visual home view into the existing
+  verify, create, proof, audit, signature, and tamper-lab tools in one site.
 
 All processing stays in the browser. The app has no backend.
 
@@ -50,6 +52,8 @@ Zustand story state ---- React Three Fiber / Three.js scene
 Web Worker RPC
         |
 MoonBit release JS API ---- examples/valid-pack
+        |
+Integrated Trust Workbench ---- six operational browser tools
 ```
 
 The worker boundary keeps MoonBit computation away from rendering and makes

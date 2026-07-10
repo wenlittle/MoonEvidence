@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MoonEvidence · Tamper Lab（篡改实验台）</title>
+<script>if (new URLSearchParams(location.search).get("embedded") === "1") document.documentElement.classList.add("embedded");</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='%23cf222e'/%3E%3Cpath d='M5 8.2l2 2 4-4.4' stroke='%23fff' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
 <style>
   :root {
@@ -27,6 +28,25 @@
     --node-added: #1a7f37;
     --mono: ui-monospace, "Cascadia Code", "JetBrains Mono", Consolas, monospace;
     --sans: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  html.embedded {
+    color-scheme: dark;
+    --bg: #0b0e12;
+    --card: #12171d;
+    --ink: #eef2f5;
+    --muted: #99a5b1;
+    --line: #303944;
+    --accent: #36c2d9;
+    --ok: #57c47d;
+    --ok-bg: #10271a;
+    --fail: #ef6f6f;
+    --fail-bg: #2b1316;
+    --warn: #e2aa3a;
+    --warn-bg: #2b230f;
+    --node: #151b22;
+    --node-border: #3b4652;
+    --node-untouched: #11161c;
+    --node-added: #57c47d;
   }
   * { box-sizing: border-box; }
   body {
@@ -127,6 +147,13 @@
     border-bottom: 1px solid var(--line);
   }
   .panel .body { padding: 14px 16px; max-height: 600px; overflow-y: auto; }
+  html.embedded .wrap { max-width: 1440px; padding-top: 18px; }
+  html.embedded header h1 .tag { background: #132d33; border-color: #28505a; }
+  html.embedded .toolbar select,
+  html.embedded .toolbar button { background: #151a20; }
+  html.embedded .panel { border-radius: 6px; }
+  html.embedded .panel h2 { background: #171d24; }
+  html.embedded footer { display: none; }
 
   /* Left: file list */
   .file-list .item {

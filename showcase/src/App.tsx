@@ -1,12 +1,14 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { EvidenceScene } from "./scene/EvidenceScene";
-import { Hud } from "./components/Hud";
+import { Hud, type SiteSurface } from "./components/Hud";
 import { buildEvidenceScenario } from "./moon-rpc";
 import { useStoryStore } from "./store";
 import { useStoryTimeline } from "./story/useStoryTimeline";
 import { LoaderCircle, ShieldAlert } from "lucide-react";
 
 export default function App() {
+  const [surface, setSurface] = useState<SiteSurface>("observatory");
+  const [workbenchMounted, setWorkbenchMounted] = useState(false);
   const scenario = useStoryStore((state) => state.scenario);
   const loading = useStoryStore((state) => state.loading);
   const loadError = useStoryStore((state) => state.loadError);
@@ -14,6 +16,11 @@ export default function App() {
   const setScenario = useStoryStore((state) => state.setScenario);
   const setLoadError = useStoryStore((state) => state.setLoadError);
   const controls = useStoryTimeline(Boolean(scenario));
+
+  const changeSurface = (nextSurface: SiteSurface) => {
+    if (nextSurface === "workbench") setWorkbenchMounted(true);
+    setSurface(nextSurface);
+  };
 
   useEffect(() => {
     let active = true;
@@ -51,8 +58,24 @@ export default function App() {
 
   return (
     <main className="app-shell">
-      <EvidenceScene scenario={scenario} progress={progress} />
-      <Hud scenario={scenario} {...controls} />
+      {surface === "observatory" ? (
+        <EvidenceScene scenario={scenario} progress={progress} />
+      ) : null}
+      {workbenchMounted && (
+        <section
+          className={`workbench-shell${surface === "workbench" ? " active" : ""}`}
+          aria-label="MoonEvidence 证据工作台"
+          aria-hidden={surface !== "workbench"}
+        >
+          <iframe src="./demo/web/index.html?embedded=1" title="MoonEvidence Trust Workbench" />
+        </section>
+      )}
+      <Hud
+        scenario={scenario}
+        surface={surface}
+        setSurface={changeSurface}
+        {...controls}
+      />
     </main>
   );
 }

@@ -490,21 +490,21 @@ textarea:focus-visible {
   background: var(--green);
 }
 
-.scene-label {
+.story-node-label {
   display: grid;
-  grid-template-rows: 16px 24px 18px;
+  grid-template-rows: 15px 24px 17px;
   align-items: center;
-  padding: 4px 9px;
+  padding: 4px 10px;
   color: #eef1ed;
   text-align: left;
-  text-shadow: 0 2px 8px #000;
+  text-shadow: 0 1px 6px #000;
   pointer-events: none;
   user-select: none;
 }
 
-.scene-label strong,
-.scene-label code,
-.scene-eyebrow {
+.story-node-label span,
+.story-node-label strong,
+.story-node-label small {
   min-width: 0;
   display: block;
   overflow: hidden;
@@ -512,25 +512,27 @@ textarea:focus-visible {
   white-space: nowrap;
 }
 
-.scene-eyebrow {
-  color: #9ca79e;
-  font-size: 10px;
+.story-node-label span {
+  font-size: 11px;
   font-weight: 700;
 }
 
-.scene-label strong {
-  font-size: 14px;
-  font-weight: 680;
+.story-node-label strong {
+  font-size: 16px;
+  font-weight: 700;
 }
 
-.scene-label code {
+.story-node-label small {
   color: #aeb7b0;
-  font-family: inherit;
-  font-size: 10px;
+  font-size: 12px;
 }
 
-.seal-label {
-  width: 142px;
+.story-node-label.muted {
+  opacity: 0.56;
+}
+
+.story-seal-label {
+  width: 136px;
   color: #eef2ed;
   text-align: center;
   text-shadow: 0 2px 9px #000;
@@ -538,42 +540,19 @@ textarea:focus-visible {
   user-select: none;
 }
 
-.seal-label strong,
-.seal-label code {
+.story-seal-label strong,
+.story-seal-label span {
   display: block;
 }
 
-.seal-label strong {
-  font-size: 14px;
+.story-seal-label strong {
+  font-size: 16px;
 }
 
-.seal-label code {
+.story-seal-label span {
   margin-top: 5px;
   color: #b1bab2;
-  font-family: inherit;
-  font-size: 10px;
-}
-
-.lane-label {
-  min-width: 142px;
-  padding: 7px 11px;
-  border-radius: 4px;
-  background: rgba(10, 13, 11, 0.9);
   font-size: 12px;
-  font-weight: 700;
-  text-align: center;
-  white-space: nowrap;
-  pointer-events: none;
-}
-
-.lane-label-valid {
-  color: #8de393;
-  border: 1px solid rgba(89, 199, 95, 0.55);
-}
-
-.lane-label-tampered {
-  color: #f08b8b;
-  border: 1px solid rgba(223, 100, 100, 0.58);
 }
 
 .home-closing {
@@ -954,22 +933,6 @@ textarea:focus-visible {
   .mobile-flow-arrow.bad {
     color: #df6464;
   }
-
-  .scene-label {
-    grid-template-rows: 21px;
-    padding: 2px 6px;
-  }
-
-  .scene-eyebrow,
-  .scene-label code {
-    display: none;
-  }
-
-  .scene-label strong { font-size: 12px; }
-  .lane-label { display: none; }
-  .seal-label { width: 112px; }
-  .seal-label strong { font-size: 12px; }
-  .seal-label code { font-size: 10px; }
 
   .home-closing {
     min-height: 78vh;

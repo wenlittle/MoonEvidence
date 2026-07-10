@@ -143,7 +143,11 @@ export function HomePage({
 
       <section className="story-rail" ref={storyRail} aria-label="MoonEvidence 工作原理">
         <div className="story-sticky">
-          <EvidenceScene scenario={scenario} progress={narrative.progress} />
+          <EvidenceScene
+            scenario={scenario}
+            chapter={narrative.chapter}
+            progress={narrative.chapterProgress}
+          />
           <MobileStoryVisual chapter={narrative.chapter} />
           <article className="story-copy" key={chapter.number}>
             <span className="story-number">{chapter.number} / 04</span>

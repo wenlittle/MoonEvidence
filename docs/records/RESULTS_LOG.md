@@ -1816,6 +1816,29 @@ assurance with stale privacy and crypto wording.
 | `node tools/smoke-api.mjs` | PASS: 34/34 API assertions |
 | `node tools/check-package-contents.mjs` / `node tools/check-metrics.mjs` | PASS: 230 packaged files checked and 20/20 metric assertions |
 
+## 2026-07-10 Asia/Shanghai (scroll narrative visual refinement)
+
+### Changes
+
+| Area | Result |
+| --- | --- |
+| Chapter composition | Replaced the cumulative evidence graph with four independent scenes so each scroll chapter presents one readable claim instead of retaining every prior node |
+| Motion model | Added chapter-local reveal progress, drawn connection paths, moving data packets, restrained card drift, and distinct credential/rejection seals |
+| Visual hierarchy | Moved labels fully inside dark instrument-style nodes, added restrained edge/accent treatment, reduced label scale, and enlarged the useful diagram area without crossing the narrative copy |
+| Responsive framing | Repositioned left and right nodes for desktop and short-wide screens; retained the purpose-built compact mobile flow below 720 px |
+
+### Verification
+
+| Command / flow | Result |
+| --- | --- |
+| `npm run check` / `npm run build` in `showcase/` | PASS; TypeScript clean and production Vite bundle generated |
+| In-app browser, 1600x720 | PASS: all four completed chapter states have zero label-to-label overlap, zero horizontal overflow, and no viewport clipping |
+| In-app browser, 2048x665 | PASS: byte-change fork remains fully framed on a short-wide screen with no horizontal overflow |
+| In-app browser, 390x844 | PASS: hero and compact third chapter fit with zero horizontal overflow; narrative copy ends at y=240 and the visual begins at y=350 |
+| Canvas screenshot check | PASS: desktop scene contains 72,230 colored pixels; two frames 700 ms apart changed 47,164 of 705,157 sampled scene pixels, confirming a nonblank and moving render |
+| Console note | Zero application exceptions; React Three Fiber continues to emit the previously recorded upstream `THREE.Clock` deprecation warning with Three r185 |
+| `git diff --check` | PASS |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

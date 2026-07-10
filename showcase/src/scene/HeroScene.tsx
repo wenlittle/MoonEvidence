@@ -71,15 +71,20 @@ function DocumentSlab({
   );
 }
 
-function FlowPulse({ from, to, offset }: { from: Vec3; to: Vec3; offset: number }) {
+function FlowPulse({ from, via, to, offset }: { from: Vec3; via: Vec3; to: Vec3; offset: number }) {
   const mesh = useRef<THREE.Mesh>(null);
   const start = useMemo(() => new THREE.Vector3(...from), [from]);
+  const corner = useMemo(() => new THREE.Vector3(...via), [via]);
   const end = useMemo(() => new THREE.Vector3(...to), [to]);
 
   useFrame((state) => {
     if (!mesh.current) return;
     const t = (state.clock.elapsedTime * 0.12 + offset) % 1;
-    mesh.current.position.lerpVectors(start, end, t);
+    if (t < 0.55) {
+      mesh.current.position.lerpVectors(start, corner, t / 0.55);
+    } else {
+      mesh.current.position.lerpVectors(corner, end, (t - 0.55) / 0.45);
+    }
   });
 
   return (
@@ -149,12 +154,15 @@ function HeroComposition({ scenario }: { scenario: EvidenceScenario }) {
           phase={index * 1.7}
         />
       ))}
-      {positions.map((position, index) => (
-        <group key={`flow-${labels[index]}`}>
-          <Line points={[position, sealPosition]} color={index === 2 ? HERO_COLORS.red : HERO_COLORS.line} lineWidth={1.1} transparent opacity={0.72} />
-          {index < 2 && <FlowPulse from={position} to={sealPosition} offset={index * 0.31} />}
-        </group>
-      ))}
+      {positions.map((position, index) => {
+        const via: Vec3 = [position[0] * 0.76, sealPosition[1], -0.1];
+        return (
+          <group key={`flow-${labels[index]}`}>
+            <Line points={[position, via, sealPosition]} color={index === 2 ? HERO_COLORS.red : HERO_COLORS.line} lineWidth={1.1} transparent opacity={0.72} />
+            {index < 2 && <FlowPulse from={position} via={via} to={sealPosition} offset={index * 0.31} />}
+          </group>
+        );
+      })}
       <EvidenceSeal position={sealPosition} />
     </group>
   );

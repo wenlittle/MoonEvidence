@@ -24,6 +24,7 @@ moon-evidence/
     DEVELOPMENT_REPORT.md
     ENVIRONMENT.md
     GUIDE.md
+    KNOWLEDGE_BASE.md             # current handoff map; authoritative details stay in specs and records
     PROJECT_INDEX.md
     ROADMAP.md
     STRUCTURE_TREE.md
@@ -42,6 +43,7 @@ moon-evidence/
     records/
       ACCEPTANCE_CHECKLIST.md
       DECISION_LOG.md
+      KNOWLEDGE_BASE_2026-07-07.md # historical pre-restructure notebook
       RESULTS_LOG.md
       fabric-e2e/
         2026-07-11/             # sanitized real Fabric receipts and backfeed results
@@ -261,11 +263,11 @@ moon-evidence/
 
 - **核心包（零 IO）**：`canonjson` / `digest` / `merkle` / `model` / `verify` / `diag`
 - **扩展包**：`create`（证据包创建）/ `store`（内容寻址存储）/ `audit`（审计日志）/ `crypto`（Ed25519 签名）
-- **适配器**：`cmd/main`（native CLI）/ `api`（浏览器 ESM）
+- **适配器**：`cmd/main`（JS/native CLI）/ `api`（浏览器 ESM）
 - **实验工具包**：`timing`（native-only Ed25519 verify/sign timing evidence，不作为产品 API）
 
 `integrations/fabric/` 是公开源码仓库中的可选跨系统适配器：Go Chaincode
-保存不可变 manifest 摘要，TypeScript Gateway 负责提交、查询和把链上摘要
+按 v1 规则保存首笔 manifest 摘要，TypeScript Gateway 负责提交、查询和把链上摘要
 回灌 MoonBit CLI。它与根 `package.json` 均被 `moon.mod` 和包内容门禁排除，
 不会把 Go/Node 依赖带入 Mooncakes 库包。
 

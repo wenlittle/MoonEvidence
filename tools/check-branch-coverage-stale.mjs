@@ -6,6 +6,7 @@
 // map is correct; it forces an explicit review at the point where drift starts.
 
 import { execFileSync } from "child_process";
+import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 
@@ -29,6 +30,18 @@ const AUDITED_SOURCE_FILES = new Set([
   "src/store/object_store.mbt",
   "src/audit/audit_log.mbt",
   "src/api/api.mbt",
+  "src/cmd/main/main.mbt",
+  "integrations/fabric/chaincode-go/chaincode/anchor_contract.go",
+  "integrations/fabric/chaincode-go/main.go",
+  "integrations/fabric/gateway/src/anchor.ts",
+  "integrations/fabric/gateway/src/cli.ts",
+  "integrations/fabric/gateway/src/digest.ts",
+  "integrations/fabric/gateway/src/errors.ts",
+  "integrations/fabric/gateway/src/gateway.ts",
+  "integrations/fabric/gateway/src/index.ts",
+  "integrations/fabric/gateway/src/moon-cli.ts",
+  "integrations/fabric/gateway/src/profile.ts",
+  "integrations/fabric/gateway/src/types.ts",
 ]);
 
 function normalizePath(path) {
@@ -88,11 +101,57 @@ function evaluateChangedFiles(changedFiles) {
   };
 }
 
+function evaluateCoverageMap(source) {
+  const ids = [...source.matchAll(/^\| ([A-Z]+-\d+) \|/gm)].map((match) => match[1]);
+  const duplicateIds = [...new Set(ids.filter((id, index) => ids.indexOf(id) !== index))];
+  const gapIds = [...source.matchAll(/^\| ([A-Z]+-\d+) \|.*\| `gap` \|/gm)].map((match) => match[1]);
+  const declaredMatch = source.match(/current map contains (\d+) audited invariants/);
+  const declaredCount = declaredMatch ? Number.parseInt(declaredMatch[1], 10) : undefined;
+  return {
+    ids,
+    duplicateIds,
+    gapIds,
+    declaredCount,
+    ok:
+      ids.length > 0 &&
+      duplicateIds.length === 0 &&
+      gapIds.length === 0 &&
+      declaredCount === ids.length,
+  };
+}
+
+function validateCoverageMap() {
+  const source = readFileSync(join(repoRoot, COVERAGE_FILE), "utf8");
+  const result = evaluateCoverageMap(source);
+  if (result.ids.length === 0) throw new Error("branch coverage map contains no invariant rows");
+  if (result.duplicateIds.length > 0) {
+    throw new Error(`branch coverage map has duplicate IDs: ${result.duplicateIds.join(", ")}`);
+  }
+  if (result.gapIds.length > 0) {
+    throw new Error(`branch coverage map has open gaps: ${result.gapIds.join(", ")}`);
+  }
+  if (result.declaredCount === undefined) {
+    throw new Error("branch coverage map is missing its declared invariant count");
+  }
+  if (result.declaredCount !== result.ids.length) {
+    throw new Error(
+      `branch coverage map count drift: declares ${result.declaredCount}, contains ${result.ids.length}`,
+    );
+  }
+  return result;
+}
+
 function runSelfTest() {
   const cases = [
     { name: "no audited source", files: ["README.md"], ok: true },
     { name: "audited source with coverage doc", files: ["src/verify/verify.mbt", COVERAGE_FILE], ok: true },
     { name: "audited source without coverage doc", files: ["src/api/api.mbt"], ok: false },
+    { name: "CLI source without coverage doc", files: ["src/cmd/main/main.mbt"], ok: false },
+    {
+      name: "Fabric source with coverage doc",
+      files: ["integrations/fabric/gateway/src/gateway.ts", COVERAGE_FILE],
+      ok: true,
+    },
   ];
   let failed = 0;
   for (const tc of cases) {
@@ -102,12 +161,45 @@ function runSelfTest() {
       failed++;
     }
   }
+  const mapCases = [
+    {
+      name: "valid coverage map",
+      source:
+        "The current map contains 2 audited invariants.\n| V-01 | branch | `covered` |\n| V-02 | branch | `accepted-risk` |",
+      ok: true,
+    },
+    {
+      name: "duplicate coverage ID",
+      source:
+        "The current map contains 2 audited invariants.\n| V-01 | branch | `covered` |\n| V-01 | branch | `covered` |",
+      ok: false,
+    },
+    {
+      name: "open coverage gap",
+      source: "The current map contains 1 audited invariants.\n| V-01 | branch | `gap` |",
+      ok: false,
+    },
+    {
+      name: "coverage count drift",
+      source: "The current map contains 2 audited invariants.\n| V-01 | branch | `covered` |",
+      ok: false,
+    },
+  ];
+  for (const tc of mapCases) {
+    const got = evaluateCoverageMap(tc.source).ok;
+    if (got !== tc.ok) {
+      console.error(`FAIL self-test ${tc.name}: got ${got}, expected ${tc.ok}`);
+      failed++;
+    }
+  }
   if (failed > 0) process.exit(1);
-  console.log(`branch coverage stale-check self-test passed (${cases.length}/${cases.length})`);
+  const total = cases.length + mapCases.length;
+  console.log(`branch coverage stale-check self-test passed (${total}/${total})`);
 }
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
+  const map = validateCoverageMap();
   if (args.selfTest) {
     runSelfTest();
     return;
@@ -129,6 +221,7 @@ function main() {
       `Branch coverage stale-check passed: ${result.touchedAuditedSources.length} audited source file(s) changed and ${COVERAGE_FILE} was updated.`,
     );
   }
+  console.log(`Branch coverage map integrity passed: ${map.ids.length} invariants, 0 open gaps.`);
 }
 
 main();

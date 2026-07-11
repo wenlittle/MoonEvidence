@@ -1,8 +1,9 @@
 # Branch Coverage Audit
 
-> Last updated: 2026-07-06 Asia/Shanghai. Scope covered so far:
+> Last updated: 2026-07-11 Asia/Shanghai. Scope covered so far:
 > `verify`, `incremental`, `merkle`, `digest`, `crypto`, `create`, `store`,
-> `audit`, and public `api` adapter trust boundaries.
+> `audit`, public `api`, the CLI machine adapter, and the Fabric adapter trust
+> boundaries.
 
 MoonBit does not currently give this repository a mature line/branch coverage
 report, so this file is the manual substitute. It records the security-relevant
@@ -31,12 +32,15 @@ Status vocabulary:
 | `create` | 12 | 0 | Direct/oracle coverage for manifest creation validation, ordering, empty roots, SHA-512, and tamper detection; defensive fallbacks recorded. |
 | `store` | 16 | 0 | Direct/oracle coverage for content-addressed storage, dedup stats, integrity rejection, strict and lenient reconstruction. |
 | `audit` | 24 | 0 | Direct coverage for hash-chain validation, signing, signature rejection, JSON round-trip, and parser shape errors. |
-| `api` | 49 | 0 | Direct/fuzz/property/smoke coverage for the public JS string adapter envelope, malformed inputs, closed-loop workflows, and defensive fallbacks. |
+| `api` | 52 | 0 | Direct/fuzz/property/smoke coverage for the public JS string adapter envelope, malformed inputs, closed-loop workflows, external anchors, and defensive fallbacks. |
+| CLI machine adapter | 8 | 0 | PowerShell/bash oracle and black-box coverage for inspect, pack, overwrite, rollback, JSON, and external-anchor contracts. |
+| Fabric adapter | 12 | 0 | Go/TypeScript unit evidence plus real two-organization protocol records for immutable state, receipts, idempotency, and digest backfeed. |
 
-The current audited surface has no open `gap` items. This does not mean the
-whole project is fully covered; it means these trust boundaries now have an
-explicit branch map. `tools/check-branch-coverage-stale.mjs` now gates the map:
-edits to audited source files must touch this file in the same diff.
+The current map contains 217 audited invariants and has no open `gap` items.
+The map gives these trust boundaries an explicit review surface.
+`tools/check-branch-coverage-stale.mjs` gates the registered MoonBit, CLI, Go,
+and TypeScript source files: edits to those files must touch this document in
+the same diff.
 
 Format review 2026-07-06: `moon fmt` mechanically reformatted audited source
 files in `api`, `audit`, `create`, and `store`. Branch conditions, public

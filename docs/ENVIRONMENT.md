@@ -127,7 +127,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\env-check.ps1
 
 | 环境 | 结果 |
 | --- | --- |
-| Windows / MoonBit 2026-05-29 / MSVC 19.44 | native `347/347` |
+| Windows / MoonBit 2026-05-29 / MSVC 19.44 | native `353/353` |
 | Windows / Node.js 24 | JS CLI、浏览器 API、Showcase 和 Gateway 通过 |
 | required CI / Ubuntu | wasm、wasm-gc、js、native 和 Go race 门禁通过 |
 | WSL / Fabric v3.1.4 | 双组织提交、查询、重复和摘要回传完成 |

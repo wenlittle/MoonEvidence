@@ -80,7 +80,7 @@
 
 ### 当前统计
 
-- MoonBit 测试：**351 个声明**（347 可执行 + 4 benchmark wrapper），native、wasm、wasm-gc、js 四后端全绿
+- MoonBit 测试：**357 个声明**（353 可执行 + 4 benchmark wrapper），native、wasm、wasm-gc、js 四后端全绿
 - CLI：PowerShell / bash 各 **68/68**
 - Fabric：Chaincode 82.1% 语句覆盖；Gateway **19/19**；真实 E2E 已留存
 - MoonBit 代码量：**14571** 有效行（实现 6453 + 测试 8118）

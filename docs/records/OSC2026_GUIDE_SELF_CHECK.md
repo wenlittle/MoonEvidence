@@ -22,7 +22,7 @@ mapping, real CLI/browser behavior, and the optional Fabric protocol boundary.
 | Gate | Status | Evidence |
 | --- | --- | --- |
 | Valid MoonBit project | Pass | `moon.mod` declares `starlittle/MoonEvidence` v0.5.0 with Apache-2.0 license and GitHub repository metadata |
-| Standard check/test | Pass | `moon check --deny-warn --target all`; wasm/wasm-gc/js and Windows/MSVC native each passed 347/347 |
+| Standard check/test | Pass | `moon check --deny-warn --target all`; wasm/wasm-gc/js and Windows/MSVC native each passed 353/353 |
 | Public interface drift | Pass | `moon info && git diff --exit-code -- '**/pkg.generated.mbti'` passed locally |
 | Formatting | Pass | `moon fmt --check` passed locally |
 | Packaging | Pass | `moon package` produced `_build/publish/starlittle-MoonEvidence-0.5.0.zip` |
@@ -77,8 +77,8 @@ workflows.
 | Check | Result |
 | --- | --- |
 | `moon update`; `moon check --deny-warn --target all`; `moon fmt --check`; `moon info` interface diff | Pass |
-| `moon test --deny-warn --target wasm,wasm-gc,js` | Pass: 347/347 on each backend |
-| Windows/MSVC `moon test --deny-warn --target native` | Pass: 347/347 |
+| `moon test --deny-warn --target wasm,wasm-gc,js` | Pass: 353/353 on each backend |
+| Windows/MSVC `moon test --deny-warn --target native` | Pass: 353/353 |
 | PowerShell CLI black box, JS and native | Pass: 68/68 per target |
 | Browser adapter and Showcase | API smoke 41/41; TypeScript check and production build pass |
 | Package and document guards | `moon package` pass; 232 files; metrics 44/44; branch audit current |

@@ -199,7 +199,7 @@ export function HomePage({
           </div>
           <div className="closing-proof" aria-label="工程可信信息">
             <span>纯 MoonBit</span>
-            <span>344 项可执行测试</span>
+            <span>353 项可执行测试</span>
             <span>四后端验证</span>
             <span>Apache-2.0</span>
           </div>

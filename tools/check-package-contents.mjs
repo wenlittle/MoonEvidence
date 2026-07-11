@@ -33,7 +33,7 @@ const forbiddenExact = new Set([
 const requiredFiles = [
   "LICENSE",
   "README.md",
-  "README.zh.md",
+  "README.en.md",
   "SECURITY.md",
   "moon.mod",
   "src/api/api.mbt",

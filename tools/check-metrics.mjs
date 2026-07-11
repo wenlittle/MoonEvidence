@@ -12,7 +12,7 @@
 // What it checks:
 //   1. Commit count (git rev-list --count HEAD) matches numbers in docs
 //   2. MoonBit line count (find src -name '*.mbt') matches numbers in docs
-//   3. Declared/executable test counts match public and application docs
+//   3. Declared/executable test counts match public, Showcase, and application docs
 //   4. Package count (find src -name 'moon.pkg') matches numbers in docs
 //   5. moon.mod version matches CHANGELOG latest version
 //   6. CLI_VERSION in the native adapter matches moon.mod version
@@ -167,6 +167,37 @@ const assertions = [
     pattern: /MoonBit source\s*\|\s*\*{2}([\d,]+)\*{2}\s+lines:\s+([\d,]+)\s+implementation\s+\+\s+([\d,]+)\s+tests/,
     expected: { 1: allMbtLines, 2: implOnly, 3: testLines },
     desc: "README.en.md line counts",
+  },
+  // Evaluator-facing Showcase and current runbooks must use the live baseline.
+  {
+    file: "showcase/src/components/HomePage.tsx",
+    pattern: /<span>([\d,]+) 项可执行测试<\/span>/,
+    expected: executableTestCount,
+    desc: "Showcase executable test count",
+  },
+  {
+    file: "docs/DEMO_SCRIPT.md",
+    pattern: /moon test --target wasm-gc,js\s+#\s+([\d,]+)\/[\d,]+ 双后端/,
+    expected: executableTestCount,
+    desc: "DEMO_SCRIPT.md executable test count",
+  },
+  {
+    file: "docs/ROADMAP.md",
+    pattern: /MoonBit 测试：\*\*([\d,]+) 个声明\*\*（([\d,]+) 可执行 \+ ([\d,]+) benchmark wrapper）/,
+    expected: { 1: testCount, 2: executableTestCount, 3: benchmarkWrapperCount },
+    desc: "ROADMAP.md test baseline",
+  },
+  {
+    file: "docs/ENVIRONMENT.md",
+    pattern: /Windows \/ MoonBit 2026-05-29 \/ MSVC 19\.44 \| native `([\d,]+)\/[\d,]+`/,
+    expected: executableTestCount,
+    desc: "ENVIRONMENT.md native test baseline",
+  },
+  {
+    file: "docs/records/OSC2026_GUIDE_SELF_CHECK.md",
+    pattern: /wasm\/wasm-gc\/js and Windows\/MSVC native each passed ([\d,]+)\/[\d,]+/,
+    expected: executableTestCount,
+    desc: "OSC2026 self-check test baseline",
   },
   // DEVELOPMENT_REPORT.md
   {

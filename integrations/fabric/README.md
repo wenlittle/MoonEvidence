@@ -190,7 +190,8 @@ The recorded two-organization experiment used the deterministic `v0.5.1`
 module archive, Fabric v3.1.4 peers/orderer, and chaincode `moonevidence` 1.0
 sequence 1 on `evidencechannel`. It observed:
 
-- a first transaction committed `VALID` in block 14;
+- the downloaded GitHub Release archive passed its published SHA-256 sidecar;
+- its evidence digest committed `VALID` in block 16;
 - Org1 and Org2 returned the same immutable record;
 - an Org2 duplicate preserved the original transaction ID;
 - the original pack passed ledger-backfed verification;

@@ -10,22 +10,25 @@ fixture.
 | Field | Value |
 | --- | --- |
 | Archive | `starlittle-MoonEvidence-0.5.1.zip` |
-| Source commit | `86d9ce49bbf69d587f5dfee46cfa539f7ceb11e6` |
-| Size | 741,180 bytes |
-| Archive SHA-256 | `0c462427fe9f6ed6d1186f018a36bae5175db242c9cabf321a00a909073b7b7d` |
-| Evidence manifest | `sha256:58410f36cc89b40b2decf79895128bf6ed81c545127f1db6d25e5ce1a154ff69` |
-| Merkle root | `sha256:0230021d6f323b62ede761004b0e9ea55f6d6e59eed4f37b8569c956d98108c4` |
+| Release | `https://github.com/wenlittle/MoonEvidence/releases/tag/v0.5.1` |
+| Tag commit | `c59f93a5918f825a893bfac8dc2006f020d02749` |
+| Size | 741,249 bytes |
+| Archive SHA-256 | `ab0dd9b6fcd30ce5ee3fc42a4105dd5e5dc4c245ab69e4c60a41a731897b5bd3` |
+| Evidence manifest | `sha256:564b79c16878c4fac3d50e5b8b61ac4b82207aa01a45b02fb97210a049a53a0d` |
+| Merkle root | `sha256:cd57e042bbe316c55f29bd5789db683f597e883865f57a210d88a11712b4aa77` |
 
-Two consecutive `moon package` runs and a clean rebuild from the release-prep
-commit produced the same 741,180-byte archive and SHA-256 value. The final tag
-workflow builds the same module input; this record is updated only after the
-published Release checksum is compared with the value above.
+The archive and its published SHA-256 sidecar match exactly. The Mooncakes
+`0.5.1` archive has SHA-256
+`0c462427fe9f6ed6d1186f018a36bae5175db242c9cabf321a00a909073b7b7d`.
+Cross-platform extraction found the same 245 entries: 241 were byte-identical,
+and four PowerShell scripts were identical after CRLF/LF normalization. Each
+distribution keeps its own published archive checksum.
 
 ## Ledger Result
 
 Org1 submitted the canonical evidence-manifest digest. Fabric committed the
-transaction as `VALID` in block 14. Org1 and Org2 then returned the same anchor
-record. An Org2 duplicate entered block 15 as `already_anchored` while preserving
+transaction as `VALID` in block 16. Org1 and Org2 then returned the same anchor
+record. An Org2 duplicate entered block 17 as `already_anchored` while preserving
 the original transaction ID.
 
 | Field | Value |
@@ -33,10 +36,10 @@ the original transaction ID.
 | Runtime | Hyperledger Fabric 3.1.4 |
 | Channel | `evidencechannel` |
 | Chaincode | `moonevidence` 1.0, sequence 1 |
-| First transaction | `43c9247f5b078ee7b96b71c99d1befcb7898b8cc9af6158b05f0cc43b497802f` |
-| First block | 14 |
-| Duplicate block | 15 |
-| Channel height after both commits | 16 |
+| First transaction | `f004f179600854ee3faea0e2706c08cf938073d969ccd6434fcca3be48965c2d` |
+| First block | 16 |
+| Duplicate block | 17 |
+| Channel height after both commits | 18 |
 
 ## Backfeed Result
 

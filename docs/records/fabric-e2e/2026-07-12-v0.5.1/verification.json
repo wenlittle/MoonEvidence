@@ -1,9 +1,9 @@
 {
   "schema": "moon-evidence-fabric-release-e2e-verification/v1",
   "ledger_anchor": {
-    "manifest_digest": "sha256:58410f36cc89b40b2decf79895128bf6ed81c545127f1db6d25e5ce1a154ff69",
-    "transaction_id": "43c9247f5b078ee7b96b71c99d1befcb7898b8cc9af6158b05f0cc43b497802f",
-    "block_number": "14",
+    "manifest_digest": "sha256:564b79c16878c4fac3d50e5b8b61ac4b82207aa01a45b02fb97210a049a53a0d",
+    "transaction_id": "f004f179600854ee3faea0e2706c08cf938073d969ccd6434fcca3be48965c2d",
+    "block_number": "16",
     "validation_status": "VALID"
   },
   "original_release_pack": {
@@ -26,12 +26,12 @@
         "code": "E2003",
         "path": "files/starlittle-MoonEvidence-0.5.1.zip.sha256",
         "severity": "error",
-        "message": "digest mismatch, expected sha256:c6211630b4f8923e233971d34bde2c69255a2b420ca0fffe7a96e3de8732910e got sha256:7999898eb9ff7a8e82243441506f25fe250b76e29e6bd26cc14f993ac05e54d7"
+        "message": "digest mismatch, expected sha256:b4e37a57cd1816d5185b95b17780453f8145ed9e20529ce71414b2e2160286c3 got sha256:c3f3e2e36be4380251936781747440da2b33766bcd5bccfeb1922f6c0fc156ad"
       }
     ]
   },
   "checksum_file_changed_manifest_regenerated": {
-    "regenerated_manifest_digest": "sha256:c779ca2c70f8c491cab45690190c366feccff72f7023fbfa4b8631f853e852fb",
+    "regenerated_manifest_digest": "sha256:331572e905de5439f8246cf76d5e8bf0bc8118275fae61eb484291fe00f5c497",
     "ok": false,
     "finding_codes": [
       "E2004"
@@ -41,7 +41,7 @@
         "code": "E2004",
         "path": "manifest",
         "severity": "error",
-        "message": "canonical digest mismatch, expected sha256:58410f36cc89b40b2decf79895128bf6ed81c545127f1db6d25e5ce1a154ff69 got sha256:c779ca2c70f8c491cab45690190c366feccff72f7023fbfa4b8631f853e852fb"
+        "message": "canonical digest mismatch, expected sha256:564b79c16878c4fac3d50e5b8b61ac4b82207aa01a45b02fb97210a049a53a0d got sha256:331572e905de5439f8246cf76d5e8bf0bc8118275fae61eb484291fe00f5c497"
       }
     ]
   }

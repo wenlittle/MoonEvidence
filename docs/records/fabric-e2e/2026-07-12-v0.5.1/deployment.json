@@ -1,21 +1,30 @@
 {
   "schema": "moon-evidence-fabric-release-e2e-deployment/v1",
-  "observed_at": "2026-07-12T04:22:02+08:00",
+  "observed_at": "2026-07-12T04:56:44+08:00",
   "artifact": {
     "name": "starlittle-MoonEvidence-0.5.1.zip",
     "module_version": "0.5.1",
-    "source_commit": "86d9ce49bbf69d587f5dfee46cfa539f7ceb11e6",
+    "release_url": "https://github.com/wenlittle/MoonEvidence/releases/tag/v0.5.1",
+    "tag_commit": "c59f93a5918f825a893bfac8dc2006f020d02749",
+    "size_bytes": 741249,
+    "sha256": "ab0dd9b6fcd30ce5ee3fc42a4105dd5e5dc4c245ab69e4c60a41a731897b5bd3",
+    "sidecar_sha256": "b4e37a57cd1816d5185b95b17780453f8145ed9e20529ce71414b2e2160286c3"
+  },
+  "mooncakes_artifact": {
+    "version": "0.5.1",
     "size_bytes": 741180,
     "sha256": "0c462427fe9f6ed6d1186f018a36bae5175db242c9cabf321a00a909073b7b7d",
-    "deterministic_rebuilds_matched": true
+    "entries": 245,
+    "byte_identical_entries": 241,
+    "line_ending_equivalent_powershell_entries": 4
   },
   "evidence_pack": {
-    "subject_id": "moonevidence-release-v0.5.1",
-    "subject_type": "release-artifact",
+    "subject_id": "moonevidence-github-release-v0.5.1",
+    "subject_type": "github-release-artifact",
     "version_id": "v0.5.1",
     "files_total": 2,
-    "manifest_digest": "sha256:58410f36cc89b40b2decf79895128bf6ed81c545127f1db6d25e5ce1a154ff69",
-    "merkle_root": "sha256:0230021d6f323b62ede761004b0e9ea55f6d6e59eed4f37b8569c956d98108c4"
+    "manifest_digest": "sha256:564b79c16878c4fac3d50e5b8b61ac4b82207aa01a45b02fb97210a049a53a0d",
+    "merkle_root": "sha256:cd57e042bbe316c55f29bd5789db683f597e883865f57a210d88a11712b4aa77"
   },
   "fabric": {
     "runtime_images": "3.1.4",
@@ -31,9 +40,9 @@
       "Org2MSP": true
     },
     "channel_tip": {
-      "height": 16,
-      "current_block_hash_base64": "ZB4tX9qPdoEH3H9y7WmyrnRd7XmxXCpLdQo3keOBUkk=",
-      "previous_block_hash_base64": "SDvnLZyRXVtSDgsiyaktSUmcZgG/T5BJSJXnBuwGEC8=",
+      "height": 18,
+      "current_block_hash_base64": "IWgLRF3S27X04AeNKlOVgyYOcNf3pZYyfhrLUPA6weA=",
+      "previous_block_hash_base64": "sI6wRWZMswUUbp83kxvA/P9esuy4s3cRUmpxaIGx9KE=",
       "org1_org2_equal": true
     }
   },

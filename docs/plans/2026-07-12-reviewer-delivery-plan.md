@@ -26,8 +26,8 @@
 - [x] 扩展 `tools/check-metrics.mjs`，覆盖 Showcase 和当前公开材料。
 - [x] 移除 GitLink 优先展示的兼容跳转页 `README.zh.md`，同步文档索引和包内容门禁。
 - [x] 新增跨平台干净消费者门禁 `tools/smoke-mooncakes-consumer.mjs`，可固定安装任意已发布版本并调用公开 API。
-- [ ] 发布后在干净临时目录固定安装 `0.5.1`，确认创建、验证和篡改拒绝 `2/2` 通过。
-- [ ] 发布 `v0.5.1` Git tag、GitHub Release、GitLink tag 和 Mooncakes 包。
+- [x] 发布后在干净临时目录固定安装 `0.5.1`，确认创建、验证和篡改拒绝 `2/2` 通过。
+- [x] 发布 `v0.5.1` Git tag、GitHub Release、GitLink tag 和 Mooncakes 包。
 
 验收条件：
 
@@ -71,10 +71,10 @@
 
 - [x] 运行 MoonBit 四后端、CLI、浏览器 API、Showcase、Fabric、随机差分和故障注入门禁。
 - [x] 更新 `RESULTS_LOG.md`、验收清单、项目索引、结构树和开发报告中的最终基线。
-- [ ] 检查 Git 工作区只包含本轮预期变更。
-- [ ] 分阶段提交并同步 GitHub、GitLink。
-- [ ] 创建不可移动的 `v0.5.1` 标签并核对发布产物摘要。
-- [ ] 核验 GitHub Actions、GitHub Pages、GitHub Release 和 Mooncakes 的公开结果。
+- [x] 检查 Git 工作区只包含本轮预期变更。
+- [x] 分阶段提交并同步 GitHub、GitLink。
+- [x] 创建不可移动的 `v0.5.1` 标签并核对四个发布产物摘要。
+- [x] 核验 GitHub Actions、GitHub Pages、GitHub Release 和 Mooncakes 的公开结果。
 
 ## 停止清单
 

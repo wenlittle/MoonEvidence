@@ -30,7 +30,7 @@ mapping, real CLI/browser behavior, and the optional Fabric protocol boundary.
 | Mooncakes publication | Pass | `starlittle/MoonEvidence` v0.5.1 is published; version matches `moon.mod` |
 | License and provenance | Pass | Root `LICENSE` is Apache-2.0; the converted Wycheproof corpus records source, version, and Apache-2.0 license; Fabric dependencies are lockfile-pinned and permissively licensed |
 | README and examples | Pass | Bilingual README, `docs/GUIDE.md`, examples, browser workbench, CLI machine contract, and Fabric integration guide describe runnable local and ledger-backed flows |
-| Repository CI | Pass locally and remotely | GitHub `main` run `29147807818` succeeded at `8088147`: `check-test-build`, `fabric-adapters`, and `bench`; Showcase Pages run `29147807822` also succeeded |
+| Repository CI | Pass locally and remotely | GitHub `main` run `29167407855` succeeded at `c59f93a`: `check-test-build`, `fabric-adapters`, and `bench`; Showcase Pages run `29167407849` also succeeded |
 | Declared core function | Pass | Real Fabric v3.1.4 two-organization record proves anchor/query/duplicate/backfeed beyond unit mocks; sanitized tx/block/status and E2003/E2004 results are committed under `docs/records/fabric-e2e/` |
 | Runnable behavior | Pass | JS/native CLI suites passed 68/68 each; browser API smoke passed 41/41; Showcase production build passed; Gateway passed 19/19; clean Mooncakes consumer passed 2/2 |
 | Proposal completion | Pass | The one-page proposal is an A4 single-page PDF; declared canonicalization, digest, Merkle, manifest, Ed25519/store/audit, CLI, browser, multi-backend, and Fabric functions all have implemented evidence |
@@ -83,7 +83,7 @@ workflows.
 | Browser adapter and Showcase | API smoke 41/41; TypeScript check and production build pass |
 | Package and document guards | `moon package` pass; 245 files; metrics 51/51; branch audit current |
 | Fabric adapters | Gateway check/build and 19/19 tests pass; local Go vet and 82.1% coverage pass; latest required CI also passes Go race |
-| Remote repositories and release | GitHub/Gitlink default branch `main`; both v0.5.1 tags point to the release commit; GitHub Release and Mooncakes v0.5.1 available |
+| Remote repositories and release | GitHub/GitLink `v0.5.1` tags and GitHub Release point to `c59f93a`; both default branches contain the same post-release evidence commits; four Release assets and Mooncakes v0.5.1 are public |
 
 ## Remaining External Action
 

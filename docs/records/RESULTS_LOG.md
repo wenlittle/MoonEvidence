@@ -2302,11 +2302,12 @@ deployed protocol and revalidated the Gateway boundary around that record.
 
 | Item | Result |
 | --- | --- |
-| Module artifact | `_build/publish/starlittle-MoonEvidence-0.5.1.zip`, 741,180 bytes, SHA-256 `0c462427fe9f6ed6d1186f018a36bae5175db242c9cabf321a00a909073b7b7d` |
-| Reproducibility | Two consecutive package builds at source commit `86d9ce49bbf69d587f5dfee46cfa539f7ceb11e6` were byte-identical; updating excluded Fabric records did not change the archive |
-| Evidence pack | 2 files; manifest `sha256:58410f36cc89b40b2decf79895128bf6ed81c545127f1db6d25e5ce1a154ff69`; Merkle root `sha256:0230021d6f323b62ede761004b0e9ea55f6d6e59eed4f37b8569c956d98108c4` |
-| Fabric first commit | Org1MSP, block 14, status code 0 / `VALID`, transaction `43c9247f5b078ee7b96b71c99d1befcb7898b8cc9af6158b05f0cc43b497802f` |
-| Cross-organization result | Org1 and Org2 returned the same digest, submitter and first transaction; Org2 duplicate in block 15 preserved the first anchor |
+| GitHub Release | Published from tag commit `c59f93a5918f825a893bfac8dc2006f020d02749`; four assets present; downloaded module archive SHA-256 `ab0dd9b6fcd30ce5ee3fc42a4105dd5e5dc4c245ab69e4c60a41a731897b5bd3`; CLI archive SHA-256 `876b560c315c3ad14e97a9ed35c4d0218f59611cdfb21470072f3f2cea39b786`; both sidecars matched |
+| Mooncakes artifact | `starlittle/MoonEvidence@0.5.1`, 741,180 bytes, SHA-256 `0c462427fe9f6ed6d1186f018a36bae5175db242c9cabf321a00a909073b7b7d` |
+| Cross-platform package equivalence | Both archives contain 245 entries; 241 are byte-identical and four PowerShell scripts match after CRLF/LF normalization |
+| Evidence pack | The downloaded GitHub Release zip and sidecar form a 2-file pack; manifest `sha256:564b79c16878c4fac3d50e5b8b61ac4b82207aa01a45b02fb97210a049a53a0d`; Merkle root `sha256:cd57e042bbe316c55f29bd5789db683f597e883865f57a210d88a11712b4aa77` |
+| Fabric first commit | Org1MSP, block 16, status code 0 / `VALID`, transaction `f004f179600854ee3faea0e2706c08cf938073d969ccd6434fcca3be48965c2d` |
+| Cross-organization result | Org1 and Org2 returned the same digest, submitter and first transaction; Org2 duplicate in block 17 preserved the first anchor |
 | Digest backfeed | Original release pack passed 2/2; changed checksum sidecar produced `E2003`; regenerated manifest produced `E2004` against the ledger digest |
 | Sanitized record | `docs/records/fabric-e2e/2026-07-12-v0.5.1/`; no payload, certificate, private key, profile, local absolute path or token retained |
 
@@ -2323,8 +2324,9 @@ deployed protocol and revalidated the Gateway boundary around that record.
 | Independent and fault gates | PASS: fixture regeneration clean; cross-verify `11/11`; Wycheproof 150; branch map 221 invariants; mutation `18/18` caught and source restored |
 | Showcase | PASS: TypeScript check, production build and five Playwright reviewer paths |
 | Fabric adapters | PASS: Gateway `19/19`; Go vet; WSL/Linux race; Chaincode core coverage 82.1% |
-| Package governance | PASS: deterministic package; 245-file content guard; metrics `51/51`; `git diff --check` clean |
-| Pre-publication consumer | PASS: clean Mooncakes consumer pinned to published `0.5.0`, `2/2`; the same gate will pin `0.5.1` immediately after publication |
+| Package governance | PASS: 245-file content guard; per-platform SHA-256 sidecars; extracted-content equivalence; metrics `51/51`; `git diff --check` clean |
+| Published consumer | PASS: clean MoonBit project downloaded `starlittle/MoonEvidence@0.5.1` from Mooncakes and passed public-API create/verify/tamper tests `2/2` |
+| Remote delivery | PASS: GitHub CI `29167407855`, Pages `29167407849`, and Release `29167704985` succeeded; GitHub/GitLink `v0.5.1` tags peel to the same commit |
 
 ## Logging Rule
 

@@ -7,7 +7,8 @@
 //   {
 //     "manifest": "<manifest.json text>",          // required
 //     "files": { "<pack path>": "<hex bytes>" },   // optional
-//     "version_chain": "<version_chain.json text>" // optional
+//     "version_chain": "<version_chain.json text>",// optional
+//     "expected_manifest_digest": "sha256:..."     // optional external anchor
 //   }
 // Response (JSON):
 //   { "ok": Bool, "explain": String, "report": <canonical report object> }
@@ -97,8 +98,34 @@ pub fn verify_evidence(request_json : String) -> String {
     Some(_) => return error_response("\"files\" must be an object")
   }
 
+  // Optional external anchor. Reject malformed values at the adapter
+  // boundary; a valid-but-different value reaches the pure pipeline as E2004.
+  let expected_manifest_digest : String? = match
+    fields.get("expected_manifest_digest") {
+    None | Some(Null) => None
+    Some(String(value)) => {
+      guard @digest.parse_digest(value) is Some(parsed) &&
+        parsed.to_string() == value else {
+        return error_response(
+          "\"expected_manifest_digest\" must be a canonical sha256:<lowercase-hex> or sha512:<lowercase-hex> string",
+        )
+      }
+      Some(value)
+    }
+    Some(_) =>
+      return error_response("\"expected_manifest_digest\" must be a string")
+  }
+
   // Pure manifest pipeline.
-  let report = @verify.verify_manifest(manifest_text, files)
+  let report = match expected_manifest_digest {
+    Some(value) =>
+      @verify.verify_manifest(
+        manifest_text,
+        files,
+        expected_manifest_digest=value,
+      )
+    None => @verify.verify_manifest(manifest_text, files)
+  }
 
   // Optional version chain, merged exactly like the CLI does.
   let chain_findings : Array[@diag.Finding] = match

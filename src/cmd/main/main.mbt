@@ -14,24 +14,47 @@ let usage_text : String =
   #|moon-evidence - trusted evidence pack verification
   #|
   #|Usage:
-  #|  moon-evidence verify [--json] [--incremental <cache-dir>] <path> [<path> ...]
+  #|  moon-evidence verify [--json] [--incremental <cache-dir>]
+  #|                       [--expected-manifest-digest <digest>]
+  #|                       <path> [<path> ...]
   #|  moon-evidence explain <path> [<path> ...]
+  #|  moon-evidence inspect [--json] <path>
+  #|  moon-evidence pack <source-dir> [-o <pack-dir>] [--subject-id <id>]
+  #|                        [--subject-type <type>]
+  #|                        [--algorithm sha256|sha512]
+  #|                        [--version-id <id>] [--version-parent <id>]
+  #|                        [--json]
   #|  moon-evidence create <dir> --subject-id <id> [--subject-type <type>]
   #|                          [--algorithm sha256|sha512]
   #|                          [--version-id <id>] [--version-parent <hash>]
-  #|                          [-o <out>]
+  #|                          [-o <out>] [--json]
   #|  moon-evidence --version
   #|  moon-evidence --help
   #|
   #|Commands:
   #|  verify    Verify evidence packs; --json emits canonical JSON reports
   #|  explain   Verify and print human-readable findings reports
+  #|  inspect   Print canonical manifest metadata for automation/anchoring
+  #|  pack      Copy a source directory into a new, self-contained pack
+  #|  seal      Alias for pack
   #|  create    Create a manifest from files in a directory
   #|
   #|Verify options:
   #|  --json               Emit canonical JSON instead of human-readable text
   #|  --incremental <dir>  Cache file digests in <dir> for fast re-verification;
   #|                       unchanged files are skipped on subsequent runs
+  #|  --expected-manifest-digest <digest>
+  #|                       Compare the canonical manifest with an external
+  #|                       sha256:/sha512: anchor (E2004 on mismatch)
+  #|
+  #|Pack options:
+  #|  --subject-id <id>       Subject identifier (default: source directory name)
+  #|  --subject-type <type>   Subject type (default: generic)
+  #|  --algorithm <name>      Hash algorithm: sha256 or sha512 (default: sha256)
+  #|  --version-id <id>       Version identifier (default: v1)
+  #|  --version-parent <id>   Parent version identifier (default: none)
+  #|  -o, --output <dir>      New pack directory (default: <source>-evidence-pack)
+  #|  --json                   Emit one versioned JSON result object
   #|
   #|Create options:
   #|  --subject-id <id>       Evidence subject identifier (required)
@@ -40,6 +63,7 @@ let usage_text : String =
   #|  --version-id <id>       Version identifier (default: v1)
   #|  --version-parent <hash> Parent version hash for chaining (default: none)
   #|  -o, --output <path>     Output manifest path (default: <dir>/manifest.json)
+  #|  --json                  Emit one versioned JSON result object
   #|
   #|Batch mode:
   #|  Pass multiple paths to verify/explain several packs in one invocation.
@@ -65,8 +89,8 @@ fn main {
 /// the empty array when no known command is present.
 fn strip_runtime_prefix(raw : Array[String]) -> Array[String] {
   let known = [
-    "verify", "explain", "create", "--version", "-v", "--help", "-h", "version",
-    "help",
+    "verify", "explain", "inspect", "pack", "seal", "create", "--version", "-v",
+    "--help", "-h", "version", "help",
   ]
   for index in 0..<raw.length() {
     if known.contains(raw[index]) {
@@ -94,6 +118,8 @@ fn run(raw_args : Array[String]) -> Int {
     }
     "verify" => run_verify(args, json_allowed=true)
     "explain" => run_verify(args, json_allowed=false)
+    "inspect" => run_inspect(args)
+    "pack" | "seal" => run_pack(args)
     "create" => run_create(args)
     _ => {
       println(usage_text)
@@ -110,6 +136,7 @@ fn run(raw_args : Array[String]) -> Int {
 fn run_verify(args : Array[String], json_allowed~ : Bool) -> Int {
   let mut json_mode = false
   let mut incremental_dir : String? = None
+  let mut expected_manifest_digest : String? = None
   let paths : Array[String] = []
   let mut i = 1
   while i < args.length() {
@@ -119,6 +146,17 @@ fn run_verify(args : Array[String], json_allowed~ : Bool) -> Int {
     } else if arg == "--incremental" && i + 1 < args.length() {
       i = i + 1
       incremental_dir = Some(args[i])
+    } else if arg == "--expected-manifest-digest" && i + 1 < args.length() {
+      i = i + 1
+      let value = args[i]
+      guard @digest.parse_digest(value) is Some(parsed) &&
+        parsed.to_string() == value else {
+        println(
+          "verify: --expected-manifest-digest must be canonical sha256:<lowercase-hex> or sha512:<lowercase-hex>",
+        )
+        return 2
+      }
+      expected_manifest_digest = Some(value)
     } else if !arg.has_prefix("-") {
       paths.push(arg)
     } else {
@@ -132,7 +170,12 @@ fn run_verify(args : Array[String], json_allowed~ : Bool) -> Int {
     return 2
   }
   if paths.length() == 1 {
-    return run_verify_single(paths[0], json_mode, incremental_dir)
+    return run_verify_single(
+      paths[0],
+      json_mode,
+      incremental_dir,
+      expected_manifest_digest,
+    )
   }
   let mut all_ok = true
   let mut pass_count = 0
@@ -141,7 +184,9 @@ fn run_verify(args : Array[String], json_allowed~ : Bool) -> Int {
     if paths.length() > 1 {
       println("--- \{pack_path} ---")
     }
-    let code = run_verify_single(pack_path, json_mode, incremental_dir)
+    let code = run_verify_single(
+      pack_path, json_mode, incremental_dir, expected_manifest_digest,
+    )
     if code == 2 {
       return 2
     }
@@ -167,6 +212,7 @@ fn run_verify_single(
   pack_path : String,
   json_mode : Bool,
   cache_dir : String?,
+  expected_manifest_digest : String?,
 ) -> Int {
   // Resolve pack layout (E5001 when the path itself is absent).
   if !@fs.path_exists(pack_path) {
@@ -251,18 +297,31 @@ fn run_verify_single(
   let mut files_skipped = 0
   let report = match cache_dir {
     Some(dir) => {
-      let (previous, expected_digest) = load_incremental_cache(dir)
+      let (previous, cached_digest) = load_incremental_cache(dir)
+      let selected_digest = match expected_manifest_digest {
+        Some(value) => Some(value)
+        None => cached_digest
+      }
       let inc = @verify.verify_manifest_incremental(
         manifest_text,
         files,
         previous,
-        expected_manifest_digest=expected_digest,
+        expected_manifest_digest=selected_digest,
       )
       files_rehashed = inc.files_rehashed
       files_skipped = inc.files_skipped
       inc.report
     }
-    None => @verify.verify_manifest(manifest_text, files)
+    None =>
+      match expected_manifest_digest {
+        Some(value) =>
+          @verify.verify_manifest(
+            manifest_text,
+            files,
+            expected_manifest_digest=value,
+          )
+        None => @verify.verify_manifest(manifest_text, files)
+      }
   }
 
   // Version chain is optional; verify it when the pack ships one.
@@ -553,12 +612,471 @@ fn parent_dir(path : String) -> String {
   }
 }
 
+///|
+/// Returns a filesystem path's final non-empty component. The fallback keeps
+/// default pack/subject names useful for inputs such as `.` and `/`.
+fn base_name(path : String) -> String {
+  let mut end = path.length()
+  while end > 0 {
+    let unit = path[end - 1].to_int()
+    if unit == 0x2f || unit == 0x5c {
+      end = end - 1
+    } else {
+      break
+    }
+  }
+  if end == 0 {
+    return "evidence"
+  }
+  let mut cut = -1
+  for index in 0..<end {
+    let unit = path[index].to_int()
+    if unit == 0x2f || unit == 0x5c {
+      cut = index
+    }
+  }
+  let name = path[cut + 1:end].to_owned()
+  if name.is_empty() || name == "." || name == ".." {
+    "evidence"
+  } else {
+    name
+  }
+}
+
+///|
+/// Emits the versioned error envelope used by machine-oriented commands.
+fn emit_command_error(
+  json_mode : Bool,
+  code : String,
+  path : String,
+  message : String,
+) -> Unit {
+  if json_mode {
+    println(
+      Json::object({
+        "schema": Json::string("moon-evidence-cli-error/v1"),
+        "ok": Json::boolean(false),
+        "error": Json::object({
+          "code": Json::string(code),
+          "path": Json::string(path),
+          "message": Json::string(message),
+        }),
+      }).stringify(),
+    )
+  } else if path.is_empty() {
+    println("[\{code}] \{message}")
+  } else {
+    println("[\{code}] \{path}: \{message}")
+  }
+}
+
+///|
+/// Builds the stable metadata envelope consumed by ledger adapters.
+fn manifest_result_json(
+  schema : String,
+  pack_path : String,
+  manifest_path : String,
+  manifest : @model.Manifest,
+  manifest_digest : String,
+) -> String {
+  let merkle_root = match manifest.merkle_root {
+    Some(root) => Json::string(root.to_string())
+    None => Json::null()
+  }
+  let version_parent = match manifest.version.parent {
+    Some(parent) => Json::string(parent)
+    None => Json::null()
+  }
+  Json::object({
+    "schema": Json::string(schema),
+    "ok": Json::boolean(true),
+    "pack_path": Json::string(pack_path),
+    "manifest_path": Json::string(manifest_path),
+    "manifest_digest": Json::string(manifest_digest),
+    "merkle_root": merkle_root,
+    "algorithm": Json::string(manifest.algorithm.label()),
+    "files_total": Json::number(manifest.files.length().to_double()),
+    "subject": Json::object({
+      "id": Json::string(manifest.subject.id),
+      "type": Json::string(manifest.subject.kind),
+    }),
+    "version": Json::object({
+      "id": Json::string(manifest.version.id),
+      "parent": version_parent,
+    }),
+  }).stringify()
+}
+
+///|
+fn canonical_manifest_digest(
+  manifest_text : String,
+  manifest : @model.Manifest,
+) -> String raise @canonjson.CanonError {
+  let canonical = @canonjson.canonicalize(manifest_text)
+  @digest.Digest::of_bytes(
+    manifest.algorithm,
+    @digest.string_to_utf8_bytes(canonical),
+  ).to_string()
+}
+
+// ---------------------------------------------------------------------------
+// inspect
+// ---------------------------------------------------------------------------
+
+///|
+fn run_inspect(args : Array[String]) -> Int {
+  let json_mode = args.contains("--json")
+  let mut input_path : String? = None
+  let mut i = 1
+  while i < args.length() {
+    let arg = args[i]
+    if arg == "--json" {
+      ()
+    } else if !arg.has_prefix("-") && input_path is None {
+      input_path = Some(arg)
+    } else {
+      emit_command_error(json_mode, "E5002", "inspect", "invalid arguments")
+      return 2
+    }
+    i = i + 1
+  }
+  guard input_path is Some(path) else {
+    emit_command_error(json_mode, "E5002", "inspect", "path required")
+    return 2
+  }
+  if !@fs.path_exists(path) {
+    emit_command_error(json_mode, "E5001", path, "path does not exist")
+    return 2
+  }
+  let is_directory = @fs.is_dir(path) catch { _ => false }
+  let (manifest_path, pack_path) = if is_directory {
+    ("\{path}/manifest.json", path)
+  } else {
+    (path, parent_dir(path))
+  }
+  if !@fs.path_exists(manifest_path) {
+    emit_command_error(json_mode, "E5001", manifest_path, "path does not exist")
+    return 2
+  }
+  let manifest_text = @fs.read_file_to_string(manifest_path) catch {
+    _ => {
+      emit_command_error(json_mode, "E5002", manifest_path, "file read failed")
+      return 2
+    }
+  }
+  let manifest = @model.Manifest::parse(manifest_text) catch {
+    error => {
+      emit_command_error(
+        json_mode,
+        error.error_code(),
+        error.field_path(),
+        error.detail(),
+      )
+      return 2
+    }
+  }
+  let manifest_digest = canonical_manifest_digest(manifest_text, manifest) catch {
+    error => {
+      emit_command_error(
+        json_mode,
+        "E1004",
+        manifest_path,
+        "canonicalization failed: \{error}",
+      )
+      return 2
+    }
+  }
+  if json_mode {
+    println(
+      manifest_result_json(
+        "moon-evidence-inspect/v1", pack_path, manifest_path, manifest, manifest_digest,
+      ),
+    )
+  } else {
+    let merkle = match manifest.merkle_root {
+      Some(root) => root.to_string()
+      None => "none"
+    }
+    println("manifest: \{manifest_path}")
+    println("manifest digest: \{manifest_digest}")
+    println("merkle root: \{merkle}")
+    println(
+      "subject: \{manifest.subject.kind}/\{manifest.subject.id}; version: \{manifest.version.id}; files: \{manifest.files.length()}",
+    )
+  }
+  0
+}
+
+///|
+/// Creates each missing path component. `moonbitlang/x/fs.create_dir` is
+/// recursive on JS but single-level on native, so the CLI supplies the
+/// portable recursion itself.
+fn ensure_directory(path : String) -> Bool {
+  if path.is_empty() || path == "." {
+    return true
+  }
+  if @fs.path_exists(path) {
+    return @fs.is_dir(path) catch { _ => false }
+  }
+  let parent = parent_dir(path)
+  if parent != path && parent != "." && !ensure_directory(parent) {
+    return false
+  }
+  @fs.create_dir(path) catch {
+    _ => return false
+  }
+  true
+}
+
+///|
+/// Best-effort rollback for a directory created by `pack`. Existing output is
+/// rejected before this function can be reached, so rollback never owns user
+/// data that predated the command.
+fn remove_created_tree(path : String) -> Unit {
+  if !@fs.path_exists(path) {
+    return
+  }
+  let is_directory = @fs.is_dir(path) catch { _ => false }
+  if !is_directory {
+    @fs.remove_file(path) catch {
+      _ => ()
+    }
+    return
+  }
+  let entries = @fs.read_dir(path) catch { _ => [] }
+  for name in entries {
+    remove_created_tree("\{path}/\{name}")
+  }
+  @fs.remove_dir(path) catch {
+    _ => ()
+  }
+}
+
+// ---------------------------------------------------------------------------
+// pack / seal
+// ---------------------------------------------------------------------------
+
+///|
+fn run_pack(args : Array[String]) -> Int {
+  let json_mode = args.contains("--json")
+  let mut source_path : String? = None
+  let mut subject_id : String? = None
+  let mut subject_type : String? = None
+  let mut output_path : String? = None
+  let mut algorithm_name : String? = None
+  let mut version_id : String? = None
+  let mut version_parent : String? = None
+  let mut i = 1
+  while i < args.length() {
+    let arg = args[i]
+    if arg == "--json" {
+      ()
+    } else if arg == "--subject-id" && i + 1 < args.length() {
+      i = i + 1
+      subject_id = Some(args[i])
+    } else if arg == "--subject-type" && i + 1 < args.length() {
+      i = i + 1
+      subject_type = Some(args[i])
+    } else if arg == "--algorithm" && i + 1 < args.length() {
+      i = i + 1
+      algorithm_name = Some(args[i])
+    } else if arg == "--version-id" && i + 1 < args.length() {
+      i = i + 1
+      version_id = Some(args[i])
+    } else if arg == "--version-parent" && i + 1 < args.length() {
+      i = i + 1
+      version_parent = Some(args[i])
+    } else if (arg == "-o" || arg == "--output") && i + 1 < args.length() {
+      i = i + 1
+      output_path = Some(args[i])
+    } else if !arg.has_prefix("-") && source_path is None {
+      source_path = Some(arg)
+    } else {
+      emit_command_error(json_mode, "E5002", "pack", "invalid arguments")
+      return 2
+    }
+    i = i + 1
+  }
+  guard source_path is Some(source_dir) else {
+    emit_command_error(json_mode, "E5002", "pack", "source directory required")
+    return 2
+  }
+  if !@fs.path_exists(source_dir) {
+    emit_command_error(json_mode, "E5001", source_dir, "path does not exist")
+    return 2
+  }
+  let source_is_dir = @fs.is_dir(source_dir) catch { _ => false }
+  if !source_is_dir {
+    emit_command_error(json_mode, "E5002", source_dir, "not a directory")
+    return 2
+  }
+  let source_name = base_name(source_dir)
+  let sid = match subject_id {
+    Some(value) => value
+    None => source_name
+  }
+  let stype = match subject_type {
+    Some(value) => value
+    None => "generic"
+  }
+  let vid = match version_id {
+    Some(value) => value
+    None => "v1"
+  }
+  if sid.is_empty() || stype.is_empty() || vid.is_empty() {
+    emit_command_error(
+      json_mode, "E5002", "pack", "subject and version fields must not be empty",
+    )
+    return 2
+  }
+  let algorithm = match algorithm_name {
+    Some(name) =>
+      match @digest.normalize_algorithm(name) {
+        Some(value) => value
+        None => {
+          emit_command_error(
+            json_mode,
+            "E5002",
+            "pack",
+            "unknown algorithm '\{name}' (supported: sha256, sha512)",
+          )
+          return 2
+        }
+      }
+    None => @digest.Sha256
+  }
+  let pack_dir = match output_path {
+    Some(value) => value
+    None => "\{source_name}-evidence-pack"
+  }
+  if @fs.path_exists(pack_dir) {
+    emit_command_error(
+      json_mode, "E5002", pack_dir, "output path already exists; refusing to overwrite",
+    )
+    return 2
+  }
+
+  let file_paths : Array[String] = []
+  let collect_state : CreateCollectState = { hit_depth_cap: false }
+  collect_create_files(source_dir, "", file_paths, collect_state)
+  if collect_state.hit_depth_cap {
+    emit_command_error(
+      json_mode,
+      "E5002",
+      source_dir,
+      "directory recursion depth limit (>=\{max_pack_depth}) reached",
+    )
+    return 2
+  }
+  if file_paths.length() >= max_pack_files {
+    emit_command_error(
+      json_mode,
+      "E5002",
+      source_dir,
+      "too many files (>=\{max_pack_files})",
+    )
+    return 2
+  }
+
+  let files : Map[String, Bytes] = {}
+  for rel_path in file_paths {
+    let source_file = "\{source_dir}/\{rel_path}"
+    let content = @fs.read_file_to_bytes(source_file) catch {
+      _ => {
+        emit_command_error(json_mode, "E5002", source_file, "file read failed")
+        return 2
+      }
+    }
+    files["files/\{rel_path}"] = content
+  }
+
+  let manifest_text = @create.create_manifest(files, {
+    subject: { id: sid, kind: stype },
+    algorithm,
+    version_id: vid,
+    version_parent,
+  })
+  let manifest = @model.Manifest::parse(manifest_text) catch {
+    error => {
+      emit_command_error(
+        json_mode,
+        error.error_code(),
+        error.field_path(),
+        error.detail(),
+      )
+      return 2
+    }
+  }
+  let manifest_digest = canonical_manifest_digest(manifest_text, manifest) catch {
+    error => {
+      emit_command_error(
+        json_mode,
+        "E1004",
+        "manifest",
+        "canonicalization failed: \{error}",
+      )
+      return 2
+    }
+  }
+
+  if !ensure_directory(pack_dir) || !ensure_directory("\{pack_dir}/files") {
+    remove_created_tree(pack_dir)
+    emit_command_error(
+      json_mode, "E5002", pack_dir, "directory creation failed",
+    )
+    return 2
+  }
+  for rel_path, content in files {
+    let target = "\{pack_dir}/\{rel_path}"
+    if !ensure_directory(parent_dir(target)) {
+      remove_created_tree(pack_dir)
+      emit_command_error(
+        json_mode,
+        "E5002",
+        parent_dir(target),
+        "directory creation failed",
+      )
+      return 2
+    }
+    @fs.write_bytes_to_file(target, content) catch {
+      _ => {
+        remove_created_tree(pack_dir)
+        emit_command_error(json_mode, "E5002", target, "write failed")
+        return 2
+      }
+    }
+  }
+  let manifest_path = "\{pack_dir}/manifest.json"
+  @fs.write_string_to_file(manifest_path, manifest_text) catch {
+    _ => {
+      remove_created_tree(pack_dir)
+      emit_command_error(json_mode, "E5002", manifest_path, "write failed")
+      return 2
+    }
+  }
+
+  if json_mode {
+    println(
+      manifest_result_json(
+        "moon-evidence-pack-result/v1", pack_dir, manifest_path, manifest, manifest_digest,
+      ),
+    )
+  } else {
+    println(
+      "packed \{pack_dir} (\{files.length()} files, \{algorithm.label()})",
+    )
+    println("manifest digest: \{manifest_digest}")
+  }
+  0
+}
+
 // ---------------------------------------------------------------------------
 // create
 // ---------------------------------------------------------------------------
 
 ///|
 fn run_create(args : Array[String]) -> Int {
+  let json_mode = args.contains("--json")
   let mut dir_path : String? = None
   let mut subject_id : String? = None
   let mut subject_type : String? = None
@@ -569,7 +1087,9 @@ fn run_create(args : Array[String]) -> Int {
   let mut i = 1
   while i < args.length() {
     let arg = args[i]
-    if arg == "--subject-id" && i + 1 < args.length() {
+    if arg == "--json" {
+      ()
+    } else if arg == "--subject-id" && i + 1 < args.length() {
       i = i + 1
       subject_id = Some(args[i])
     } else if arg == "--subject-type" && i + 1 < args.length() {
@@ -690,6 +1210,36 @@ fn run_create(args : Array[String]) -> Int {
       return 2
     }
   }
-  println("created \{out} (\{files.length()} files, \{algorithm.label()})")
+  if json_mode {
+    let manifest = @model.Manifest::parse(manifest_json) catch {
+      error => {
+        emit_command_error(
+          true,
+          error.error_code(),
+          error.field_path(),
+          error.detail(),
+        )
+        return 2
+      }
+    }
+    let manifest_digest = canonical_manifest_digest(manifest_json, manifest) catch {
+      error => {
+        emit_command_error(
+          true,
+          "E1004",
+          out,
+          "canonicalization failed: \{error}",
+        )
+        return 2
+      }
+    }
+    println(
+      manifest_result_json(
+        "moon-evidence-pack-result/v1", pack_dir, out, manifest, manifest_digest,
+      ),
+    )
+  } else {
+    println("created \{out} (\{files.length()} files, \{algorithm.label()})")
+  }
   0
 }

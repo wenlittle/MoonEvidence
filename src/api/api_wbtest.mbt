@@ -34,6 +34,9 @@ let golden_manifest : String =
 const GOLDEN_A_HEX : String = "68656c6c6f20776f726c640a"
 
 ///|
+const GOLDEN_MANIFEST_DIGEST : String = "sha256:16bbf1e91de3acfb8bd9091233926b454045c6d96c24327baec20272af583f1e"
+
+///|
 let empty_manifest : String =
   #|{
   #|  "schema": "moon-evidence/v0",
@@ -54,6 +57,7 @@ fn make_request(
   manifest? : String,
   files? : Array[(String, Json)],
   version_chain? : String,
+  expected_manifest_digest? : String,
 ) -> String {
   let fields : Map[String, Json] = {}
   if manifest is Some(text) {
@@ -68,6 +72,9 @@ fn make_request(
   }
   if version_chain is Some(text) {
     fields["version_chain"] = Json::string(text)
+  }
+  if expected_manifest_digest is Some(text) {
+    fields["expected_manifest_digest"] = Json::string(text)
   }
   Json::object(fields).stringify()
 }
@@ -228,6 +235,50 @@ test "golden pack verifies ok" {
   assert_true(response_ok(response))
   assert_true(response_explain(response).has_prefix("verification OK"))
   assert_eq(report_codes(response).length(), 0)
+}
+
+///|
+test "matching external manifest digest keeps golden pack ok" {
+  let response = verify_evidence(
+    make_request(
+      manifest=golden_manifest,
+      files=[
+        ("files/a.txt", Json::string(GOLDEN_A_HEX)),
+        ("files/b.bin", Json::string("")),
+      ],
+      expected_manifest_digest=GOLDEN_MANIFEST_DIGEST,
+    ),
+  )
+  assert_true(response_ok(response))
+  assert_eq(report_codes(response).length(), 0)
+}
+
+///|
+test "different external manifest digest reports e2004" {
+  let response = verify_evidence(
+    make_request(
+      manifest=golden_manifest,
+      files=[
+        ("files/a.txt", Json::string(GOLDEN_A_HEX)),
+        ("files/b.bin", Json::string("")),
+      ],
+      expected_manifest_digest="sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    ),
+  )
+  assert_false(response_ok(response))
+  @debug.assert_eq(report_codes(response), ["E2004"])
+}
+
+///|
+test "malformed external manifest digest is rejected by adapter" {
+  let response = verify_evidence(
+    make_request(
+      manifest=golden_manifest,
+      expected_manifest_digest="sha256:ABC",
+    ),
+  )
+  assert_false(response_ok(response))
+  assert_true(response_error(response).contains("must be a canonical"))
 }
 
 ///|

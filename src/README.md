@@ -1,4 +1,4 @@
-# Source Package Plan
+# Source Packages
 
 The source tree is intentionally split by responsibility:
 
@@ -8,7 +8,11 @@ The source tree is intentionally split by responsibility:
 - `model`: evidence pack data models.
 - `verify`: verification orchestration.
 - `diag`: diagnostics and explain output.
-- `cmd/main`: native CLI adapter.
+- `create`, `store`, `audit`, `crypto`: creation and optional integrity,
+  audit-chain, and signature capabilities.
+- `cmd/main`: JS/native filesystem and machine-JSON CLI adapter.
+- `api`: string-in/string-out browser adapter.
+- `timing`: native-only Ed25519 timing experiment.
 
-Actual MoonBit package files should be generated or validated after the `moon` CLI is installed.
-
+Cross-system adapters live under `integrations/`; they consume the public
+MoonBit process contract and are excluded from the Mooncakes package.

@@ -42,8 +42,10 @@ function Find-CliArtifact {
   if (@($candidates).Count -eq 0) {
     throw "CLI artifact not found under '$buildRoot'. Run: moon build --target $BuildTarget"
   }
-  $release = $candidates | Where-Object { $_.FullName -match "[\\/]release[\\/]" } | Select-Object -First 1
-  if ($release) { return $release.FullName }
+  # The documented prerequisite builds the debug artifact. Prefer it so a
+  # stale release artifact from an earlier run cannot silently test old code.
+  $debug = $candidates | Where-Object { $_.FullName -match "[\\/]debug[\\/]" } | Select-Object -First 1
+  if ($debug) { return $debug.FullName }
   return $candidates[0].FullName
 }
 
@@ -495,7 +497,142 @@ if ($p.Count -eq 0) {
 # Cleanup
 Remove-Item $incCache -Recurse -Force -ErrorAction SilentlyContinue
 
-$total = @($cases).Count + @($matrix).Count + @($manifestMatrix).Count + 10 + 3
+# --- Part 6: machine contract and external anchor verification --------------
+
+$machineTmp = Join-Path $tempRoot "moon-evidence-cli-test-machine"
+if (Test-Path $machineTmp) { Remove-Item $machineTmp -Recurse -Force }
+New-Item -ItemType Directory -Path $machineTmp -Force | Out-Null
+$goldenDigest = "sha256:16bbf1e91de3acfb8bd9091233926b454045c6d96c24327baec20272af583f1e"
+$machineTotal = 8
+
+# Case 1: inspect emits the independently fixed golden manifest digest.
+$r = Invoke-Cli -CliArgs @("inspect", "--json", "examples/valid-pack")
+$p = @()
+if ($r.ExitCode -ne 0) { $p += "exit: expected 0, got $($r.ExitCode)" }
+$inspect = $null
+try { $inspect = $r.Output | ConvertFrom-Json } catch { $p += "output is not valid JSON" }
+if ($inspect) {
+  if ($inspect.schema -ne "moon-evidence-inspect/v1") { $p += "wrong schema: $($inspect.schema)" }
+  if ($inspect.manifest_digest -ne $goldenDigest) { $p += "wrong manifest digest: $($inspect.manifest_digest)" }
+  if ($inspect.files_total -ne 2) { $p += "files_total: expected 2, got $($inspect.files_total)" }
+}
+if ($p.Count -eq 0) { Write-Host "PASS  machine: inspect golden digest" }
+else { $failed += 1; Write-Host "FAIL  machine: inspect golden digest"; $p | ForEach-Object { Write-Host "      $_" } }
+
+# Case 2: an exact external digest keeps verification green.
+$r = Invoke-Cli -CliArgs @("verify", "--json", "--expected-manifest-digest", $goldenDigest, "examples/valid-pack")
+$p = @()
+if ($r.ExitCode -ne 0) { $p += "exit: expected 0, got $($r.ExitCode)" }
+try {
+  $report = $r.Output | ConvertFrom-Json
+  if ($report.ok -ne $true) { $p += "expected ok:true" }
+} catch { $p += "output is not valid JSON" }
+if ($p.Count -eq 0) { Write-Host "PASS  machine: external digest match" }
+else { $failed += 1; Write-Host "FAIL  machine: external digest match"; $p | ForEach-Object { Write-Host "      $_" } }
+
+# Case 3: a different but well-formed external digest produces only E2004.
+$wrongDigest = "sha256:" + ("0" * 64)
+$r = Invoke-Cli -CliArgs @("verify", "--json", "--expected-manifest-digest", $wrongDigest, "examples/valid-pack")
+$p = @()
+if ($r.ExitCode -ne 1) { $p += "exit: expected 1, got $($r.ExitCode)" }
+try {
+  $report = $r.Output | ConvertFrom-Json
+  $codes = @($report.findings | ForEach-Object { $_.code })
+  if (($codes -join ",") -ne "E2004") { $p += "codes: expected [E2004], got [$($codes -join ',')]" }
+} catch { $p += "output is not valid JSON" }
+if ($p.Count -eq 0) { Write-Host "PASS  machine: external digest mismatch" }
+else { $failed += 1; Write-Host "FAIL  machine: external digest mismatch"; $p | ForEach-Object { Write-Host "      $_" } }
+
+# Case 4: malformed anchors are usage errors, not comparison findings.
+$r = Invoke-Cli -CliArgs @("verify", "--json", "--expected-manifest-digest", "sha256:ABC", "examples/valid-pack")
+$p = @()
+if ($r.ExitCode -ne 2) { $p += "exit: expected 2, got $($r.ExitCode)" }
+if ($r.Output -notmatch "must be canonical") { $p += "output missing canonical digest guidance" }
+if ($p.Count -eq 0) { Write-Host "PASS  machine: malformed external digest" }
+else { $failed += 1; Write-Host "FAIL  machine: malformed external digest"; $p | ForEach-Object { Write-Host "      $_" } }
+
+# Case 5: pack copies a nested source into files/ and emits one JSON object.
+$source = Join-Path $machineTmp "source"
+$packed = Join-Path $machineTmp "packed"
+New-Item -ItemType Directory -Path $source -Force | Out-Null
+New-TestFile $source "a.txt" "alpha"
+New-TestFile $source "nested/b.txt" "beta"
+New-TestFile $source "manifest.json" '{"source":true}'
+$r = Invoke-Cli -CliArgs @("pack", $source, "-o", $packed, "--subject-type", "dataset", "--json")
+$p = @()
+if ($r.ExitCode -ne 0) { $p += "exit: expected 0, got $($r.ExitCode)" }
+$packResult = $null
+try { $packResult = $r.Output | ConvertFrom-Json } catch { $p += "output is not valid JSON" }
+if ($packResult) {
+  if ($packResult.schema -ne "moon-evidence-pack-result/v1") { $p += "wrong schema" }
+  if ($packResult.subject.id -ne "source") { $p += "default subject id should be source basename" }
+  if ($packResult.files_total -ne 3) { $p += "files_total: expected 3, got $($packResult.files_total)" }
+}
+if (-not (Test-Path (Join-Path $packed "files/a.txt"))) { $p += "files/a.txt not copied" }
+if (-not (Test-Path (Join-Path $packed "files/nested/b.txt"))) { $p += "nested file not copied" }
+if (-not (Test-Path (Join-Path $packed "files/manifest.json"))) { $p += "source manifest.json was silently omitted" }
+if ($p.Count -eq 0 -and $packResult) {
+  $r2 = Invoke-Cli -CliArgs @("verify", "--json", "--expected-manifest-digest", $packResult.manifest_digest, $packed)
+  if ($r2.ExitCode -ne 0) { $p += "packed output did not verify: exit $($r2.ExitCode)" }
+}
+if ($p.Count -eq 0) { Write-Host "PASS  machine: pack nested source" }
+else { $failed += 1; Write-Host "FAIL  machine: pack nested source"; $p | ForEach-Object { Write-Host "      $_" } }
+
+# Case 6: pack refuses to overwrite and leaves the existing manifest unchanged.
+$packedManifest = Join-Path $packed "manifest.json"
+$beforeHash = if (Test-Path $packedManifest) {
+  (Get-FileHash $packedManifest -Algorithm SHA256).Hash
+} else {
+  ""
+}
+$r = Invoke-Cli -CliArgs @("pack", $source, "-o", $packed, "--json")
+$p = @()
+if (-not $beforeHash) { $p += "precondition missing: packed manifest" }
+if ($r.ExitCode -ne 2) { $p += "exit: expected 2, got $($r.ExitCode)" }
+try {
+  $errorResult = $r.Output | ConvertFrom-Json
+  if ($errorResult.ok -ne $false) { $p += "expected ok:false" }
+} catch { $p += "output is not valid JSON" }
+$afterHash = if (Test-Path $packedManifest) {
+  (Get-FileHash $packedManifest -Algorithm SHA256).Hash
+} else {
+  ""
+}
+if ($beforeHash -and $beforeHash -ne $afterHash) { $p += "existing manifest was modified" }
+if ($p.Count -eq 0) { Write-Host "PASS  machine: pack overwrite refusal" }
+else { $failed += 1; Write-Host "FAIL  machine: pack overwrite refusal"; $p | ForEach-Object { Write-Host "      $_" } }
+
+# Case 7: seal is an exact pack alias.
+$sealed = Join-Path $machineTmp "sealed"
+$r = Invoke-Cli -CliArgs @("seal", $source, "-o", $sealed, "--subject-id", "alias")
+$p = @()
+if ($r.ExitCode -ne 0) { $p += "exit: expected 0, got $($r.ExitCode)" }
+if ($p.Count -eq 0) {
+  $r2 = Invoke-Cli -CliArgs @("verify", $sealed)
+  if ($r2.ExitCode -ne 0) { $p += "sealed output did not verify" }
+}
+if ($p.Count -eq 0) { Write-Host "PASS  machine: seal alias" }
+else { $failed += 1; Write-Host "FAIL  machine: seal alias"; $p | ForEach-Object { Write-Host "      $_" } }
+
+# Case 8: legacy create gains additive JSON metadata without changing layout.
+$legacy = Join-Path $machineTmp "legacy"
+New-Item -ItemType Directory -Path $legacy -Force | Out-Null
+New-TestFile $legacy "legacy.txt" "legacy"
+$r = Invoke-Cli -CliArgs @("create", $legacy, "--subject-id", "legacy", "--json")
+$p = @()
+if ($r.ExitCode -ne 0) { $p += "exit: expected 0, got $($r.ExitCode)" }
+try {
+  $createResult = $r.Output | ConvertFrom-Json
+  if ($createResult.schema -ne "moon-evidence-pack-result/v1") { $p += "wrong schema" }
+  $r2 = Invoke-Cli -CliArgs @("verify", "--expected-manifest-digest", $createResult.manifest_digest, $legacy)
+  if ($r2.ExitCode -ne 0) { $p += "create JSON digest did not verify" }
+} catch { $p += "output is not valid JSON" }
+if ($p.Count -eq 0) { Write-Host "PASS  machine: create JSON metadata" }
+else { $failed += 1; Write-Host "FAIL  machine: create JSON metadata"; $p | ForEach-Object { Write-Host "      $_" } }
+
+Remove-Item $machineTmp -Recurse -Force -ErrorAction SilentlyContinue
+
+$total = @($cases).Count + @($matrix).Count + @($manifestMatrix).Count + 10 + 3 + $machineTotal
 Write-Host ""
 Write-Host "cli-test ($Target): $($total - $failed)/$total passed"
 if ($failed -gt 0) { exit 1 }

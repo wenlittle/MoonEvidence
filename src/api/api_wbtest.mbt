@@ -600,16 +600,34 @@ fn json_files(pairs : Array[(String, String)]) -> Json {
 /// Mirrors `canonical_file_entry_text` in api.mbt so verify_proof can
 /// reconstruct the exact bytes the proof was generated over.
 fn leaf_payload_hex(path : String, content : Bytes) -> String {
-  let digest_hex = @digest.sha256_hex(content)
+  leaf_payload_hex_with(path, content, @digest.Sha256)
+}
+
+///|
+fn leaf_payload_hex_with(
+  path : String,
+  content : Bytes,
+  algorithm : @digest.HashAlgorithm,
+) -> String {
+  let digest = @digest.Digest::of_bytes(algorithm, content)
   let doc = Json::object({
     "path": Json::string(path),
     "size": Json::number(content.length().to_double()),
-    "digest": Json::string("sha256:\{digest_hex}"),
+    "digest": Json::string(digest.to_string()),
   })
   let canonical = @canonjson.canonicalize(doc.stringify()) catch {
     _ => doc.stringify()
   }
   bytes_to_hex(@digest.string_to_utf8_bytes(canonical))
+}
+
+///|
+fn repeated_hex_byte(count : Int) -> String {
+  let builder = StringBuilder::new(size_hint=count * 2)
+  for _ in 0..<count {
+    builder.write_string("00")
+  }
+  builder.to_string()
 }
 
 ///|
@@ -808,6 +826,178 @@ test "generate_proof rejects out-of-range index" {
   let fields = parse_json_obj(resp)
   guard fields.get("ok") is Some(False) else {
     fail("should reject bad index: \{resp}")
+  }
+}
+
+///|
+test "generate_proof rejects fractional index" {
+  let content_hex = bytes_to_hex(@digest.string_to_utf8_bytes("x"))
+  let create_req = json_request([
+    ("files", json_files([("files/a.txt", content_hex)])),
+    (
+      "subject",
+      Json::object({ "id": Json::string("x"), "type": Json::string("y") }),
+    ),
+    ("version_id", Json::string("v1")),
+  ])
+  let manifest = match
+    parse_json_obj(create_evidence_pack(create_req)).get("manifest") {
+    Some(String(m)) => m
+    _ => fail("create failed")
+  }
+  let response = generate_proof(
+    json_request([
+      ("manifest", Json::string(manifest)),
+      ("index", Json::number(0.5)),
+    ]),
+  )
+  assert_false(response_ok(response))
+  assert_eq(
+    response_error(response),
+    "\"index\" must be a non-negative integer",
+  )
+}
+
+///|
+test "verify_proof enforces algorithm node lengths" {
+  let sha256_root = repeated_hex_byte(32)
+  let short_sha256 = repeated_hex_byte(31)
+  let sha512_root = repeated_hex_byte(64)
+  let short_sha512 = repeated_hex_byte(32)
+  let short_sibling_256 = verify_proof(
+    json_request([
+      ("leaf", Json::string("00")),
+      (
+        "proof",
+        Json::array([
+          Json::object({
+            "side": Json::string("left"),
+            "sibling": Json::string(short_sha256),
+          }),
+        ]),
+      ),
+      ("root", Json::string(sha256_root)),
+      ("algorithm", Json::string("sha256")),
+    ]),
+  )
+  assert_eq(
+    response_error(short_sibling_256),
+    "proof sibling must be 32 bytes for sha256",
+  )
+
+  let short_root_256 = verify_proof(
+    json_request([
+      ("leaf", Json::string("00")),
+      ("proof", Json::array([])),
+      ("root", Json::string(short_sha256)),
+      ("algorithm", Json::string("sha256")),
+    ]),
+  )
+  assert_eq(
+    response_error(short_root_256),
+    "\"root\" must be 32 bytes for sha256",
+  )
+
+  let short_sibling_512 = verify_proof(
+    json_request([
+      ("leaf", Json::string("00")),
+      (
+        "proof",
+        Json::array([
+          Json::object({
+            "side": Json::string("right"),
+            "sibling": Json::string(short_sha512),
+          }),
+        ]),
+      ),
+      ("root", Json::string(sha512_root)),
+      ("algorithm", Json::string("sha512")),
+    ]),
+  )
+  assert_eq(
+    response_error(short_sibling_512),
+    "proof sibling must be 64 bytes for sha512",
+  )
+
+  let short_root_512 = verify_proof(
+    json_request([
+      ("leaf", Json::string("00")),
+      ("proof", Json::array([])),
+      ("root", Json::string(short_sha512)),
+      ("algorithm", Json::string("sha512")),
+    ]),
+  )
+  assert_eq(
+    response_error(short_root_512),
+    "\"root\" must be 64 bytes for sha512",
+  )
+}
+
+///|
+test "sha512 generate_proof and verify_proof round-trip succeeds" {
+  let content_a = @digest.string_to_utf8_bytes("sha512-leaf-a")
+  let content_b = @digest.string_to_utf8_bytes("sha512-leaf-b")
+  let content_a_hex = bytes_to_hex(content_a)
+  let content_b_hex = bytes_to_hex(content_b)
+  let create_response = create_evidence_pack(
+    json_request([
+      (
+        "files",
+        json_files([
+          ("files/a.txt", content_a_hex),
+          ("files/b.txt", content_b_hex),
+        ]),
+      ),
+      (
+        "subject",
+        Json::object({
+          "id": Json::string("sha512-proof"),
+          "type": Json::string("dataset"),
+        }),
+      ),
+      ("algorithm", Json::string("sha512")),
+      ("version_id", Json::string("v1")),
+    ]),
+  )
+  guard parse_json_obj(create_response).get("manifest")
+    is Some(String(manifest)) else {
+    fail("sha512 create failed: \{create_response}")
+  }
+  let generate_response = generate_proof(
+    json_request([
+      ("manifest", Json::string(manifest)),
+      ("index", Json::number(1.0)),
+    ]),
+  )
+  let generated = parse_json_obj(generate_response)
+  guard generated.get("root") is Some(String(root)) &&
+    generated.get("proof") is Some(Array(proof)) &&
+    generated.get("algorithm") is Some(String("sha512")) else {
+    fail("sha512 proof generation failed: \{generate_response}")
+  }
+  assert_eq(root.length(), 128)
+  for step in proof {
+    guard step is Object(fields) &&
+      fields.get("sibling") is Some(String(sibling)) else {
+      fail("invalid generated SHA-512 proof step")
+    }
+    assert_eq(sibling.length(), 128)
+  }
+  let verify_response = verify_proof(
+    json_request([
+      (
+        "leaf",
+        Json::string(
+          leaf_payload_hex_with("files/b.txt", content_b, @digest.Sha512),
+        ),
+      ),
+      ("proof", Json::array(proof)),
+      ("root", Json::string(root)),
+      ("algorithm", Json::string("sha512")),
+    ]),
+  )
+  guard parse_json_obj(verify_response).get("valid") is Some(True) else {
+    fail("sha512 proof should verify: \{verify_response}")
   }
 }
 

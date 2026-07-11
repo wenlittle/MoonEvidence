@@ -12,9 +12,9 @@ manually with `workflow_dispatch`. Three jobs:
 3. `moon update` - refresh the MoonBit registry before resolving dependencies
    such as `moonbitlang/x`.
 4. **Metric drift guard** - `node tools/check-metrics.mjs`.
-5. **Fixture rot guard** - regenerate `tests/fixtures/packs` with
-   `node tools/gen-fixtures.mjs` and `git diff --exit-code`. Any byte change
-   means a generator/fixture mismatch and fails CI.
+5. **Fixture rot guard** - run `node tools/check-fixtures.mjs` to regenerate
+   both `tests/fixtures/packs` and `tests/fixtures/merkle`, then compare their
+   tracked bytes. Any generator/fixture mismatch fails CI.
 6. **Cross-verify / Wycheproof guards** - Node.js independent verification and
    Ed25519 vector inventory checks.
 7. **Package content guard** - `node tools/check-package-contents.mjs` confirms

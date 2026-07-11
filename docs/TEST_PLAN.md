@@ -110,9 +110,9 @@ Node.js `crypto` 和独立生成的固定夹具提供第二套实现：
 
 | 证据面 | 2026-07-11 基线 | 权威记录 |
 | --- | --- | --- |
-| MoonBit | 352 个测试声明，348 个可执行测试，4 个基准包装 | native、wasm、wasm-gc、js 各 `348/348` |
-| CLI | PowerShell、bash 各覆盖 native 和 js | 每个 shell/target 组合 `67/67`，含目录清单完整性与 IO 退出码 |
-| 浏览器 API | 12 个字符串接口 | smoke `37/37`，含版本链独立字段透传；malformed 与 semantic profile 进入 CI |
+| MoonBit | 357 个测试声明，353 个可执行测试，4 个基准包装 | native、wasm、wasm-gc、js 各 `353/353` |
+| CLI | PowerShell、bash 各覆盖 native 和 js | 每个 shell/target 组合 `68/68`，含 SHA-512 独立 pack、目录清单完整性与 IO 退出码 |
+| 浏览器 API | 12 个字符串接口 | smoke `41/41`，含版本链透传和 SHA-512 proof；malformed 与 semantic profile 进入 CI |
 | Ed25519 标准 | RFC 8032 4 条样例 | 逐字节已知答案 |
 | Ed25519 攻击输入 | Wycheproof 150 条 | 88 条合法、62 条非法、7 类攻击 |
 | 独立差分 | Ed25519、SHA-2、HMAC、证据包 | CI 每类 64 轮，发布候选 1000 轮记录通过 |

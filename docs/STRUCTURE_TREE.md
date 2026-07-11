@@ -223,7 +223,7 @@ moon-evidence/
         README.md
       merkle/                  # golden 数据
         golden.json
-      packs/                   # 10 包篡改矩阵
+      packs/                   # 11 包正反矩阵
         README.md
         bad-digest-field/
         bad-merkle-root/
@@ -235,15 +235,16 @@ moon-evidence/
         tampered-file/
         unlisted-file/
         valid/
+        valid-sha512/
       version-chain/           # 版本链篡改夹具
   tools/
-    cli-test.ps1               # 67 用例黑盒 CLI 套件
+    cli-test.ps1               # 68 用例黑盒 CLI 套件
     env-check.ps1              # 只读环境检查
     gen-fixtures.mjs           # 篡改矩阵生成（独立 Node 参考实现）
     gen-merkle-fixtures.mjs    # Merkle golden 数据生成
     gen-pack-fixture.mjs       # 单个证据包夹具生成
-    smoke-api.mjs              # 浏览器适配器 37 断言烟测
-    cli-test.sh                # 67 用例黑盒 CLI（bash 版，与 ps1 1:1 对等）
+    smoke-api.mjs              # 浏览器适配器 41 断言烟测
+    cli-test.sh                # 68 用例黑盒 CLI（bash 版，与 ps1 1:1 对等）
     cross-verify.mjs           # 独立 Node 交叉验证（create/store/audit 重算对比）
     differential-crypto.mjs    # Ed25519 JS API 与 Node.js crypto 随机差分对拍
     differential-digest.mjs    # SHA/HMAC JS API 与 Node.js crypto 随机差分对拍

@@ -205,7 +205,7 @@ const assertions = [
   {
     file: "docs/STRUCTURE_TREE.md",
     pattern: /(\d+)\s+用例黑盒 CLI/,
-    expected: 67, // CLI black-box is maintained by both shell implementations
+    expected: 68, // CLI black-box is maintained by both shell implementations
     desc: "STRUCTURE_TREE.md CLI case count",
   },
   // Version consistency
@@ -238,7 +238,7 @@ const assertions = [
     {
       file,
       pattern: /测试体系[：:]\s*(\d+)\s*个可执行 MoonBit 测试、(\d+)\s*个测试声明、(\d+)\s*个 CLI 黑盒用例/,
-      expected: { 1: executableTestCount, 2: testCount, 3: 67 },
+      expected: { 1: executableTestCount, 2: testCount, 3: 68 },
       desc: `${label} test counts`,
     },
   ]),

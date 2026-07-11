@@ -188,6 +188,11 @@ target entry identity or index. `generate_proof` returns `algorithm`, `root`,
 and `proof`; the caller retains the canonical entry and target identity.
 `verify_proof` receives the leaf payload as hex.
 
+The browser API rejects a sibling or root whose decoded length does not match
+the selected algorithm before hashing: 32 bytes for SHA-256 and 64 bytes for
+SHA-512. This keeps malformed proof structure separate from a well-formed
+proof that computes to a different root.
+
 Proof generation and proof verification are explicit operations. They do not
 replace the complete pack verification flow below. The browser-facing
 `verify_proof` API reports malformed requests through its API error envelope;

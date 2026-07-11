@@ -48,10 +48,10 @@ const hmacSha256Hex = (key, buf) =>
 /// Build the canonical file entry text (RFC 8785 JCS key order: digest, path, size).
 /// Must match `canonical_file_entry_text` in api.mbt so verify_proof receives
 /// the exact same bytes generate_proof used to compute the leaf hash.
-const canonicalFileEntry = (path, content) => {
-  const digest = sha256Hex(content);
+const canonicalFileEntry = (path, content, algorithm = "sha256") => {
+  const digest = createHash(algorithm).update(content).digest("hex");
   return JSON.stringify({
-    digest: `sha256:${digest}`,
+    digest: `${algorithm}:${digest}`,
     path,
     size: content.length,
   });
@@ -194,6 +194,59 @@ if (created.ok) {
   });
   check("created pack verifies ok", verified.ok === true, JSON.stringify(verified));
   check("created pack has 0 findings", verified.report.findings.length === 0);
+}
+
+const sha512Content = utf8("smoke sha512 proof");
+const sha512ContentHex = hex(sha512Content);
+const sha512ContentB = utf8("smoke sha512 sibling");
+const sha512Created = call(create_evidence_pack, {
+  files: {
+    "files/sha512.txt": sha512ContentHex,
+    "files/sha512-b.txt": hex(sha512ContentB),
+  },
+  subject: { id: "smoke-sha512-proof", type: "dataset" },
+  algorithm: "sha512",
+  version_id: "v1",
+});
+check("sha512 proof pack create succeeds", sha512Created.ok === true, JSON.stringify(sha512Created));
+
+if (sha512Created.ok) {
+  const sha512Proof = call(generate_proof, {
+    manifest: sha512Created.manifest,
+    index: 0,
+  });
+  check("sha512 generate_proof succeeds", sha512Proof.ok === true, JSON.stringify(sha512Proof));
+  if (sha512Proof.ok) {
+    check(
+      "sha512 proof uses 64-byte nodes",
+      sha512Proof.algorithm === "sha512" &&
+        sha512Proof.root.length === 128 &&
+        sha512Proof.proof.length > 0 &&
+        sha512Proof.proof.every((step) => step.sibling.length === 128),
+      JSON.stringify(sha512Proof),
+    );
+    const sha512Entry = JSON.parse(sha512Created.manifest).files[0];
+    const sha512Leaf = hex(
+      utf8(
+        JSON.stringify({
+          digest: sha512Entry.digest,
+          path: sha512Entry.path,
+          size: sha512Entry.size,
+        }),
+      ),
+    );
+    const sha512Verified = call(verify_proof, {
+      leaf: sha512Leaf,
+      proof: sha512Proof.proof,
+      root: sha512Proof.root,
+      algorithm: sha512Proof.algorithm,
+    });
+    check(
+      "sha512 verify_proof accepts valid proof",
+      sha512Verified.ok === true && sha512Verified.valid === true,
+      JSON.stringify(sha512Verified),
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------

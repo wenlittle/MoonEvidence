@@ -1,0 +1,25 @@
+{
+  "schema": "moon-evidence/v0",
+  "subject": {
+    "id": "fixture-valid-sha512",
+    "type": "dataset"
+  },
+  "hash_algorithm": "sha512",
+  "files": [
+    {
+      "path": "files/a.txt",
+      "size": 15,
+      "digest": "sha512:a832c08901d41ee2651064b9b1972dc279f6ff5eeb7a1426a76cca8106a87bcb59f7455e704ed34067a192aaa486bd8d8f26febdd399747862dc7f51f894a3f6"
+    },
+    {
+      "path": "files/b.bin",
+      "size": 4,
+      "digest": "sha512:4ec54b09e2b209ddb9a678522bb451740c513f488cb27a0883630718571745141920036aebdb78c0b4cd783a4a6eecc937a40c6104e427512d709a634b412f60"
+    }
+  ],
+  "merkle_root": "sha512:38e9256871d2dc223ba933b904a51b4b1f9fd9f821e3fd1b18605f6beae57694589c540aefc19506aef3c058105a504e5331f29cca9153d389378a507d6d41bc",
+  "version": {
+    "id": "v1",
+    "parent": null
+  }
+}

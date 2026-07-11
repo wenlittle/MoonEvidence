@@ -32,7 +32,7 @@ mapping, real CLI/browser behavior, and the optional Fabric protocol boundary.
 | README and examples | Pass | Bilingual README, `docs/GUIDE.md`, examples, browser workbench, CLI machine contract, and Fabric integration guide describe runnable local and ledger-backed flows |
 | Repository CI | Pass locally and remotely | GitHub `main` run `29147807818` succeeded at `8088147`: `check-test-build`, `fabric-adapters`, and `bench`; Showcase Pages run `29147807822` also succeeded |
 | Declared core function | Pass | Real Fabric v3.1.4 two-organization record proves anchor/query/duplicate/backfeed beyond unit mocks; sanitized tx/block/status and E2003/E2004 results are committed under `docs/records/fabric-e2e/` |
-| Runnable behavior | Pass | JS/native CLI suites passed 67/67 each; browser API smoke passed 37/37; Showcase production build passed; Gateway passed 19/19; clean Mooncakes consumer passed 2/2 |
+| Runnable behavior | Pass | JS/native CLI suites passed 68/68 each; browser API smoke passed 41/41; Showcase production build passed; Gateway passed 19/19; clean Mooncakes consumer passed 2/2 |
 | Proposal completion | Pass | The one-page proposal is an A4 single-page PDF; declared canonicalization, digest, Merkle, manifest, Ed25519/store/audit, CLI, browser, multi-backend, and Fabric functions all have implemented evidence |
 | Contributor relationship | Pass with documented mapping | Maintainer/applicant Chen Junwen maps to GitHub `wenlittle` and Gitlink/Mooncakes `starlittle`; both repository links are present in the proposal and README |
 | Repository surface | Pass | Public tree keeps source, reusable docs, examples, tests, and CI; `.gitignore` anchors the legacy root `report/` exclusion so it no longer masks the tracked authoritative report under `docs/report/` |
@@ -64,7 +64,7 @@ workflows.
 - Added `tools/check-package-contents.mjs` and tightened `moon.mod` excludes so
   the public Mooncakes package ships the reusable library surface instead of
   repository-only application/report artifacts.
-- Added versioned `pack`/`inspect`/external-digest machine contracts, 67-case
+- Added versioned `pack`/`inspect`/external-digest machine contracts, 68-case
   PowerShell/bash parity, and API anchor properties.
 - Added immutable Go Fabric chaincode, strict TypeScript Gateway adapter,
   required CI job, and a real two-organization E2E record while preserving the
@@ -79,8 +79,8 @@ workflows.
 | `moon update`; `moon check --deny-warn --target all`; `moon fmt --check`; `moon info` interface diff | Pass |
 | `moon test --deny-warn --target wasm,wasm-gc,js` | Pass: 347/347 on each backend |
 | Windows/MSVC `moon test --deny-warn --target native` | Pass: 347/347 |
-| PowerShell CLI black box, JS and native | Pass: 67/67 per target |
-| Browser adapter and Showcase | API smoke 37/37; TypeScript check and production build pass |
+| PowerShell CLI black box, JS and native | Pass: 68/68 per target |
+| Browser adapter and Showcase | API smoke 41/41; TypeScript check and production build pass |
 | Package and document guards | `moon package` pass; 232 files; metrics 44/44; branch audit current |
 | Fabric adapters | Gateway check/build and 19/19 tests pass; local Go vet and 82.1% coverage pass; latest required CI also passes Go race |
 | Remote repositories and release | GitHub/Gitlink default branch `main`; both v0.5.0 tags peel to `8088147`; GitHub Release and Mooncakes v0.5.0 available |

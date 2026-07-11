@@ -2220,6 +2220,29 @@ deployed protocol and revalidated the Gateway boundary around that record.
 | Type, format, interface | PASS: `moon check --deny-warn --target all`, `moon fmt --check`, and `moon info` |
 | Governance | PASS: metrics 44/44; branch map 221 invariants with zero gaps; one-page A4 PDF regenerated and text-checked |
 
+## 2026-07-11 Asia/Shanghai (SHA-512 Merkle oracle and proof boundary)
+
+### Scope
+
+| Item | Result |
+| --- | --- |
+| Proof envelope | `verify_proof` now parses the algorithm first and requires 32-byte SHA-256 or 64-byte SHA-512 siblings and roots |
+| Index contract | Fractional, negative, and oversized proof indexes are rejected before integer conversion |
+| Independent oracle | Node.js now generates SHA-256 and SHA-512 golden roots and proofs for six tree shapes; MoonBit pins all roots plus paired and promoted proof paths |
+| Pack oracle | Added independently sealed `valid-sha512`; the Node cross-verifier now derives digest and Merkle operations from `hash_algorithm` |
+| CI fixture gate | The required workflow now regenerates and compares both pack and Merkle fixture trees through `check-fixtures.mjs` |
+
+### Verification
+
+| Command / flow | Result |
+| --- | --- |
+| TDD red baseline | PASS: fractional index and wrong node lengths failed against the prior adapter behavior |
+| MoonBit tests | PASS: native, wasm, wasm-gc, and js each 353/353 |
+| Independent fixtures | PASS: fixture regeneration byte-stable; cross-verify 11/11 including the SHA-512 pack |
+| API boundary | PASS: browser smoke 41/41; malformed API fuzz 286 cases; semantic properties 48 checks over 16 rounds |
+| CLI process tests | PASS: PowerShell and bash, JS and native, each 68/68 |
+| Governance | PASS: metrics 44/44; branch map 221 invariants with zero gaps |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

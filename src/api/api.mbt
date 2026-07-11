@@ -463,7 +463,12 @@ pub fn generate_proof(request_json : String) -> String {
 
   // index (required)
   let index = match fields.get("index") {
-    Some(Number(n, ..)) => n.to_int()
+    Some(Number(n, repr~)) => {
+      if repr is Some(_) || @double.trunc(n) != n || n < 0 || n > 2147483647 {
+        return error_response("\"index\" must be a non-negative integer")
+      }
+      n.to_int()
+    }
     _ => return error_response("\"index\" must be a number")
   }
 
@@ -525,6 +530,25 @@ pub fn verify_proof(request_json : String) -> String {
     return error_response("request must be a JSON object")
   }
 
+  // Parse the algorithm before proof nodes so their byte lengths can be
+  // validated against the selected hash function.
+  let algorithm = match fields.get("algorithm") {
+    None | Some(Null) => @digest.Sha256
+    Some(String(algo_str)) =>
+      match @digest.normalize_algorithm(algo_str) {
+        Some(a) => a
+        None =>
+          return error_response(
+            "\"algorithm\" must be \"sha256\" or \"sha512\"",
+          )
+      }
+    Some(_) => return error_response("\"algorithm\" must be a string")
+  }
+  let node_bytes = match algorithm {
+    @digest.Sha256 => 32
+    @digest.Sha512 => 64
+  }
+
   guard fields.get("leaf") is Some(String(leaf_hex)) else {
     return error_response("\"leaf\" must be a hex string")
   }
@@ -545,6 +569,11 @@ pub fn verify_proof(request_json : String) -> String {
         guard @digest.hex_to_bytes(sib_hex) is Some(sib_bytes) else {
           return error_response("proof sibling is not valid hex")
         }
+        if sib_bytes.length() != node_bytes {
+          return error_response(
+            "proof sibling must be \{node_bytes} bytes for \{algorithm.label()}",
+          )
+        }
         let s = match side {
           "left" => @merkle.Left
           "right" => @merkle.Right
@@ -561,21 +590,10 @@ pub fn verify_proof(request_json : String) -> String {
   guard @digest.hex_to_bytes(root_hex) is Some(root_bytes) else {
     return error_response("\"root\" is not valid hex")
   }
-
-  // algorithm (optional, defaults to sha256): determines the hash used for
-  // leaf_hash and node_hash during proof verification. Must match the
-  // algorithm the proof was generated under.
-  let algorithm = match fields.get("algorithm") {
-    None | Some(Null) => @digest.Sha256
-    Some(String(algo_str)) =>
-      match @digest.normalize_algorithm(algo_str) {
-        Some(a) => a
-        None =>
-          return error_response(
-            "\"algorithm\" must be \"sha256\" or \"sha512\"",
-          )
-      }
-    Some(_) => return error_response("\"algorithm\" must be a string")
+  if root_bytes.length() != node_bytes {
+    return error_response(
+      "\"root\" must be \{node_bytes} bytes for \{algorithm.label()}",
+    )
   }
 
   let valid = @merkle.verify_inclusion(

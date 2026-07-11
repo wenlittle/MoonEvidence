@@ -131,6 +131,7 @@ foreach ($case in $cases) {
 
 $matrix = @(
   @{ Pack = "valid";            Exit = 0; Ok = $true;  Codes = @() }
+  @{ Pack = "valid-sha512";     Exit = 0; Ok = $true;  Codes = @() }
   @{ Pack = "tampered-file";    Exit = 1; Ok = $false; Codes = @("E2003") }
   @{ Pack = "missing-file";     Exit = 1; Ok = $false; Codes = @("E2003") }
   @{ Pack = "unlisted-file";    Exit = 0; Ok = $true;  Codes = @("W1001") }

@@ -98,14 +98,14 @@ node integrations/fabric/gateway/dist/src/cli.js query `
 
 ```powershell
 moon test --target wasm-gc,js    # 347/347 双后端
-powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target js   # 67/67 黑盒
-bash ./tools/cli-test.sh js      # 67/67 bash 对等黑盒
+powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target js   # 68/68 黑盒
+bash ./tools/cli-test.sh js      # 68/68 bash 对等黑盒
 npm run fabric:test              # Gateway 19/19
 ```
 
 现场展示 CI 页面和 README 的稳定基线，下面三项作为复核重点：
 
-- 10 包篡改矩阵：每个错误码族一个 pack，由**独立 Node 参考实现**生成，CI 防腐化校验
+- 11 包矩阵：覆盖 SHA-256/SHA-512 正向基线和各错误码族，由**独立 Node 参考实现**生成，CI 防腐化校验
 - 行为性质经过故障注入验证；SHA-256 通过 NIST 向量，规范 JSON 通过 RFC 8785 Appendix B，Ed25519 通过 RFC 8032 和 Wycheproof 向量
 - 性能：~26 µs/文件，10k 文件 manifest 全量验证 280 ms（js 后端）
 

@@ -20,15 +20,18 @@ const packsRoot = join(repoRoot, "tests", "fixtures", "packs");
 
 // --- frozen crypto rules (independent of the MoonBit implementation) ------
 
-const sha256 = (...chunks) => {
-  const hash = createHash("sha256");
+const digest = (algorithm, ...chunks) => {
+  const hash = createHash(algorithm);
   for (const chunk of chunks) hash.update(chunk);
   return hash.digest();
 };
 const hex = (buffer) => buffer.toString("hex");
-const digestOf = (bytes) => `sha256:${hex(sha256(bytes))}`;
-const leafHash = (data) => sha256(Buffer.from([0x00]), data);
-const nodeHash = (left, right) => sha256(Buffer.from([0x01]), left, right);
+const digestOf = (bytes, algorithm = "sha256") =>
+  `${algorithm}:${hex(digest(algorithm, bytes))}`;
+const leafHash = (data, algorithm = "sha256") =>
+  digest(algorithm, Buffer.from([0x00]), data);
+const nodeHash = (left, right, algorithm = "sha256") =>
+  digest(algorithm, Buffer.from([0x01]), left, right);
 
 // Canonical files[] entry: keys in UTF-16 code-unit order
 // (digest < path < size), compact separators - RFC 8785 for this
@@ -37,20 +40,20 @@ const canonicalEntry = (e) =>
   JSON.stringify({ digest: e.digest, path: e.path, size: e.size });
 
 // RFC 6962-style root: unpaired nodes promote as-is (no self-pairing).
-const merkleRoot = (entries) => {
+const merkleRoot = (entries, algorithm = "sha256") => {
   let level = entries.map((e) =>
-    leafHash(Buffer.from(canonicalEntry(e), "utf8")),
+    leafHash(Buffer.from(canonicalEntry(e), "utf8"), algorithm),
   );
   if (level.length === 0) return null;
   while (level.length > 1) {
     const next = [];
     for (let i = 0; i + 1 < level.length; i += 2) {
-      next.push(nodeHash(level[i], level[i + 1]));
+      next.push(nodeHash(level[i], level[i + 1], algorithm));
     }
     if (level.length % 2 === 1) next.push(level[level.length - 1]);
     level = next;
   }
-  return `sha256:${hex(level[0])}`;
+  return `${algorithm}:${hex(level[0])}`;
 };
 
 // --- fixed payloads --------------------------------------------------------
@@ -61,15 +64,15 @@ const PAYLOAD_B = Buffer.from([0x00, 0x01, 0x02, 0x03]);
 const PAYLOAD_EXTRA = Buffer.from("rogue\n", "utf8");
 const PAYLOAD_GONE = Buffer.from("gone\n", "utf8"); // digested, never written
 
-const entryFor = (path, payload) => ({
+const entryFor = (path, payload, algorithm = "sha256") => ({
   path,
   size: payload.length,
-  digest: digestOf(payload),
+  digest: digestOf(payload, algorithm),
 });
 
-const baseEntries = () => [
-  entryFor("files/a.txt", PAYLOAD_A),
-  entryFor("files/b.bin", PAYLOAD_B),
+const baseEntries = (algorithm = "sha256") => [
+  entryFor("files/a.txt", PAYLOAD_A, algorithm),
+  entryFor("files/b.bin", PAYLOAD_B, algorithm),
 ];
 
 const baseChain = [
@@ -87,6 +90,12 @@ const packs = {
   valid: {
     disk: { "files/a.txt": PAYLOAD_A, "files/b.bin": PAYLOAD_B },
     entries: baseEntries(),
+    chain: baseChain,
+  },
+  "valid-sha512": {
+    disk: { "files/a.txt": PAYLOAD_A, "files/b.bin": PAYLOAD_B },
+    entries: baseEntries("sha512"),
+    algorithm: "sha512",
     chain: baseChain,
   },
   "tampered-file": {
@@ -172,13 +181,13 @@ const packs = {
 
 const writeLf = (path, text) => writeFileSync(path, text, { encoding: "utf8" });
 
-const renderManifest = (name, entries, mutate) => {
+const renderManifest = (name, entries, algorithm = "sha256", mutate) => {
   const manifest = {
     schema: "moon-evidence/v0",
     subject: { id: `fixture-${name}`, type: "dataset" },
-    hash_algorithm: "sha256",
+    hash_algorithm: algorithm,
     files: entries,
-    merkle_root: merkleRoot(entries),
+    merkle_root: merkleRoot(entries, algorithm),
     version: { id: "v1", parent: null },
   };
   if (mutate) mutate(manifest);
@@ -197,7 +206,7 @@ for (const [name, spec] of Object.entries(packs)) {
   }
   writeLf(
     join(packDir, "manifest.json"),
-    renderManifest(name, spec.entries, spec.mutate),
+    renderManifest(name, spec.entries, spec.algorithm, spec.mutate),
   );
   if (spec.chain !== undefined) {
     mkdirSync(join(packDir, "versions"), { recursive: true });

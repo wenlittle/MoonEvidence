@@ -248,14 +248,14 @@ flowchart TB
 
 | 证据 | 当前基线 | 来源 |
 | --- | --- | --- |
-| MoonBit 测试 | **352** 个测试声明，348 个可执行测试，4 个基准包装 | [结果记录](docs/records/RESULTS_LOG.md) |
+| MoonBit 测试 | **357** 个测试声明，353 个可执行测试，4 个基准包装 | [结果记录](docs/records/RESULTS_LOG.md) |
 | 独立参考 | 4 条 RFC 8032 样例、150 条 Google Wycheproof Ed25519 向量、仓库内不调用 MoonBit 代码的 Node.js 摘要和 Merkle oracle | [测试计划](docs/TEST_PLAN.md) |
 | 故障注入 | 16/16 个实现故障被现有测试捕获 | [门禁脚本](tools/mutation-check.mjs) |
-| 多后端 | native、wasm、wasm-gc、js 进入 CI 检查；CLI PowerShell/bash 各 67/67 | [CI](https://github.com/wenlittle/MoonEvidence/actions/workflows/ci.yml) |
+| 多后端 | native、wasm、wasm-gc、js 进入 CI 检查；CLI PowerShell/bash 各 68/68 | [CI](https://github.com/wenlittle/MoonEvidence/actions/workflows/ci.yml) |
 | 浏览器 | 12 个 MoonBit API 共用 Web Worker，并由 smoke、异常输入和语义属性检查覆盖 | [展示说明](showcase/README.md) |
 | Fabric 适配器 | Chaincode 82.1% 语句覆盖，Gateway 19/19，required CI 持续执行 | [结果记录](docs/records/RESULTS_LOG.md) · [CI](https://github.com/wenlittle/MoonEvidence/actions/workflows/ci.yml) |
 | Fabric 协议 | 双组织提交、跨组织查询、幂等重复和摘要回传已留存 | [实验记录](docs/records/fabric-e2e/2026-07-11/) |
-| MoonBit 源码 | **14,667** 行（实现 6,529 + 测试 8,138），12 个产品包和 1 个原生计时工具包 | [结果记录](docs/records/RESULTS_LOG.md) |
+| MoonBit 源码 | **14,977** 行（实现 6,547 + 测试 8,430），12 个产品包和 1 个原生计时工具包 | [结果记录](docs/records/RESULTS_LOG.md) |
 
 测试从标准样例、独立参考结果、随机差分、异常输入、故障注入一路覆盖到 CLI 黑盒和真实账本实验。门禁关注测试能否抓住错误，避免只统计通过数量。
 

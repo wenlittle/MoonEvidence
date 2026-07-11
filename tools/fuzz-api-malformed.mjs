@@ -185,6 +185,7 @@ const malformedByExport = {
     { manifest: "{}", files: [], index: 0 },
     { manifest: "{}", files: { "files/a.txt": randomInvalidHex }, index: 0 },
     { manifest: "{}", index: "0" },
+    { manifest: "{}", index: 0.5 },
     { manifest: "{ not manifest json", index: 0 },
   ],
   verify_proof: [
@@ -195,6 +196,20 @@ const malformedByExport = {
     { leaf: "00", proof: [{ side: "up", sibling: "00" }], root: "00" },
     { leaf: "00", proof: [{ side: "left", sibling: randomInvalidHex }], root: "00" },
     { leaf: "00", proof: [], root: randomInvalidHex },
+    { leaf: "00", proof: [], root: "00".repeat(31), algorithm: "sha256" },
+    { leaf: "00", proof: [], root: "00".repeat(32), algorithm: "sha512" },
+    {
+      leaf: "00",
+      proof: [{ side: "left", sibling: "00".repeat(31) }],
+      root: "00".repeat(32),
+      algorithm: "sha256",
+    },
+    {
+      leaf: "00",
+      proof: [{ side: "left", sibling: "00".repeat(32) }],
+      root: "00".repeat(64),
+      algorithm: "sha512",
+    },
     { leaf: "00", proof: [], root: "00", algorithm: "md5" },
   ],
   audit_append: [

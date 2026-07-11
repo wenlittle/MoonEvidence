@@ -13,6 +13,7 @@ assertions).
 | Pack | Tamper | Exit | Exact codes |
 | --- | --- | --- | --- |
 | valid | none (baseline) | 0 | - |
+| valid-sha512 | none (independent SHA-512 digest/Merkle baseline) | 0 | - |
 | tampered-file | payload byte flip, manifest untouched | 1 | E2003 |
 | missing-file | listed file absent on disk | 1 | E2003 |
 | unlisted-file | extra payload not in manifest | 0 | W1001 |

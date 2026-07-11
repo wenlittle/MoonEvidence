@@ -110,7 +110,7 @@ File: `src/merkle/merkle.mbt`
 | M-14 | `compute_proof` rejects out-of-range/empty | `merkle.mbt:313` | `merkle_wbtest`: proof for out-of-range index is none | `covered` | |
 | M-15 | Proof construction round-trips for boundary shapes and random shapes | `merkle.mbt:321` | `merkle_wbtest`: shapes 1/2/3/4/5/7/8/9/15/16/17; `merkle_prop_wbtest`: random shapes | `covered` | |
 | M-16 | Tampered proof/leaf/root is rejected | `merkle.mbt:351` | `merkle_wbtest`: forged sibling, flipped side, truncated/extended proof, wrong leaf; property tamper test | `covered` | |
-| M-17 | Golden roots/proofs match independent Node reference | `merkle.mbt:82` | `merkle_golden_wbtest`: roots/proofs from `tests/fixtures/merkle/golden.json` | `oracle-covered` | |
+| M-17 | SHA-256 and SHA-512 golden roots/proofs match the independent Node reference | `merkle.mbt:82`, `merkle.mbt:311` | `merkle_golden_wbtest`: both algorithms and odd-node promotion from `tests/fixtures/merkle/golden.json`; `valid-sha512` pack cross-verification | `oracle-covered` | |
 | M-18 | `MerkleTree::root` empty top guard | `merkle.mbt:128` | No direct trigger | `accepted-risk` | `compute_tree([])` returns `None`, and no public constructor creates an empty-top non-empty tree. Defensive branch. |
 
 ## Digest
@@ -292,15 +292,15 @@ semantics and tamper rejection are covered by `tools/property-api-semantic.mjs`.
 | API-26 | `create_evidence_pack` defaults to SHA-256, accepts SHA-512, rejects unknown algorithms | `api.mbt:373` | `api_wbtest`: SHA-512 success; fuzz `md5`; smoke create uses SHA-256 | `covered` | |
 | API-27 | `create_evidence_pack` requires string `version_id` and string/null `version_parent` | `api.mbt:381`, `api.mbt:384` | `fuzz-api-malformed.mjs`: wrong version_id and version_parent types | `covered` | |
 | API-28 | `create_evidence_pack` output verifies through the normal verifier | `api.mbt:392` | `api_wbtest`: create then verify succeeds; `smoke-api.mjs` closed loop; `property-api-semantic.mjs` randomized create→verify loops | `covered` | |
-| API-29 | `generate_proof` validates manifest/files/index request shape | `api.mbt:419`, `api.mbt:425`, `api.mbt:441` | `api_wbtest`: out-of-range index; fuzz missing/wrong manifest, files, and index | `covered` | |
+| API-29 | `generate_proof` validates manifest/files/index request shape and rejects fractional, negative, or out-of-range indexes | `api.mbt:436`, `api.mbt:443`, `api.mbt:464` | `api_wbtest`: fractional and out-of-range indexes; fuzz missing/wrong/fractional index | `covered` | |
 | API-30 | `generate_proof` reports manifest parse errors | `api.mbt:446` | `fuzz-api-malformed.mjs`: malformed manifest text | `covered` | |
 | API-31 | `generate_proof` rejects empty/out-of-range tree indexes | `api.mbt:458` | `api_wbtest`: out-of-range index rejected | `covered` | |
 | API-32 | `generate_proof` returns proof/leaf/root metadata for valid inputs | `api.mbt:460` | `api_wbtest`: generate then verify proof round-trip; `smoke-api.mjs` proof closed loop; `property-api-semantic.mjs` randomized proof loops | `covered` | |
 | API-33 | `generate_proof` root fallback is defensive only | `api.mbt:472` | No direct trigger | `accepted-risk` | `Some(proof)` requires a non-empty tree, so `compute_root` should also be `Some`. |
 | API-34 | `verify_proof` validates leaf hex, proof shape, and root hex | `api.mbt:504`, `api.mbt:512`, `api.mbt:534` | `api_wbtest`: valid/tampered proof; fuzz leaf/proof/root malformed cases | `covered` | |
-| API-35 | `verify_proof` validates each proof side and sibling hex | `api.mbt:516`, `api.mbt:521`, `api.mbt:527` | `fuzz-api-malformed.mjs`: missing fields, bad sibling hex, invalid side | `covered` | |
-| API-36 | `verify_proof` validates optional algorithm and defaults to SHA-256 | `api.mbt:544` | `fuzz-api-malformed.mjs`: invalid algorithm; `api_wbtest`/smoke default SHA-256 proof | `covered` | |
-| API-37 | `verify_proof` accepts valid inclusion proofs and rejects tampered leaves | `api.mbt:557` | `api_wbtest`: round-trip succeeds and tampered proof fails; `smoke-api.mjs` closed loop; `property-api-semantic.mjs` randomized valid/tampered leaves | `covered` | |
+| API-35 | `verify_proof` validates each proof side, sibling hex, and algorithm-specific sibling length | `api.mbt:559`, `api.mbt:564`, `api.mbt:568` | `api_wbtest`: SHA-256/SHA-512 short siblings; fuzz bad hex, invalid side, and wrong lengths | `covered` | |
+| API-36 | `verify_proof` validates the optional algorithm before proof nodes, defaults to SHA-256, and enforces root length | `api.mbt:532`, `api.mbt:585` | `api_wbtest`: 32/64-byte sibling and root gates; fuzz invalid algorithm and wrong lengths | `covered` | |
+| API-37 | `verify_proof` accepts SHA-256/SHA-512 inclusion proofs and rejects tampered leaves | `api.mbt:595` | `api_wbtest`: fixed SHA-256 and SHA-512 round-trips; smoke both algorithms; `property-api-semantic.mjs` alternates algorithms with randomized valid/tampered leaves | `covered` | |
 | API-38 | `audit_append` creates/loads logs and rejects invalid log JSON/type | `api.mbt:587` | `api_wbtest`: append/verify round-trip; fuzz invalid log type/text | `covered` | |
 | API-39 | `audit_append` requires actor/action/subject strings and validates optional digest/timestamp | `api.mbt:598`, `api.mbt:607`, `api.mbt:613` | `fuzz-api-malformed.mjs`: wrong required and optional field types | `covered` | |
 | API-40 | `audit_append` returns updated log and entry hash after append | `api.mbt:624` | `api_wbtest`: multi-entry append round-trip; `smoke-api.mjs` two-entry log; `property-api-semantic.mjs` randomized audit chains | `covered` | |

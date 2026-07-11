@@ -270,6 +270,7 @@ p1_one "explain rejects --json" 2 'Usage:'                                explai
 # flags, and exact code multisets.
 
 p2_one "valid"            0 "true"  ""
+p2_one "valid-sha512"     0 "true"  ""
 p2_one "tampered-file"    1 "false" "E2003"
 p2_one "missing-file"     1 "false" "E2003"
 p2_one "unlisted-file"    0 "true"  "W1001"

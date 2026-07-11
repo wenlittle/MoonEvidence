@@ -38,9 +38,7 @@ jobs:
         run: node tools/check-metrics.mjs
 
       - name: Fixture rot guard (regenerate, must be byte-identical)
-        run: |
-          node tools/gen-fixtures.mjs
-          git diff --exit-code tests/fixtures/packs
+        run: node tools/check-fixtures.mjs
 
       # Cross-verification: re-computes digests and Merkle roots for all
       # golden fixture packs using Node.js crypto (independent of MoonBit),

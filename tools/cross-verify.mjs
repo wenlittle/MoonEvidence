@@ -3,17 +3,17 @@
 // implementation rather than validating itself.
 //
 // The MoonBit suite already verifies packs, but every verifier path shares
-// the same MoonBit SHA-256, JCS canonicalization and Merkle code that
+// the same MoonBit SHA-2, JCS canonicalization and Merkle code that
 // produced the seals. A bug in any of those primitives would be invisible
 // to `moon test`. This script recomputes everything with `node:crypto` and
 // a hand-rolled RFC 6962 Merkle builder, then compares against the values
 // sealed in the manifest:
 //
-//   1. Per-file SHA-256: rehash every file on disk under <pack>/files/ and
-//      compare to manifest.files[].digest.
+//   1. Per-file SHA-256/SHA-512: rehash every file on disk under
+//      <pack>/files/ and compare to manifest.files[].digest.
 //   2. Merkle root: rebuild the tree from canonical file-entry JSON with
-//      RFC 6962 domain separation (leaf = SHA256(0x00 || data),
-//      node = SHA256(0x01 || left || right), unpaired nodes promoted) and
+//      RFC 6962 domain separation (leaf = H(0x00 || data),
+//      node = H(0x01 || left || right), unpaired nodes promoted) and
 //      compare to manifest.merkle_root.
 //   3. Pack sweep: run both checks against every golden pack under
 //      tests/fixtures/packs/ and emit a per-pack PASS/FAIL report.
@@ -34,21 +34,26 @@ import { fileURLToPath } from "node:url";
 // Independent crypto primitives (no MoonBit code involved)
 // ---------------------------------------------------------------------------
 
-const sha256 = (...chunks) => {
-  const hash = createHash("sha256");
+const supportedAlgorithms = new Set(["sha256", "sha512"]);
+
+const hashWith = (algorithm, ...chunks) => {
+  const hash = createHash(algorithm);
   for (const chunk of chunks) hash.update(chunk);
   return hash.digest();
 };
 
 const hex = (buffer) => buffer.toString("hex");
-const digestOf = (bytes) => `sha256:${hex(sha256(bytes))}`;
+const digestOf = (bytes, algorithm) =>
+  `${algorithm}:${hex(hashWith(algorithm, bytes))}`;
 
 // RFC 6962 domain separation, matching the frozen spec:
-//   leaf  = SHA256(0x00 || data)
-//   node  = SHA256(0x01 || left || right)
+//   leaf  = H(0x00 || data)
+//   node  = H(0x01 || left || right)
 //   unpaired nodes at the tail of a level are promoted as-is (no self-pairing).
-const leafHash = (data) => sha256(Buffer.from([0x00]), data);
-const nodeHash = (left, right) => sha256(Buffer.from([0x01]), left, right);
+const leafHash = (data, algorithm) =>
+  hashWith(algorithm, Buffer.from([0x00]), data);
+const nodeHash = (left, right, algorithm) =>
+  hashWith(algorithm, Buffer.from([0x01]), left, right);
 
 // Canonical files[] entry rendering, matching the spec's leaf payload:
 // keys sorted by UTF-16 code-unit order (digest < path < size), compact
@@ -60,28 +65,28 @@ const canonicalEntry = (entry) =>
     size: entry.size,
   });
 
-const merkleRoot = (entries) => {
+const merkleRoot = (entries, algorithm) => {
   if (entries.length === 0) return null;
   let level = entries.map((e) =>
-    leafHash(Buffer.from(canonicalEntry(e), "utf8")),
+    leafHash(Buffer.from(canonicalEntry(e), "utf8"), algorithm),
   );
   while (level.length > 1) {
     const next = [];
     for (let i = 0; i + 1 < level.length; i += 2) {
-      next.push(nodeHash(level[i], level[i + 1]));
+      next.push(nodeHash(level[i], level[i + 1], algorithm));
     }
     if (level.length % 2 === 1) next.push(level[level.length - 1]);
     level = next;
   }
-  return `sha256:${hex(level[0])}`;
+  return `${algorithm}:${hex(level[0])}`;
 };
 
 // ---------------------------------------------------------------------------
 // Verification primitives
 // ---------------------------------------------------------------------------
 
-// Recompute SHA-256 for every file listed in the manifest and compare to
-// the sealed digest. Returns one record per entry plus an overall flag.
+// Recompute the declared SHA-2 algorithm for every listed file and compare
+// to the sealed digest. Returns one record per entry plus an overall flag.
 const verifyFileDigests = (manifest, packRoot) => {
   const results = [];
   let allMatch = true;
@@ -98,7 +103,7 @@ const verifyFileDigests = (manifest, packRoot) => {
       continue;
     }
     const bytes = readFileSync(filePath);
-    const actual = digestOf(bytes);
+    const actual = digestOf(bytes, manifest.hash_algorithm);
     const match = actual === entry.digest;
     if (!match) allMatch = false;
     // Also cross-check the size field while we have the bytes: a mismatch
@@ -126,7 +131,7 @@ const verifyMerkleRoot = (manifest) => {
   if (!manifest.merkle_root) {
     return { status: "absent", expected: null, actual: null, match: false };
   }
-  const recomputed = merkleRoot(manifest.files);
+  const recomputed = merkleRoot(manifest.files, manifest.hash_algorithm);
   if (recomputed === null) {
     return {
       status: "empty-files",
@@ -163,6 +168,13 @@ const verifyPackDir = (packDir) => {
       error: `manifest.json is not valid JSON: ${error.message}`,
     };
   }
+  if (!supportedAlgorithms.has(manifest.hash_algorithm)) {
+    return {
+      pack: basename(packDir),
+      ok: false,
+      error: `unsupported hash_algorithm: ${manifest.hash_algorithm}`,
+    };
+  }
   const digestReport = verifyFileDigests(manifest, packDir);
   const merkleReport = verifyMerkleRoot(manifest);
   const ok = digestReport.allMatch && merkleReport.match;
@@ -186,6 +198,13 @@ const verifyManifestFile = (manifestPath) => {
       manifest: basename(manifestPath),
       ok: false,
       error: `not valid JSON: ${error.message}`,
+    };
+  }
+  if (!supportedAlgorithms.has(manifest.hash_algorithm)) {
+    return {
+      manifest: basename(manifestPath),
+      ok: false,
+      error: `unsupported hash_algorithm: ${manifest.hash_algorithm}`,
     };
   }
   const merkleReport = verifyMerkleRoot(manifest);

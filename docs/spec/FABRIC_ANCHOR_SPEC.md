@@ -1,6 +1,7 @@
 # Fabric Anchor Contract v1
 
-Status: frozen for the first reproducible Hyperledger Fabric experiment.
+Status: current v1 contract for the v0.5.x adapter and reproducible Fabric
+samples run.
 
 ## Purpose
 
@@ -8,9 +9,10 @@ The contract records that a Fabric identity submitted a MoonEvidence canonical
 manifest digest. MoonEvidence remains responsible for manifest creation,
 canonicalization, hashing, Merkle construction, and local verification.
 
-The contract does not claim that the submitter verified the files before
-anchoring. Consumers prove that separately by querying the anchor and passing
-its manifest_digest to MoonEvidence verification.
+Ledger semantics cover digest submission and its Fabric identity. The standard
+`anchor-pack` Gateway procedure records the separate off-chain verification
+report before submission. Later consumers query the anchor and pass its
+`manifest_digest` to MoonEvidence verification.
 
 ## Privacy Boundary
 
@@ -85,7 +87,8 @@ Response:
 
 ### ReadAnchor(manifestDigest)
 
-Returns the immutable record. Missing or corrupted state is an error.
+Returns the first-write record. The v1 contract exposes no update or delete
+transaction. Missing or corrupted state is an error.
 
 ### AnchorExists(manifestDigest)
 
@@ -116,5 +119,6 @@ Clients branch on the prefix, not the remainder of the message.
 - Endorsement: channel default MAJORITY; no Org1-only override
 - Test topology: Fabric samples test-network, two peer organizations
 
-The samples test-network is an integration environment, not a production
-network topology or legal timestamp service.
+The samples test-network supplies the reproducible protocol-integration tier.
+Production deployment adds consortium membership, endorsement and ACL policy,
+CA enrollment, availability, backup, monitoring, and trusted-time controls.

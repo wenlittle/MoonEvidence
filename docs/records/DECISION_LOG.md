@@ -277,8 +277,8 @@ Reason:
 
 Decision: Manifest construction, canonicalization, digest calculation, Merkle
 semantics, and evidence verification remain in the MoonBit core and CLI. The
-Fabric adapter consumes MoonBit's versioned machine envelopes and does not
-reimplement those rules in TypeScript or Go.
+Fabric adapter consumes MoonBit's versioned manifest receipts and stable
+verification report, and does not reimplement those rules in TypeScript or Go.
 
 Reason:
 
@@ -323,8 +323,8 @@ Reason:
 
 ## 2026-07-11: Fabric samples is the protocol-integration environment
 
-Decision: The two-organization Fabric samples test-network is used to prove the
-implemented path crosses Gateway, endorsement, ordering, validation,
+Decision: The two-organization Fabric samples test-network records an
+implemented path across Gateway, endorsement, ordering, validation,
 world-state, and cross-organization query boundaries. Production identity
 enrollment, governance, availability, private-data policy, and trusted-time
 policy remain deployment concerns.
@@ -335,6 +335,29 @@ Reason:
   mock or chaincode-only unit test.
 - It does not represent a production consortium or legal timestamp service,
   so those operational properties must not be inferred from the experiment.
+
+## 2026-07-11: public contracts separate core packs, extensions, and process shapes
+
+Decision: The core evidence pack consists of `manifest.json` and `files/`.
+`versions/version_chain.json` is an optional CLI extension. Inclusion proofs
+are explicit Merkle/API artifacts and are not required by complete pack
+verification. The manifest-selected SHA-256 or SHA-512 algorithm drives file,
+Merkle, proof-sibling, and external manifest digest lengths.
+
+The CLI process contract uses versioned schema receipts for `pack`, `create`,
+and `inspect`. Single-pack `verify --json` keeps the shared stable
+`VerifyReport` shape with `ok`, `findings`, and `stats` and no schema field.
+
+Reason:
+
+- These boundaries match the existing v0.5.0 implementation and published
+  data without a schema migration.
+- Core packs stay self-contained and small; optional history and proofs retain
+  explicit ownership.
+- Automation can select the correct parser from the command and exit code,
+  while schema fields continue to version manifest receipts.
+- SHA-512 packs remain interoperable because every digest length is derived
+  from the selected algorithm.
 
 ## 2026-07-11: Fabric integration ships as v0.5.0
 

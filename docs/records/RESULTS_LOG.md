@@ -2243,6 +2243,28 @@ deployed protocol and revalidated the Gateway boundary around that record.
 | CLI process tests | PASS: PowerShell and bash, JS and native, each 68/68 |
 | Governance | PASS: metrics 44/44; branch map 221 invariants with zero gaps |
 
+## 2026-07-11 Asia/Shanghai (audit and object-store mutation expansion)
+
+### Scope
+
+| Item | Result |
+| --- | --- |
+| Repository baseline | `codex/documentation-restructure` at `88912ad` before the mutation expansion |
+| Audit signature mutation | Disabled the `ed25519_verify` decision inside `AuditLog::verify_signatures`; the wrong-public-key regression test rejected the mutant |
+| Object-store mutation | Disabled the recomputed-digest comparison inside `DeduplicateResult::verify_integrity`; the independent hardcoded-digest tamper test rejected the mutant |
+| Mutation inventory | Expanded the executable gate from 16 to 18 production-source mutations across Merkle, Ed25519, HMAC, SHA-2, incremental verification, audit signatures, and object-store integrity |
+| Fabric duplicate contract | Qualified sequential first-record behavior and code-11-only concurrent MVCC normalization in both READMEs and the current knowledge base |
+
+### Verification
+
+| Command / flow | Result |
+| --- | --- |
+| `node tools/mutation-check.mjs --audit --store` | PASS: 2/2 new mutations caught; each produced exactly one failing test |
+| `node tools/mutation-check.mjs` | PASS: 18/18 mutations caught; 0 slipped, 0 errored |
+| Source restoration | PASS: all eight mutation target files match the Git index byte-for-byte after the full run; audit SHA-256 `bbda8df0...c38ab`, store SHA-256 `352d41f1...07f05` |
+| Public baseline scan | PASS: current README, test plan, report, checklist, and knowledge-base claims use `18/18`; dated historical records remain unchanged |
+| `git diff --check` | PASS |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

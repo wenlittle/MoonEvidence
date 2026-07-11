@@ -187,7 +187,7 @@ Core computation performs no filesystem IO. The CLI, browser, and Fabric gateway
 
 ## Fabric Anchoring
 
-The standard `anchor-pack` flow performs complete MoonEvidence verification off-chain before submitting the canonical digest to Hyperledger Fabric. A TypeScript Gateway owns that flow, the network connection, and commit receipts. The Go chaincode v1 API has no update or delete transaction and always returns the first record for a digest. Files, paths, the complete manifest, and the local verification report stay off-chain. The ledger confirms that a Fabric identity submitted the digest; MoonEvidence provides the verification conclusion.
+The standard `anchor-pack` flow performs complete MoonEvidence verification off-chain before submitting the canonical digest to Hyperledger Fabric. A TypeScript Gateway owns that flow, the network connection, and commit receipts. The Go chaincode v1 API has no update or delete transaction. A sequential duplicate returns the first stored record. For concurrent first writes, the Gateway normalizes the losing submission only when Fabric reports MVCC validation code `11` and a follow-up query confirms a matching ledger record; every other rejected commit remains an error. Files, paths, the complete manifest, and the local verification report stay off-chain. The ledger confirms that a Fabric identity submitted the digest; MoonEvidence provides the verification conclusion.
 
 ```text
 local create and verify → canonical digest → Fabric Gateway → chaincode → receipt
@@ -250,7 +250,7 @@ See the [Architecture](docs/ARCHITECTURE.md) for the detailed design and the [Fa
 | --- | --- | --- |
 | MoonBit tests | **357** test declarations: 353 executable tests and 4 benchmark wrappers | [Results Log](docs/records/RESULTS_LOG.md) |
 | Independent references | 4 RFC 8032 examples, 150 Google Wycheproof Ed25519 vectors, and repository-maintained Node.js digest/Merkle oracles that do not call MoonBit code | [Test Plan](docs/TEST_PLAN.md) |
-| Fault injection | Existing tests caught 16/16 implementation faults | [Gate script](tools/mutation-check.mjs) |
+| Fault injection | Existing tests caught 18/18 implementation faults | [Gate script](tools/mutation-check.mjs) |
 | Multiple backends | native, wasm, wasm-gc, and js enter CI; PowerShell and bash CLI suites each pass 68/68 | [CI](https://github.com/wenlittle/MoonEvidence/actions/workflows/ci.yml) |
 | Browser | 12 MoonBit APIs share one Web Worker and receive smoke, malformed-input, and semantic-property checks | [Showcase Guide](showcase/README.md) |
 | Fabric adapters | 82.1% chaincode statement coverage, Gateway 19/19, and a required CI job | [Results Log](docs/records/RESULTS_LOG.md) · [CI](https://github.com/wenlittle/MoonEvidence/actions/workflows/ci.yml) |

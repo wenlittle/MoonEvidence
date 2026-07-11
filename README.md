@@ -187,7 +187,7 @@ checked 2 files, 1 passed; merkle root verified; 1 error, 0 warnings
 
 ## Fabric 锚定
 
-标准 `anchor-pack` 流程先在链下调用 MoonEvidence 完整验证，再把规范摘要提交到 Hyperledger Fabric。TypeScript Gateway 负责这条流程、网络连接和提交回执。Go Chaincode v1 不提供更新或删除交易，同一摘要始终返回首笔记录；文件、路径、完整清单和本地验证报告继续留在链下。账本记录能够确认某个 Fabric 身份提交了该摘要，验证结论由 MoonEvidence 报告提供。
+标准 `anchor-pack` 流程先在链下调用 MoonEvidence 完整验证，再把规范摘要提交到 Hyperledger Fabric。TypeScript Gateway 负责这条流程、网络连接和提交回执。Go Chaincode v1 不提供更新或删除交易，顺序重复提交直接返回已保存的首笔记录。并发首写中，只有提交结果为 Fabric MVCC validation code `11`，且随后查询确认账本记录与待提交摘要一致时，Gateway 才把失败方归一化为重复成功；其他拒绝保持错误。文件、路径、完整清单和本地验证报告继续留在链下。账本记录能够确认某个 Fabric 身份提交了该摘要，验证结论由 MoonEvidence 报告提供。
 
 ```text
 本地创建和验证 → 规范摘要 → Fabric Gateway → Chaincode → 交易回执
@@ -250,7 +250,7 @@ flowchart TB
 | --- | --- | --- |
 | MoonBit 测试 | **357** 个测试声明，353 个可执行测试，4 个基准包装 | [结果记录](docs/records/RESULTS_LOG.md) |
 | 独立参考 | 4 条 RFC 8032 样例、150 条 Google Wycheproof Ed25519 向量、仓库内不调用 MoonBit 代码的 Node.js 摘要和 Merkle oracle | [测试计划](docs/TEST_PLAN.md) |
-| 故障注入 | 16/16 个实现故障被现有测试捕获 | [门禁脚本](tools/mutation-check.mjs) |
+| 故障注入 | 18/18 个实现故障被现有测试捕获 | [门禁脚本](tools/mutation-check.mjs) |
 | 多后端 | native、wasm、wasm-gc、js 进入 CI 检查；CLI PowerShell/bash 各 68/68 | [CI](https://github.com/wenlittle/MoonEvidence/actions/workflows/ci.yml) |
 | 浏览器 | 12 个 MoonBit API 共用 Web Worker，并由 smoke、异常输入和语义属性检查覆盖 | [展示说明](showcase/README.md) |
 | Fabric 适配器 | Chaincode 82.1% 语句覆盖，Gateway 19/19，required CI 持续执行 | [结果记录](docs/records/RESULTS_LOG.md) · [CI](https://github.com/wenlittle/MoonEvidence/actions/workflows/ci.yml) |

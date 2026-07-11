@@ -314,7 +314,7 @@ flowchart TB
 | 标准样例 | RFC 8785、RFC 2104、RFC 8032、NIST SHA-256/SHA-512 |
 | Ed25519 攻击向量 | Google Wycheproof 150/150，覆盖 7 类攻击 |
 | 跨实现检查 | Ed25519、SHA-256、SHA-512、HMAC、Merkle 和夹具摘要 |
-| 故障注入 | 16/16 个实现故障被现有测试捕获 |
+| 故障注入 | 18/18 个实现故障被现有测试捕获 |
 | 浏览器 | 12 个公开 API，Node.js 接口冒烟测试 41/41，完整工作台生产构建通过 |
 | Fabric Chaincode | `go vet`、race CI、82.1% 语句覆盖 |
 | Fabric Gateway | TypeScript check/build，19/19 测试 |

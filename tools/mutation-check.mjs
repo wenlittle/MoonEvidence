@@ -199,6 +199,28 @@ const mutations = [
     // boundary: expected_manifest_digest must reject a changed manifest.
     expectHint: "incremental E2004 manifest digest mismatch",
   },
+  {
+    id: "audit-signature-verification-disabled",
+    label: "audit signature verification result ignored",
+    file: join(repoRoot, "src", "audit", "audit_log.mbt"),
+    find: "            if @crypto.ed25519_verify(pk, hash_bytes, sig) == false {\n              return false\n            }",
+    replace: "            if false {\n              return false\n            }",
+    // A syntactically valid but forged signature must not be accepted merely
+    // because it decoded from hex. The wrong-public-key audit test exercises
+    // this verification result independently of the signing happy path.
+    expectHint: "audit Ed25519 signature verification",
+  },
+  {
+    id: "store-integrity-comparison-disabled",
+    label: "object-store digest comparison disabled",
+    file: join(repoRoot, "src", "store", "object_store.mbt"),
+    find: "        if recomputed != hash {\n          return false\n        }",
+    replace: "        if false {\n          return false\n        }",
+    // A present object is not sufficient: its bytes must still hash to the
+    // index key. The independent hardcoded-digest tamper test must catch this
+    // disabled comparison without relying on ObjectStore::put.
+    expectHint: "object-store content digest comparison",
+  },
 ];
 
 const countOccurrences = (haystack, needle) =>

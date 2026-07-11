@@ -1984,6 +1984,44 @@ assurance with stale privacy and crypto wording.
 | Fabric adapters | PASS: Gateway 19/19; Go vet/race pass; Chaincode core coverage 82.1% |
 | Package/metric guards | PASS: package 232 files; metrics 44/44; diff whitespace clean |
 
+## 2026-07-11 Asia/Shanghai (OSC2026 skill final acceptance review)
+
+### Review Basis
+
+| Item | Result |
+| --- | --- |
+| Skill | `osc2026-guide` commit `4ea70d4` (`Add final acceptance self-review guidance`) |
+| Repository baseline | `main` / v0.5.0 at `808814742356cff87b8072b91200ae24894bb9a0` |
+| Verdict | No repository-side hard blocker; all nine competition acceptance requirements and the skill's stricter final-review checks pass |
+| Operational uncertainty | The public rules do not identify a separate completion-support form; final submission-channel instructions must come from the competition group or organizer |
+
+### Fresh Evidence
+
+| Command / source | Result |
+| --- | --- |
+| `moon version --all` | Windows shell: moon 0.1.20260529 / moonc v0.9.3; newer-toolchain evidence remains green in required CI and recorded WSL v0.10.3 run |
+| `moon update`; strict check/fmt/info gates | PASS; generated interfaces unchanged |
+| Portable and native MoonBit tests | PASS: 347/347 on wasm, wasm-gc, js, and Windows/MSVC native |
+| PowerShell CLI process tests | PASS: JS 62/62; native 62/62 |
+| Browser and Showcase | API smoke 36/36; TypeScript check and Vite production build PASS; public Pages returned HTTP 200 |
+| Package/metrics/oracle gates | PASS: package 232 files; metrics 44/44; branch stale-check; cross-verify 10/10; Wycheproof inventory 150 |
+| Fabric adapters | Gateway 19/19; Go vet and local coverage PASS at 82.1%; local race requires CGO, while latest required CI race job is green |
+| GitHub | Public, default branch `main`, primary language MoonBit, Apache-2.0; CI run `29147807818` and Pages run `29147807822` succeeded at `8088147` |
+| GitHub/Gitlink release refs | Both v0.5.0 tags peel to `8088147`; GitHub Release has two assets; Mooncakes clean consumer imports v0.5.0 and passes 2/2 API tests |
+| Proposal | `docs/申报书.pdf` is one-page A4 and maps the declared feature set to implemented packages, adapters, tests, and real Fabric evidence |
+
+### Closure Decisions
+
+- Document the maintainer/account mapping positively in both READMEs instead
+  of rewriting public history: Chen Junwen / GitHub `wenlittle` / Gitlink and
+  Mooncakes `starlittle`.
+- Record the Wycheproof corpus license next to its source and version.
+- Anchor the ignored legacy `report/` path at the repository root so the
+  tracked authoritative `docs/report/` tree is not accidentally masked.
+- Treat video as optional showcase material. The acceptance-critical delivery
+  remains the public repositories, reproducible README path, green CI,
+  runnable examples, tests, Mooncakes package, and OSI license.
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

@@ -11,6 +11,9 @@ verify deterministic evidence packs, plus an optional Hyperledger Fabric
 adapter that anchors the verified manifest digest and feeds it back into local
 verification.
 
+Maintainer: Chen Junwen (GitHub `@wenlittle`; GitLink and Mooncakes namespace
+`starlittle`).
+
 ## Positioning
 
 MoonEvidence keeps evidence semantics chain-agnostic: prove that a local pack

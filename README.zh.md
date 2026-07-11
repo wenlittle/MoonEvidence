@@ -6,6 +6,8 @@
 
 MoonEvidence 是一个用 MoonBit 编写的**可信证据包创建与验证库、CLI**，并提供可选的 Hyperledger Fabric 摘要锚定适配器：验证文件、元数据、Merkle 证明和版本记录是否完整、未被篡改，再把已验证清单的规范摘要提交到共享账本。
 
+维护者：陈俊文（GitHub `@wenlittle`；GitLink 与 Mooncakes 命名空间为 `starlittle`）。
+
 ## 定位
 
 MoonEvidence 把证据语义保持在**链无关验证核心**中：在上链存证、数据集归档、数字版权打包、AI 产物审计和科研资料发布前，先证明本地证据包完整、确定、未被篡改。需要共享账本时，Fabric 适配器只记录这份已验证证据包的规范 manifest 摘要，并返回交易 ID、区块号和验证状态。

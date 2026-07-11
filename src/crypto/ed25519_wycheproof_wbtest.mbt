@@ -1,6 +1,6 @@
 // Google Wycheproof Ed25519 test vectors — independent oracle for ed25519_verify.
 //
-// Source: https://github.com/google/wycheproof (testvectors_v1/ed25519_test.json)
+// Source: https://github.com/google/wycheproof (Apache-2.0; testvectors_v1/ed25519_test.json)
 // Version: 0.9rc5
 // Total: 150 vectors (88 valid + 62 invalid)
 //

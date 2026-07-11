@@ -286,7 +286,7 @@ $p = @()
 if ($r.ExitCode -ne 0) { $p += "exit: expected 0, got $($r.ExitCode)" }
 if ($r.Output -notmatch 'created.*2 files, sha256') { $p += "output missing: created (2 files, sha256)" }
 if ($p.Count -eq 0) {
-  $r2 = Invoke-Cli -CliArgs @("verify", $dir1)
+  $r2 = Invoke-Cli -CliArgs @("verify", (Join-Path $dir1 "manifest.json"))
   $p2 = @()
   if ($r2.ExitCode -ne 0) { $p2 += "verify exit: expected 0, got $($r2.ExitCode)" }
   if ($r2.Output -notmatch 'verification OK') { $p2 += "verify output missing: verification OK" }
@@ -307,7 +307,7 @@ $p = @()
 if ($r.ExitCode -ne 0) { $p += "exit: expected 0, got $($r.ExitCode)" }
 if ($r.Output -notmatch '2 files, sha256') { $p += "output missing: (2 files, sha256)" }
 if ($p.Count -eq 0) {
-  $r2 = Invoke-Cli -CliArgs @("verify", $dir2)
+  $r2 = Invoke-Cli -CliArgs @("verify", (Join-Path $dir2 "manifest.json"))
   $p2 = @()
   if ($r2.ExitCode -ne 0) { $p2 += "verify exit: expected 0, got $($r2.ExitCode)" }
   if ($r2.Output -notmatch 'verification OK') { $p2 += "verify output missing: verification OK" }
@@ -326,7 +326,7 @@ $p = @()
 if ($r.ExitCode -ne 0) { $p += "exit: expected 0, got $($r.ExitCode)" }
 if ($r.Output -notmatch '0 files, sha256') { $p += "output missing: (0 files, sha256)" }
 if ($p.Count -eq 0) {
-  $r2 = Invoke-Cli -CliArgs @("verify", $dir3)
+  $r2 = Invoke-Cli -CliArgs @("verify", (Join-Path $dir3 "manifest.json"))
   $p2 = @()
   if ($r2.ExitCode -ne 0) { $p2 += "verify exit: expected 0, got $($r2.ExitCode)" }
   if ($r2.Output -notmatch 'verification OK') { $p2 += "verify output missing: verification OK" }
@@ -386,7 +386,7 @@ $p = @()
 if ($r.ExitCode -ne 0) { $p += "exit: expected 0, got $($r.ExitCode)" }
 if ($r.Output -notmatch '1 files, sha512') { $p += "output missing: (1 files, sha512)" }
 if ($p.Count -eq 0) {
-  $r2 = Invoke-Cli -CliArgs @("verify", $dir7)
+  $r2 = Invoke-Cli -CliArgs @("verify", (Join-Path $dir7 "manifest.json"))
   $p2 = @()
   if ($r2.ExitCode -ne 0) { $p2 += "verify exit: expected 0, got $($r2.ExitCode)" }
   if ($r2.Output -notmatch 'verification OK') { $p2 += "verify output missing: verification OK" }
@@ -416,7 +416,7 @@ $r = Invoke-Cli -CliArgs @("create", $dir9, "--subject-id", "test-ver", "--versi
 $p = @()
 if ($r.ExitCode -ne 0) { $p += "exit: expected 0, got $($r.ExitCode)" }
 if ($p.Count -eq 0) {
-  $r2 = Invoke-Cli -CliArgs @("verify", "--json", $dir9)
+  $r2 = Invoke-Cli -CliArgs @("verify", "--json", (Join-Path $dir9 "manifest.json"))
   $p2 = @()
   if ($r2.ExitCode -ne 0) { $p2 += "verify exit: expected 0, got $($r2.ExitCode)" }
   if ($r2.Output -notmatch '"ok":true') { $p2 += "verify output missing: ok:true" }
@@ -624,7 +624,12 @@ if ($r.ExitCode -ne 0) { $p += "exit: expected 0, got $($r.ExitCode)" }
 try {
   $createResult = $r.Output | ConvertFrom-Json
   if ($createResult.schema -ne "moon-evidence-pack-result/v1") { $p += "wrong schema" }
-  $r2 = Invoke-Cli -CliArgs @("verify", "--expected-manifest-digest", $createResult.manifest_digest, $legacy)
+  $r2 = Invoke-Cli -CliArgs @(
+    "verify",
+    "--expected-manifest-digest",
+    $createResult.manifest_digest,
+    (Join-Path $legacy "manifest.json")
+  )
   if ($r2.ExitCode -ne 0) { $p += "create JSON digest did not verify" }
 } catch { $p += "output is not valid JSON" }
 if ($p.Count -eq 0) { Write-Host "PASS  machine: create JSON metadata" }
@@ -632,7 +637,65 @@ else { $failed += 1; Write-Host "FAIL  machine: create JSON metadata"; $p | ForE
 
 Remove-Item $machineTmp -Recurse -Force -ErrorAction SilentlyContinue
 
-$total = @($cases).Count + @($matrix).Count + @($manifestMatrix).Count + 10 + 3 + $machineTotal
+# --- Part 7: verification IO and inventory completeness -------------------
+
+$ioTmp = Join-Path $tempRoot "moon-evidence-cli-test-io"
+if (Test-Path $ioTmp) { Remove-Item $ioTmp -Recurse -Force }
+New-Item -ItemType Directory -Path $ioTmp -Force | Out-Null
+$ioTotal = 5
+
+function Assert-VerifyIoFailure {
+  param([string]$Name, [string]$Pack, [string]$Code, [string]$MessagePattern)
+  $result = Invoke-Cli -CliArgs @("verify", $Pack)
+  $problems = @()
+  if ($result.ExitCode -ne 2) { $problems += "exit: expected 2, got $($result.ExitCode)" }
+  if ($result.Output -notmatch "\[$Code\]") { $problems += "output missing code: $Code" }
+  if ($result.Output -notmatch $MessagePattern) { $problems += "output missing pattern: $MessagePattern" }
+  if ($problems.Count -eq 0) { Write-Host "PASS  io: $Name" }
+  else {
+    $script:failed += 1
+    Write-Host "FAIL  io: $Name"
+    $problems | ForEach-Object { Write-Host "      $_" }
+    Write-Host "      output: $($result.Output.Trim())"
+  }
+}
+
+$missingTree = Join-Path $ioTmp "missing-files-tree"
+New-Item -ItemType Directory -Path $missingTree -Force | Out-Null
+Copy-Item "examples/valid-pack/manifest.json" (Join-Path $missingTree "manifest.json")
+Assert-VerifyIoFailure "missing files tree" $missingTree "E5001" "payload directory does not exist"
+
+$filesNotDirectory = Join-Path $ioTmp "files-not-directory"
+New-Item -ItemType Directory -Path $filesNotDirectory -Force | Out-Null
+Copy-Item "examples/valid-pack/manifest.json" (Join-Path $filesNotDirectory "manifest.json")
+New-TestFile $filesNotDirectory "files" "not-a-directory"
+Assert-VerifyIoFailure "files path is not a directory" $filesNotDirectory "E5002" "payload path is not a directory"
+
+$listedUnreadable = Join-Path $ioTmp "listed-payload-unreadable"
+Copy-Item "examples/valid-pack" $listedUnreadable -Recurse
+Remove-Item (Join-Path $listedUnreadable "files/a.txt") -Force
+New-Item -ItemType Directory -Path (Join-Path $listedUnreadable "files/a.txt") | Out-Null
+Assert-VerifyIoFailure "listed payload is unreadable" $listedUnreadable "E5002" "file read failed"
+
+$chainUnreadable = Join-Path $ioTmp "version-chain-unreadable"
+Copy-Item "examples/valid-pack" $chainUnreadable -Recurse
+Remove-Item (Join-Path $chainUnreadable "versions/version_chain.json") -Force
+New-Item -ItemType Directory -Path (Join-Path $chainUnreadable "versions/version_chain.json") | Out-Null
+Assert-VerifyIoFailure "version chain is unreadable" $chainUnreadable "E5002" "file read failed"
+
+$tooDeep = Join-Path $ioTmp "inventory-too-deep"
+Copy-Item "examples/valid-pack" $tooDeep -Recurse
+$deepInventory = Join-Path $tooDeep "files"
+for ($d = 0; $d -lt 33; $d++) {
+  $deepInventory = Join-Path $deepInventory "d$d"
+  New-Item -ItemType Directory -Path $deepInventory -Force | Out-Null
+}
+New-TestFile $deepInventory "leaf.txt" "deep"
+Assert-VerifyIoFailure "inventory depth cap" $tooDeep "E5002" "recursion depth limit"
+
+Remove-Item $ioTmp -Recurse -Force -ErrorAction SilentlyContinue
+
+$total = @($cases).Count + @($matrix).Count + @($manifestMatrix).Count + 10 + 3 + $machineTotal + $ioTotal
 Write-Host ""
 Write-Host "cli-test ($Target): $($total - $failed)/$total passed"
 if ($failed -gt 0) { exit 1 }

@@ -2197,6 +2197,29 @@ deployed protocol and revalidated the Gateway boundary around that record.
 | Showcase | PASS: TypeScript project check and Vite production build |
 | `git diff --check` | PASS |
 
+## 2026-07-11 Asia/Shanghai (CLI inventory and IO contract hardening)
+
+### Scope
+
+| Item | Result |
+| --- | --- |
+| Directory verification | `verify <pack-dir>` now requires a readable `files/` tree and completes its inventory before issuing `W1001` |
+| IO split | Missing listed payload remains `E2003` / exit 1; existing unreadable payload or version-chain paths return `E5002` / exit 2 without a duplicate semantic report |
+| Resource bounds | Verification depth and file caps now abort with exit 2 instead of silently accepting a partial inventory |
+| Compatibility path | Manifest-in-place output from legacy `create` is verified through its returned manifest path; `pack` remains the self-contained directory format |
+| Regression suite | Added five PowerShell/bash process cases and one file-cap white-box test; CLI baseline is 67/67 per shell/target and MoonBit baseline is 348 executable tests |
+
+### Verification
+
+| Command / flow | Result |
+| --- | --- |
+| TDD red baseline | PASS: the five new process cases failed against the prior CLI as expected (`62/67`) |
+| Portable MoonBit tests | PASS: wasm, wasm-gc, and js each 348/348 |
+| Windows MSVC native tests | PASS: 348/348 |
+| CLI process tests | PASS: PowerShell and bash, JS and native, each 67/67 |
+| Type, format, interface | PASS: `moon check --deny-warn --target all`, `moon fmt --check`, and `moon info` |
+| Governance | PASS: metrics 44/44; branch map 221 invariants with zero gaps; one-page A4 PDF regenerated and text-checked |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

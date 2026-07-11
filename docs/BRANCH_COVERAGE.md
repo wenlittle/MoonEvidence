@@ -36,7 +36,7 @@ Status vocabulary:
 | CLI machine adapter | 8 | 0 | PowerShell/bash oracle and black-box coverage for inspect, pack, overwrite, rollback, JSON, and external-anchor contracts. |
 | Fabric adapter | 12 | 0 | Go/TypeScript unit evidence plus real two-organization protocol records for immutable state, receipts, idempotency, and digest backfeed. |
 
-The current map contains 217 audited invariants and has no open `gap` items.
+The current map contains 221 audited invariants and has no open `gap` items.
 The map gives these trust boundaries an explicit review surface.
 `tools/check-branch-coverage-stale.mjs` gates the registered MoonBit, CLI, Go,
 and TypeScript source files: edits to those files must touch this document in
@@ -328,9 +328,13 @@ File: `src/cmd/main/main.mbt`
 | CM-03 | `pack` copies every nested input, including a source file named `manifest.json`, into a new `files/` tree and its returned digest verifies | `run_pack` | `pack nested source` case in both shells | `covered` | Tests layout, reserved-name preservation, and pack->verify loop. |
 | CM-04 | Existing output is rejected without changing its manifest | `run_pack` overwrite guard | Before/after SHA-256 assertion in both shells | `oracle-covered` | Prevents destructive retries. |
 | CM-05 | `seal` behaves as an exact alias | command dispatch | `seal alias` in both shells | `covered` | |
-| CM-06 | `create --json` is additive and returns a digest accepted by verify | `run_create` JSON branch | `create JSON metadata` in both shells | `covered` | Legacy layout remains available. |
+| CM-06 | `create --json` is additive and returns a digest accepted by manifest-file verification | `run_create` JSON branch | `create JSON metadata` in both shells | `covered` | Legacy layout remains available without claiming a complete pack inventory. |
 | CM-07 | Depth/file caps abort before silent partial packaging | `collect_create_files` / `run_pack` | Existing create depth-cap black-box plus pack shares the same collector | `covered` | Pack output is created only after collection and manifest construction. |
 | CM-08 | A write failure rolls back only the newly created output tree | `remove_created_tree` | Source review + output-ownership guard; no portable deterministic filesystem failure injection | `accepted-risk` | Existing output is rejected before rollback can run, so pre-existing user data is outside rollback ownership. |
+| CM-09 | Directory verification requires `files/` to exist and be a readable directory before it can claim a complete inventory | `run_verify_single` pack-directory preflight | PowerShell/bash cases for missing `files/` and a regular file at that path | `covered` | Both are exit-2 command failures. |
+| CM-10 | Existing but unreadable listed payloads and version-chain files exit 2 without a mixed E5002/E2003 report | `run_verify_single` payload and chain reads | Directory-at-file-path cases in both shell suites | `covered` | Missing listed payload remains E2003/exit 1 in the existing matrix. |
+| CM-11 | Verification depth/file caps cannot silently truncate the inventory used for W1001 | `collect_pack_files` | Depth-cap black-box in both shells; file-cap white-box state test | `covered` | Cap exhaustion exits 2 before semantic verification output. |
+| CM-12 | Manifest-file mode verifies listed paths without claiming an unlisted-file inventory | `run_verify_single` `is_directory` branch | All legacy create round-trips now pass the returned manifest path | `covered` | Separates compatibility manifests from self-contained pack directories. |
 
 ## Fabric Adapter
 

@@ -102,7 +102,7 @@ Add-Content "$pack/files/a.txt" "tamper"
 node $cli explain $pack
 ```
 
-The last command exits with `1` and reports a digest mismatch at `files/a.txt`. Stable CLI exit codes are `0` for success or verification pass, `1` for verification rejection, and `2` for usage or IO failure.
+The last command exits with `1` and reports a digest mismatch at `files/a.txt`. Stable CLI exit codes are `0` for success or verification pass, `1` for a completed evidence rejection, and `2` for usage, permission, IO, or an incomplete directory inventory. Directory mode scans `files/` completely before reporting unlisted payloads. Verify `create`'s in-place output through its manifest path; use `pack` for archival handoff.
 
 See the [User Guide](docs/GUIDE.md) for the complete command set, batch mode, and troubleshooting.
 
@@ -248,14 +248,14 @@ See the [Architecture](docs/ARCHITECTURE.md) for the detailed design and the [Fa
 
 | Evidence | Current baseline | Source |
 | --- | --- | --- |
-| MoonBit tests | **351** test declarations: 347 executable tests and 4 benchmark wrappers | [Results Log](docs/records/RESULTS_LOG.md) |
+| MoonBit tests | **352** test declarations: 348 executable tests and 4 benchmark wrappers | [Results Log](docs/records/RESULTS_LOG.md) |
 | Independent references | 4 RFC 8032 examples, 150 Google Wycheproof Ed25519 vectors, and repository-maintained Node.js digest/Merkle oracles that do not call MoonBit code | [Test Plan](docs/TEST_PLAN.md) |
 | Fault injection | Existing tests caught 16/16 implementation faults | [Gate script](tools/mutation-check.mjs) |
-| Multiple backends | native, wasm, wasm-gc, and js enter CI; PowerShell and bash CLI suites each pass 62/62 | [CI](https://github.com/wenlittle/MoonEvidence/actions/workflows/ci.yml) |
+| Multiple backends | native, wasm, wasm-gc, and js enter CI; PowerShell and bash CLI suites each pass 67/67 | [CI](https://github.com/wenlittle/MoonEvidence/actions/workflows/ci.yml) |
 | Browser | 12 MoonBit APIs share one Web Worker and receive smoke, malformed-input, and semantic-property checks | [Showcase Guide](showcase/README.md) |
 | Fabric adapters | 82.1% chaincode statement coverage, Gateway 19/19, and a required CI job | [Results Log](docs/records/RESULTS_LOG.md) · [CI](https://github.com/wenlittle/MoonEvidence/actions/workflows/ci.yml) |
 | Fabric protocol | Recorded two-organization submission, cross-organization query, idempotent duplicate, and digest backfeed | [Experiment record](docs/records/fabric-e2e/2026-07-11/) |
-| MoonBit source | **14,571** lines: 6,453 implementation + 8,118 tests; 12 product packages and 1 native timing package | [Results Log](docs/records/RESULTS_LOG.md) |
+| MoonBit source | **14,667** lines: 6,529 implementation + 8,138 tests; 12 product packages and 1 native timing package | [Results Log](docs/records/RESULTS_LOG.md) |
 
 The test system moves from standard examples and independent references through randomized differential checks, malformed inputs, fault injection, CLI black-box tests, and a real ledger experiment. Gates measure whether tests catch faults, not only how many tests pass.
 

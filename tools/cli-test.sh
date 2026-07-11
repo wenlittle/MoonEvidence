@@ -124,6 +124,7 @@ MANIFEST_TOTAL=0
 CREATE_TOTAL=0
 INCREMENTAL_TOTAL=0
 MACHINE_TOTAL=0
+IO_TOTAL=0
 
 # p1_one NAME EXPECTED_EXIT "pat1|pat2" <cli args...>
 # A case passes when the exit code matches AND every pipe-separated pattern
@@ -230,6 +231,7 @@ record_result() {
     create) CREATE_TOTAL=$((CREATE_TOTAL + 1)) ;;
     incremental) INCREMENTAL_TOTAL=$((INCREMENTAL_TOTAL + 1)) ;;
     machine) MACHINE_TOTAL=$((MACHINE_TOTAL + 1)) ;;
+    io) IO_TOTAL=$((IO_TOTAL + 1)) ;;
   esac
   if [ -z "$problems" ]; then
     echo "PASS  $kind: $name"
@@ -335,7 +337,7 @@ problems=""
 [ "$INVOKE_RC" = "0" ] || problems+="exit: expected 0, got $INVOKE_RC; "
 printf '%s' "$INVOKE_OUT" | grep -Eq 'created.*2 files, sha256' || problems+="output missing: created (2 files, sha256); "
 if [ -z "$problems" ]; then
-  invoke_cli verify "$dir1"
+  invoke_cli verify "$dir1/manifest.json"
   [ "$INVOKE_RC" = "0" ] || problems+="verify exit: expected 0, got $INVOKE_RC; "
   printf '%s' "$INVOKE_OUT" | grep -Eq 'verification OK' || problems+="verify output missing: verification OK; "
 fi
@@ -351,7 +353,7 @@ problems=""
 [ "$INVOKE_RC" = "0" ] || problems+="exit: expected 0, got $INVOKE_RC; "
 printf '%s' "$INVOKE_OUT" | grep -Eq '2 files, sha256' || problems+="output missing: (2 files, sha256); "
 if [ -z "$problems" ]; then
-  invoke_cli verify "$dir2"
+  invoke_cli verify "$dir2/manifest.json"
   [ "$INVOKE_RC" = "0" ] || problems+="verify exit: expected 0, got $INVOKE_RC; "
   printf '%s' "$INVOKE_OUT" | grep -Eq 'verification OK' || problems+="verify output missing: verification OK; "
 fi
@@ -365,7 +367,7 @@ problems=""
 [ "$INVOKE_RC" = "0" ] || problems+="exit: expected 0, got $INVOKE_RC; "
 printf '%s' "$INVOKE_OUT" | grep -Eq '0 files, sha256' || problems+="output missing: (0 files, sha256); "
 if [ -z "$problems" ]; then
-  invoke_cli verify "$dir3"
+  invoke_cli verify "$dir3/manifest.json"
   [ "$INVOKE_RC" = "0" ] || problems+="verify exit: expected 0, got $INVOKE_RC; "
   printf '%s' "$INVOKE_OUT" | grep -Eq 'verification OK' || problems+="verify output missing: verification OK; "
 fi
@@ -412,7 +414,7 @@ problems=""
 [ "$INVOKE_RC" = "0" ] || problems+="exit: expected 0, got $INVOKE_RC; "
 printf '%s' "$INVOKE_OUT" | grep -Eq '1 files, sha512' || problems+="output missing: (1 files, sha512); "
 if [ -z "$problems" ]; then
-  invoke_cli verify "$dir7"
+  invoke_cli verify "$dir7/manifest.json"
   [ "$INVOKE_RC" = "0" ] || problems+="verify exit: expected 0, got $INVOKE_RC; "
   printf '%s' "$INVOKE_OUT" | grep -Eq 'verification OK' || problems+="verify output missing: verification OK; "
 fi
@@ -436,7 +438,7 @@ invoke_cli create "$dir9" --subject-id test-ver --version-id v2 --version-parent
 problems=""
 [ "$INVOKE_RC" = "0" ] || problems+="exit: expected 0, got $INVOKE_RC; "
 if [ -z "$problems" ]; then
-  invoke_cli verify --json "$dir9"
+  invoke_cli verify --json "$dir9/manifest.json"
   [ "$INVOKE_RC" = "0" ] || problems+="verify exit: expected 0, got $INVOKE_RC; "
   printf '%s' "$INVOKE_OUT" | grep -Eq '"ok":true' || problems+="verify output missing: ok:true; "
 fi
@@ -593,16 +595,67 @@ if ! printf '%s' "$INVOKE_OUT" | jq -e . >/dev/null 2>&1; then
 else
   create_digest="$(printf '%s' "$INVOKE_OUT" | jq -r '.manifest_digest')"
   [ "$(printf '%s' "$INVOKE_OUT" | jq -r '.schema')" = "moon-evidence-pack-result/v1" ] || problems+="wrong schema; "
-  invoke_cli verify --expected-manifest-digest "$create_digest" "$legacy_dir"
+  invoke_cli verify --expected-manifest-digest "$create_digest" "$legacy_dir/manifest.json"
   [ "$INVOKE_RC" = "0" ] || problems+="create JSON digest did not verify; "
 fi
 record_result machine "create JSON metadata" "$problems" "$INVOKE_OUT"
 
 rm -rf "$MACHINE_TMP"
 
+# --- Part 7: verification IO and inventory completeness ---------------------
+
+IO_TMP=".tmp-cli-io-$$"
+rm -rf "$IO_TMP"
+mkdir -p "$IO_TMP"
+
+verify_io_failure() {
+  local name="$1" pack="$2" code="$3" message_pattern="$4"
+  invoke_cli verify "$pack"
+  local problems=""
+  [ "$INVOKE_RC" = "2" ] || problems+="exit: expected 2, got $INVOKE_RC; "
+  printf '%s' "$INVOKE_OUT" | grep -Eq "\[$code\]" || problems+="output missing code: $code; "
+  printf '%s' "$INVOKE_OUT" | grep -Eq "$message_pattern" || problems+="output missing pattern: $message_pattern; "
+  record_result io "$name" "$problems" "$INVOKE_OUT"
+}
+
+missing_tree="$IO_TMP/missing-files-tree"
+mkdir -p "$missing_tree"
+cp examples/valid-pack/manifest.json "$missing_tree/manifest.json"
+verify_io_failure "missing files tree" "$missing_tree" "E5001" "payload directory does not exist"
+
+files_not_dir="$IO_TMP/files-not-directory"
+mkdir -p "$files_not_dir"
+cp examples/valid-pack/manifest.json "$files_not_dir/manifest.json"
+new_test_file "$files_not_dir" "files" "not-a-directory"
+verify_io_failure "files path is not a directory" "$files_not_dir" "E5002" "payload path is not a directory"
+
+listed_unreadable="$IO_TMP/listed-payload-unreadable"
+cp -R examples/valid-pack "$listed_unreadable"
+rm "$listed_unreadable/files/a.txt"
+mkdir "$listed_unreadable/files/a.txt"
+verify_io_failure "listed payload is unreadable" "$listed_unreadable" "E5002" "file read failed"
+
+chain_unreadable="$IO_TMP/version-chain-unreadable"
+cp -R examples/valid-pack "$chain_unreadable"
+rm "$chain_unreadable/versions/version_chain.json"
+mkdir "$chain_unreadable/versions/version_chain.json"
+verify_io_failure "version chain is unreadable" "$chain_unreadable" "E5002" "file read failed"
+
+too_deep="$IO_TMP/inventory-too-deep"
+cp -R examples/valid-pack "$too_deep"
+deep_inventory="$too_deep/files"
+for d in $(seq 0 32); do
+  deep_inventory="$deep_inventory/d$d"
+  mkdir -p "$deep_inventory"
+done
+new_test_file "$deep_inventory" "leaf.txt" "deep"
+verify_io_failure "inventory depth cap" "$too_deep" "E5002" "recursion depth limit"
+
+rm -rf "$IO_TMP"
+
 # --- summary ----------------------------------------------------------------
 
-TOTAL=$((CASES_TOTAL + MATRIX_TOTAL + MANIFEST_TOTAL + CREATE_TOTAL + INCREMENTAL_TOTAL + MACHINE_TOTAL))
+TOTAL=$((CASES_TOTAL + MATRIX_TOTAL + MANIFEST_TOTAL + CREATE_TOTAL + INCREMENTAL_TOTAL + MACHINE_TOTAL + IO_TOTAL))
 PASSED=$((TOTAL - FAILED))
 echo ""
 echo "cli-test ($TARGET): $PASSED/$TOTAL passed"

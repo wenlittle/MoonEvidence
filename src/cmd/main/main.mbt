@@ -219,7 +219,12 @@ fn run_verify_single(
     println("[E5001] \{pack_path}: path does not exist")
     return 2
   }
-  let is_directory = @fs.is_dir(pack_path) catch { _ => false }
+  let is_directory = @fs.is_dir(pack_path) catch {
+    _ => {
+      println("[E5002] \{pack_path}: path metadata read failed")
+      return 2
+    }
+  }
   let (manifest_path, pack_root) = if is_directory {
     ("\{pack_path}/manifest.json", pack_path)
   } else {
@@ -238,9 +243,9 @@ fn run_verify_single(
     }
   }
 
-  // Load listed files per the manifest; read failures become E5002 findings
-  // and the entry is left out so verification also reports it as E2003.
-  let io_findings : Array[@diag.Finding] = []
+  // Load listed files per the manifest. A missing payload is evidence-level
+  // rejection (E2003 from the pure verifier); an existing path that cannot be
+  // read is a command IO failure and exits 2 before a VerifyReport is emitted.
   let files : Map[String, Bytes] = {}
   let mut parsed_manifest : @model.Manifest? = None
   try @model.Manifest::parse(manifest_text) catch {
@@ -253,13 +258,10 @@ fn run_verify_single(
         let file_path = "\{pack_root}/\{entry.path}"
         if @fs.path_exists(file_path) {
           try @fs.read_file_to_bytes(file_path) catch {
-            _ =>
-              io_findings.push({
-                code: "E5002",
-                severity: Error,
-                path: entry.path,
-                message: "file read failed",
-              })
+            _ => {
+              println("[E5002] \{entry.path}: file read failed")
+              return 2
+            }
           } noraise {
             content => files[entry.path] = content
           }
@@ -269,16 +271,58 @@ fn run_verify_single(
       // Pack-dir mode: also walk files/ so payloads the manifest does not
       // list reach the pure pipeline, which reports them as W1001.
       if is_directory {
+        let files_root = "\{pack_root}/files"
+        if !@fs.path_exists(files_root) {
+          println("[E5001] \{files_root}: payload directory does not exist")
+          return 2
+        }
+        let files_root_is_dir = @fs.is_dir(files_root) catch {
+          _ => {
+            println("[E5002] \{files_root}: path metadata read failed")
+            return 2
+          }
+        }
+        if !files_root_is_dir {
+          println("[E5002] \{files_root}: payload path is not a directory")
+          return 2
+        }
         let listed : Map[String, Bool] = {}
         for entry in manifest.files {
           listed[entry.path] = true
         }
         let on_disk : Array[String] = []
-        collect_pack_files(pack_root, "files", on_disk)
+        let collect_state : PackCollectState = {
+          hit_depth_cap: false,
+          hit_file_cap: false,
+          io_error_path: None,
+        }
+        collect_pack_files(pack_root, "files", on_disk, collect_state)
+        match collect_state.io_error_path {
+          Some(path) => {
+            println("[E5002] \{path}: directory inventory read failed")
+            return 2
+          }
+          None => ()
+        }
+        if collect_state.hit_depth_cap {
+          println(
+            "[E5002] \{files_root}: directory recursion depth limit (>=\{max_pack_depth}) reached; verification aborted because the payload inventory is incomplete",
+          )
+          return 2
+        }
+        if collect_state.hit_file_cap || on_disk.length() >= max_pack_files {
+          println(
+            "[E5002] \{files_root}: file inventory limit (>=\{max_pack_files}) reached; verification aborted because the payload inventory is incomplete",
+          )
+          return 2
+        }
         for rel_path in on_disk {
           if listed.get(rel_path) is None {
             try @fs.read_file_to_bytes("\{pack_root}/\{rel_path}") catch {
-              _ => () // unreadable unlisted file: nothing to attest
+              _ => {
+                println("[E5002] \{rel_path}: file read failed")
+                return 2
+              }
             } noraise {
               content => files[rel_path] = content
             }
@@ -329,13 +373,10 @@ fn run_verify_single(
   let chain_path = "\{pack_root}/versions/version_chain.json"
   if @fs.path_exists(chain_path) {
     try @fs.read_file_to_string(chain_path) catch {
-      _ =>
-        chain_findings.push({
-          code: "E5002",
-          severity: Error,
-          path: chain_path,
-          message: "file read failed",
-        })
+      _ => {
+        println("[E5002] \{chain_path}: file read failed")
+        return 2
+      }
     } noraise {
       chain_text =>
         chain_findings.append(
@@ -347,9 +388,9 @@ fn run_verify_single(
     }
   }
 
-  // Merge IO findings + pipeline report + chain findings into one report;
-  // the pack passes exactly when no error-severity finding survived.
-  let merged_findings = io_findings + report.findings + chain_findings
+  // Merge semantic pipeline and chain findings. Command-level IO failures
+  // have already exited 2 and never masquerade as evidence rejection.
+  let merged_findings = report.findings + chain_findings
   let merged : @diag.VerifyReport = {
     ok: !merged_findings.iter().any(f => f.severity is Error),
     findings: merged_findings,
@@ -490,9 +531,20 @@ struct CreateCollectState {
 }
 
 ///|
+/// Tracks whether a verification inventory walk completed. Any set field
+/// means the caller must abort with exit 2 rather than issue W1001 from a
+/// partial view of the payload tree.
+struct PackCollectState {
+  mut hit_depth_cap : Bool
+  mut hit_file_cap : Bool
+  mut io_error_path : String?
+}
+
+///|
 /// Recursively collects files under `<root>/<rel_dir>` as pack-relative
-/// paths (`files/...`). Missing or unreadable directories yield nothing:
-/// a pack without a files/ tree is legal.
+/// paths (`files/...`). Missing or unreadable directories set an explicit
+/// failure in `state`; callers reject partial inventories as command IO
+/// failures.
 ///
 /// Security mitigation: the `@fs` package (moonbitlang/x/fs) does not
 /// expose `lstat`, `is_symlink`, `read_link`, or any other symlink-
@@ -519,33 +571,57 @@ fn collect_pack_files(
   root : String,
   rel_dir : String,
   out : Array[String],
+  state : PackCollectState,
   depth? : Int = 0,
 ) -> Unit {
+  if state.hit_depth_cap || state.hit_file_cap || state.io_error_path is Some(_) {
+    return
+  }
   // Depth cap: terminate symlink-to-directory cycles.
   if depth >= max_pack_depth {
+    state.hit_depth_cap = true
     return
   }
   // File cap: bound resource use against symlink bombs.
   if out.length() >= max_pack_files {
+    state.hit_file_cap = true
     return
   }
   let full_dir = "\{root}/\{rel_dir}"
   if !@fs.path_exists(full_dir) {
+    state.io_error_path = Some(full_dir)
     return
   }
-  let entries = @fs.read_dir(full_dir) catch { _ => return }
+  let entries = @fs.read_dir(full_dir) catch {
+    _ => {
+      state.io_error_path = Some(full_dir)
+      return
+    }
+  }
   for name in entries {
     // File cap check inside the loop too, so a single huge directory
     // does not blow past the limit before the next recursion.
     if out.length() >= max_pack_files {
+      state.hit_file_cap = true
       return
     }
     let rel_path = "\{rel_dir}/\{name}"
-    let is_subdir = @fs.is_dir("\{root}/\{rel_path}") catch { _ => false }
+    let full_path = "\{root}/\{rel_path}"
+    let is_subdir = @fs.is_dir(full_path) catch {
+      _ => {
+        state.io_error_path = Some(full_path)
+        return
+      }
+    }
     if is_subdir {
-      collect_pack_files(root, rel_path, out, depth=depth + 1)
+      collect_pack_files(root, rel_path, out, state, depth=depth + 1)
     } else {
       out.push(rel_path)
+    }
+    if state.hit_depth_cap ||
+      state.hit_file_cap ||
+      state.io_error_path is Some(_) {
+      return
     }
   }
 }

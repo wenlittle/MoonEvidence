@@ -98,8 +98,8 @@ node integrations/fabric/gateway/dist/src/cli.js query `
 
 ```powershell
 moon test --target wasm-gc,js    # 347/347 双后端
-powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target js   # 62/62 黑盒
-bash ./tools/cli-test.sh js      # 62/62 bash 对等黑盒
+powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target js   # 67/67 黑盒
+bash ./tools/cli-test.sh js      # 67/67 bash 对等黑盒
 npm run fabric:test              # Gateway 19/19
 ```
 

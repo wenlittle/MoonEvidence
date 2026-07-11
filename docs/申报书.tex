@@ -63,8 +63,8 @@
 
 \sect{工程质量与交付状态}
 
-\docline{当前规模：12 个产品包 + 1 个 native timing 工具包；产品实现 6453 行，测试 8118 行，总计 14571 行 MoonBit，产品实现规模符合 4--10k 参考区间。}
-\docline{测试体系：347 个可执行 MoonBit 测试、351 个测试声明、62 个 CLI 黑盒用例，覆盖 RFC 8032 / Wycheproof / NIST / RFC 8785 向量、随机差分、变异验证、malformed fuzz、分支审计和 stale-check 门禁；Fabric Chaincode 覆盖率 82.1\%，Gateway 19/19。}
+\docline{当前规模：12 个产品包 + 1 个 native timing 工具包；产品实现 6529 行，测试 8138 行，总计 14667 行 MoonBit，产品实现规模符合 4--10k 参考区间。}
+\docline{测试体系：348 个可执行 MoonBit 测试、352 个测试声明、67 个 CLI 黑盒用例，覆盖 RFC 8032 / Wycheproof / NIST / RFC 8785 向量、随机差分、变异验证、malformed fuzz、分支审计和 stale-check 门禁；Fabric Chaincode 覆盖率 82.1\%，Gateway 19/19。}
 \docline{构建验证：native / wasm / wasm-gc / js 本地全绿，Windows MSVC native 环境已验证；required CI 覆盖 MoonBit 格式、类型、构建、测试、烟测、fixture 防腐化，以及 Go/TypeScript Fabric 适配层。}
 \docline{安全 assurance：Ed25519 通过 RFC KAT、Wycheproof 150 向量、源码级侧信道审计和本机 native timing 50k 长跑；侧信道验证以工程化 assurance 层交付，正式 dudect/后端产物审计纳入生产化认证路线。}
 \docline{开源规范：仓库包含 Apache-2.0 \texttt{LICENSE}、README / README.zh、SECURITY、CONTRIBUTING、CHANGELOG、开发报告、验收清单、决策日志和结果日志。}

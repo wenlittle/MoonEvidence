@@ -110,14 +110,14 @@ Node.js `crypto` 和独立生成的固定夹具提供第二套实现：
 
 | 证据面 | 2026-07-11 基线 | 权威记录 |
 | --- | --- | --- |
-| MoonBit | 351 个测试声明，347 个可执行测试，4 个基准包装 | native、wasm、wasm-gc、js 各 `347/347` |
-| CLI | PowerShell、bash 各覆盖 native 和 js | 每个 shell/target 组合 `62/62` |
+| MoonBit | 352 个测试声明，348 个可执行测试，4 个基准包装 | native、wasm、wasm-gc、js 各 `348/348` |
+| CLI | PowerShell、bash 各覆盖 native 和 js | 每个 shell/target 组合 `67/67`，含目录清单完整性与 IO 退出码 |
 | 浏览器 API | 12 个字符串接口 | smoke `37/37`，含版本链独立字段透传；malformed 与 semantic profile 进入 CI |
 | Ed25519 标准 | RFC 8032 4 条样例 | 逐字节已知答案 |
 | Ed25519 攻击输入 | Wycheproof 150 条 | 88 条合法、62 条非法、7 类攻击 |
 | 独立差分 | Ed25519、SHA-2、HMAC、证据包 | CI 每类 64 轮，发布候选 1000 轮记录通过 |
 | 故障注入 | 16 个定向变异 | `16/16` 捕获，源码恢复检查通过 |
-| 分支审计 | MoonBit 核心、CLI 和 Fabric 共 217 个审计不变量 | 当前清单无开放 gap，注册源码改动触发 stale-check |
+| 分支审计 | MoonBit 核心、CLI 和 Fabric 共 221 个审计不变量 | 当前清单无开放 gap，注册源码改动触发 stale-check |
 | Fabric Chaincode | Go vet、race 和覆盖率 | 核心语句覆盖率 82.1% |
 | Fabric Gateway | TypeScript check、build、test | `19/19` |
 | Fabric 实链 | Fabric v3.1.4，Org1/Org2 | 首笔 `VALID`、双组织查询、幂等重复、`E2003`/`E2004` 回传 |

@@ -74,7 +74,9 @@ moon-evidence create <dir> --subject-id <id> [--subject-type <type>]
 
 `create` writes a manifest for files already located in the target directory.
 Its JSON success result uses `moon-evidence-pack-result/v1`, with `pack_path`
-set to the input directory.
+set to the input directory. This compatibility command does not reorganize the
+directory into a self-contained pack. Verify its output through the returned
+`manifest_path`; use `pack` for directory-mode handoff and archival.
 
 ## Inspect
 
@@ -141,6 +143,23 @@ Machine consumers invoke one pack per process. Multi-pack mode prints section
 headers, one report per pack, and a final summary, so its stdout is a human
 batch stream rather than one JSON document.
 
+Directory input activates complete inventory verification. The command
+requires a readable `<pack>/files/` directory, walks it to find unlisted
+payloads, and emits `W1001` only after that walk completes. Missing or
+non-directory `files/`, an unreadable directory entry, and depth/file limit
+exhaustion are command failures with exit code `2`.
+
+Manifest-file input verifies every listed path relative to the manifest's
+parent directory. It does not claim a complete payload inventory and therefore
+does not search for unlisted files. This mode supports the manifest-in-place
+layout produced by `create`.
+
+For either input form, an absent listed payload is a completed evidence check:
+the report contains `E2003` and exits `1`. If the listed path exists but cannot
+be read, or an optional `versions/version_chain.json` exists but cannot be
+read, the command exits `2` with `E5002`; it does not combine an IO diagnosis
+with an `E2003` verification report.
+
 ### External Digest
 
 The expected digest accepts canonical SHA-256 or SHA-512 form:
@@ -165,7 +184,7 @@ release, external handoff, and pre-anchor checks use complete verification.
 | --- | --- | --- |
 | `0` | command succeeded or verification passed | success receipt or passing report in JSON mode |
 | `1` | verification completed and rejected evidence | failing `VerifyReport` in JSON mode |
-| `2` | usage, path, permission, or IO failure | `pack`/`seal`/`inspect` use the error envelope in JSON mode; `create` and `verify` preflight text may be human-readable |
+| `2` | usage, path, permission, incomplete inventory, or IO failure | `pack`/`seal`/`inspect` use the error envelope in JSON mode; `create` and `verify` preflight text may be human-readable |
 
 | Command in JSON mode | Exit `0` | Exit `1` | Exit `2` |
 | --- | --- | --- | --- |

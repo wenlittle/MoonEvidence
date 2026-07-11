@@ -8,6 +8,8 @@ package "starlittle/MoonEvidence/src/cmd/main"
 // Types and methods
 type CreateCollectState
 
+type PackCollectState
+
 // Type aliases
 
 // Traits

@@ -80,7 +80,7 @@ moon-evidence/
       manifest.json
   showcase/                   # 沉浸式产品首页 + 原生证据工作台
     e2e/
-      reviewer-path.spec.ts    # four evaluator-path Playwright checks
+      reviewer-path.spec.ts    # five evaluator-path Playwright checks
     public/
       favicon.svg
     src/
@@ -266,6 +266,7 @@ moon-evidence/
     timing-ed25519-native.ps1  # Ed25519 native verify/sign dudect-style timing runner
     mutation-check.mjs         # 变异验证（故意破坏实现确认测试会红）
     package-cli.mjs            # assemble the ready-to-run JS CLI release directory
+    smoke-mooncakes-consumer.mjs # install a pinned release in a clean MoonBit consumer
     check-fixtures.mjs         # fixtures 防腐化校验
     check-metrics.mjs          # CI 数字对齐门禁（提交/行/测试/包/版本一致性断言）
     check-package-contents.mjs # Mooncakes 包内容卫生门禁

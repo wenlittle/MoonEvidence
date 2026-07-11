@@ -155,6 +155,8 @@ const malformedByExport = {
     { manifest: "{}", files: { "files/a.txt": 7 } },
     { manifest: "{}", files: { "files/a.txt": randomInvalidHex } },
     { manifest: "{}", version_chain: [] },
+    { manifest: "{}", expected_manifest_digest: 7 },
+    { manifest: "{}", expected_manifest_digest: "sha256:ABC" },
   ],
   compute_merkle_tree: [
     {},

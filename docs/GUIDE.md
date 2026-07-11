@@ -24,7 +24,7 @@ my-pack/
 
 `manifest.json` 是唯一的事实来源。验证器回答一个问题：**目录里的字节和清单承诺的字节是否完全一致？** 任何偏离都会映射到一个冻结的错误码（完整表见 [README](../README.zh.md#错误码表) 与 [规范](spec/EVIDENCE_PACK_SPEC.md)）。
 
-MoonEvidence 是**验证方**，不规定打包方用什么语言。仓库内 `tools/gen-fixtures.mjs` 是一个独立的 Node 参考实现，可作为生成端的样例（计算文件摘要、组装 canonical 条目、计算 Merkle 根）。
+MoonEvidence 是**验证方**，不规定外部系统使用什么语言。日常打包可直接使用 `pack`：它复制源目录、生成 manifest，并返回可供脚本或账本适配器消费的规范摘要。仓库内 `tools/gen-fixtures.mjs` 仍作为独立 Node 参考实现，用于交叉验证而不是生产语义来源。
 
 ---
 
@@ -109,13 +109,59 @@ Remove-Item -Recurse -Force $env:TEMP/audit-demo
 
 ## 场景三：上链前校验与版本锚点
 
-**背景**：要把"某份资料在某时刻的状态"锚定到链上。最佳实践不是把文件上链，而是把 **manifest 的规范摘要**上链——MoonEvidence 提供这条链路的两端。
+**背景**：要把某份资料的确定状态锚定到共享账本。文件、路径和完整 manifest 留在本地，链上只保存 **manifest 的规范摘要**。MoonEvidence 已提供从本地打包、验证、Fabric 提交、双组织查询到摘要回灌复核的完整路径。
 
-### 1. 计算要上链的锚点
+### 1. 一条命令打包并得到锚点
 
-manifest 本身先做 RFC 8785 规范化再摘要，所以格式化差异（空格、键序）不影响锚点值。生成端可用任何实现了 RFC 8785 的工具计算；库内入口是 `@canonjson.canonicalize` + `@digest.sha256_hex`。
+```powershell
+node $cli pack .\my-files -o .\my-pack --subject-id dataset-001 --json
+node $cli inspect --json .\my-pack
+node $cli verify --json .\my-pack
+```
 
-### 2. 取证时对比链上记录值
+manifest 会先按 RFC 8785 规范化再摘要，因此空格和键序不改变锚点。`inspect` 只读取并解释 manifest；提交前仍必须运行 `verify` 检查真实文件字节。`anchor-pack` 会自动执行这两个步骤。
+
+### 2. 提交到 Hyperledger Fabric
+
+先按 [Fabric 集成指南（源码仓库）](https://github.com/wenlittle/MoonEvidence/blob/main/integrations/fabric/README.md) 部署 `moonevidence` Chaincode，并把真实连接配置放在 Git 忽略的 `.local/` 目录。然后从仓库根目录执行：
+
+```powershell
+npm --prefix integrations/fabric/gateway ci
+npm run fabric:build
+
+$gateway = "integrations/fabric/gateway/dist/src/cli.js"
+$profile = "integrations/fabric/gateway/.local/org1.json"
+$receipt = node $gateway anchor-pack examples/valid-pack `
+  --profile $profile `
+  --moon-cli $cli `
+  --json | ConvertFrom-Json
+
+$receipt.receipt.commit
+# transaction_id / block_number / status_code=0 / successful=true
+```
+
+提交参数只有 `sha256:<64位小写hex>`（也兼容 SHA-512）。链上状态不包含文件、文件名、路径、逐文件摘要、Merkle 叶子、完整 manifest 或本地凭据。
+
+### 3. 从账本查询并回灌验证
+
+```powershell
+$digest = $receipt.receipt.manifest_digest
+
+node $gateway query `
+  --profile $profile `
+  --manifest-digest $digest `
+  --json
+
+node $gateway verify-anchor examples/valid-pack `
+  --profile $profile `
+  --manifest-digest $digest `
+  --moon-cli $cli `
+  --json
+```
+
+`verify-anchor` 先查询链上不可变记录，再把查询键对应的 digest 交给 MoonEvidence 的 `--expected-manifest-digest`。一次调用同时覆盖 Fabric 记录存在性和本地证据完整性。
+
+库 API 也支持同一条回灌边界：
 
 库 API `verify_manifest` 支持传入外部记录的摘要（例如从链上交易里读出的值）：
 
@@ -130,7 +176,24 @@ let report = @verify.verify_manifest(
 
 这样一次验证同时回答三层问题：文件 ↔ manifest 一致（E2003）、manifest ↔ 链上锚点一致（E2004）、条目 ↔ Merkle 根一致（E3003）。
 
-### 3. 版本链：多次发布的线性历史
+### 4. 两种篡改会被不同层抓住
+
+```powershell
+# 文件被改，manifest 没改：E2003
+node $gateway verify-anchor examples/tampered-pack `
+  --profile $profile --manifest-digest $digest --moon-cli $cli --json
+
+# 攻击者连 manifest 一起重建：本地文件自洽，但旧链上摘要触发 E2004
+Remove-Item -Recurse -Force "$env:TEMP\fabric-repacked" -ErrorAction SilentlyContinue
+node $cli pack examples/tampered-pack/files `
+  -o "$env:TEMP\fabric-repacked" --subject-id golden-pack --subject-type dataset
+node $gateway verify-anchor "$env:TEMP\fabric-repacked" `
+  --profile $profile --manifest-digest $digest --moon-cli $cli --json
+```
+
+真实双组织实验的首笔 `VALID` 交易、区块号、双组织查询、重复提交以及这两个拒绝结果，已脱敏保存在 [Fabric E2E 记录](https://github.com/wenlittle/MoonEvidence/tree/main/docs/records/fabric-e2e/2026-07-11)。
+
+### 5. 版本链：多次发布的线性历史
 
 资料多次更新、多次上链时，`versions/version_chain.json` 记录线性演进：
 
@@ -158,4 +221,4 @@ let report = @verify.verify_manifest(
 | `W1001` | 包里有未登记文件 | 决定登记它或删除它 |
 | 退出码 2 | 路径不存在 / 文件读失败（E5001/E5002） | 检查路径与权限 |
 
-更多：[架构说明](ARCHITECTURE.md) · [证据包规范](spec/EVIDENCE_PACK_SPEC.md) · [浏览器 demo](../demo/web/index.html)
+更多：[架构说明](ARCHITECTURE.md) · [证据包规范](spec/EVIDENCE_PACK_SPEC.md) · [Fabric 集成](https://github.com/wenlittle/MoonEvidence/tree/main/integrations/fabric) · [浏览器 demo](../demo/web/index.html)

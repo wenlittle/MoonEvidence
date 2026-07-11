@@ -1,0 +1,57 @@
+{
+  "schema": "moon-evidence-fabric-e2e-verification/v1",
+  "ledger_anchor": {
+    "manifest_digest": "sha256:16bbf1e91de3acfb8bd9091233926b454045c6d96c24327baec20272af583f1e",
+    "transaction_id": "ca3dc7810d375ddabd3ba7d0bbba6f3e95a48c1224c6dfbd892d50edf7a28393",
+    "block_number": "6",
+    "validation_status": "VALID"
+  },
+  "original_pack": {
+    "ok": true,
+    "findings": [],
+    "stats": {
+      "files_passed": 2,
+      "files_total": 2,
+      "merkle_checked": true
+    }
+  },
+  "payload_changed_manifest_unchanged": {
+    "ok": false,
+    "finding_codes": [
+      "E2003"
+    ],
+    "findings": [
+      {
+        "code": "E2003",
+        "path": "files/a.txt",
+        "severity": "error",
+        "message": "digest mismatch, expected sha256:a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447 got sha256:7509e5bda0c762d2bac7f90d758b5b2263fa01ccbc542ab5e3df163be08e6ca9"
+      }
+    ],
+    "stats": {
+      "files_passed": 1,
+      "files_total": 2,
+      "merkle_checked": true
+    }
+  },
+  "payload_changed_manifest_regenerated": {
+    "regenerated_manifest_digest": "sha256:b0990a4dcf3d17ab4dafefb9f80f294153a9fe3ec9cc2815e50844f50f1fb520",
+    "ok": false,
+    "finding_codes": [
+      "E2004"
+    ],
+    "findings": [
+      {
+        "code": "E2004",
+        "path": "manifest",
+        "severity": "error",
+        "message": "canonical digest mismatch, expected sha256:16bbf1e91de3acfb8bd9091233926b454045c6d96c24327baec20272af583f1e got sha256:b0990a4dcf3d17ab4dafefb9f80f294153a9fe3ec9cc2815e50844f50f1fb520"
+      }
+    ],
+    "stats": {
+      "files_passed": 2,
+      "files_total": 2,
+      "merkle_checked": true
+    }
+  }
+}

@@ -20,11 +20,13 @@ const forbiddenPrefixes = [
   "docs/report/",
   "docs/research/",
   "docs/申报书",
+  "integrations/",
   "report/",
   "showcase/",
 ];
 
 const forbiddenExact = new Set([
+  "package.json",
   "比赛要求.txt",
 ]);
 
@@ -36,6 +38,8 @@ const requiredFiles = [
   "moon.mod",
   "src/api/api.mbt",
   "src/cmd/main/main.mbt",
+  "docs/spec/CLI_MACHINE_CONTRACT.md",
+  "docs/spec/FABRIC_ANCHOR_SPEC.md",
   "examples/valid-pack/manifest.json",
   "tests/fixtures/packs/valid/manifest.json",
 ];

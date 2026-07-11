@@ -3,7 +3,7 @@
 ## `ci.yml`
 
 Runs on every push and pull request to `main`, and can also be started
-manually with `workflow_dispatch`. Two jobs:
+manually with `workflow_dispatch`. Three jobs:
 
 ### `check-test-build` (required, ubuntu-latest)
 
@@ -56,6 +56,23 @@ manually with `workflow_dispatch`. Two jobs:
 All commands in the workflow must pass locally before being added here, so a
 red main branch always signals a real regression instead of CI drift.
 
+### `fabric-adapters` (required, ubuntu-latest)
+
+Builds and tests the optional Hyperledger Fabric integration without adding Go
+or Node dependencies to the Mooncakes package:
+
+1. Set up the Go version declared by `integrations/fabric/chaincode-go/go.mod`.
+2. Run `go vet ./...` and `go test -race -cover ./...` for the immutable
+   digest-anchor chaincode.
+3. Set up Node.js 22 and restore the Gateway lockfile cache.
+4. Run `npm ci`, strict TypeScript checking, a production build, and all Node
+   tests in `integrations/fabric/gateway`.
+
+The real two-organization ledger experiment remains a recorded integration
+gate because starting Docker Fabric inside every pull request would add a
+large, failure-prone runtime. Its sanitized receipts and rerun instructions are
+under `docs/records/fabric-e2e/` and `integrations/fabric/README.md`.
+
 ### `bench` (non-blocking, `continue-on-error: true`)
 
 Depends on `check-test-build`. Runs `moon bench --target js` to track SHA-256
@@ -65,13 +82,13 @@ break the main CI flow - the job is informational. `moon bench` exists and
 was run locally on the js target; if a future toolchain removes it, this job
 simply fails soft.
 
-### Documented native exception (step 6, historical)
+### Native backend status
 
-The local development machine has no system C compiler, so `moon build
---target native` cannot link the CLI executable locally. The native build,
-native unit tests, and native black-box run are all delegated to CI (ubuntu
-runners ship gcc). The native black-box step runs the exact script and cases
-that pass 12/12 on the js target; see RESULTS_LOG step 6 for details.
+Native builds and tests are required on Ubuntu CI. The Windows baseline has
+also been verified with MSVC 19.44 and Windows SDK 10.0.26100.0, including the
+same CLI black-box contract used by the JS backend. Earlier missing-compiler
+notes in the historical results log describe a closed environment issue, not a
+current exception.
 
 ## `showcase-pages.yml`
 

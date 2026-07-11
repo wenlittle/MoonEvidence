@@ -1,0 +1,48 @@
+{
+  "schema": "moon-evidence-fabric-e2e-transactions/v1",
+  "manifest_digest": "sha256:16bbf1e91de3acfb8bd9091233926b454045c6d96c24327baec20272af583f1e",
+  "first_submission": {
+    "outcome": "created",
+    "anchor": {
+      "schema": "moon-evidence-anchor/v1",
+      "manifest_digest": "sha256:16bbf1e91de3acfb8bd9091233926b454045c6d96c24327baec20272af583f1e",
+      "transaction_id": "ca3dc7810d375ddabd3ba7d0bbba6f3e95a48c1224c6dfbd892d50edf7a28393",
+      "submitter_msp": "Org1MSP"
+    },
+    "commit": {
+      "transaction_id": "ca3dc7810d375ddabd3ba7d0bbba6f3e95a48c1224c6dfbd892d50edf7a28393",
+      "block_number": "6",
+      "status_code": 0,
+      "validation_status": "VALID",
+      "successful": true
+    }
+  },
+  "queries": {
+    "Org1MSP": {
+      "schema": "moon-evidence-anchor/v1",
+      "manifest_digest": "sha256:16bbf1e91de3acfb8bd9091233926b454045c6d96c24327baec20272af583f1e",
+      "transaction_id": "ca3dc7810d375ddabd3ba7d0bbba6f3e95a48c1224c6dfbd892d50edf7a28393",
+      "submitter_msp": "Org1MSP"
+    },
+    "Org2MSP": {
+      "schema": "moon-evidence-anchor/v1",
+      "manifest_digest": "sha256:16bbf1e91de3acfb8bd9091233926b454045c6d96c24327baec20272af583f1e",
+      "transaction_id": "ca3dc7810d375ddabd3ba7d0bbba6f3e95a48c1224c6dfbd892d50edf7a28393",
+      "submitter_msp": "Org1MSP"
+    },
+    "records_equal": true
+  },
+  "duplicate_submission": {
+    "submitted_by": "Org2MSP",
+    "outcome": "already_anchored",
+    "anchor_transaction_id": "ca3dc7810d375ddabd3ba7d0bbba6f3e95a48c1224c6dfbd892d50edf7a28393",
+    "commit": {
+      "transaction_id": "332e406825ea1f52448967bca2c218f99f7127e877b68093a5680a41d7755169",
+      "block_number": "7",
+      "status_code": 0,
+      "validation_status": "VALID",
+      "successful": true
+    },
+    "preserved_original_anchor_transaction_id": true
+  }
+}

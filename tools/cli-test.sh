@@ -64,8 +64,8 @@ find_cli_artifact() {
   else
     names="main.exe main"
   fi
-  # Match the PowerShell ordering: pick the first src/cmd/main candidate
-  # sorted by path, then prefer a release-build artifact if one exists.
+  # The documented prerequisite builds the debug artifact. Prefer it so a
+  # stale release artifact from an earlier run cannot silently test old code.
   local found=""
   for name in $names; do
     local hit
@@ -77,10 +77,10 @@ find_cli_artifact() {
     echo "CLI artifact not found under '$build_root'. Run: moon build --target $1" >&2
     exit 2
   fi
-  local release
-  release="$(find "$build_root" -type f -name "$(basename "$found")" 2>/dev/null \
-             | grep -E '/release/' | sort | head -n 1)"
-  if [ -n "$release" ]; then printf '%s' "$release"; else printf '%s' "$found"; fi
+  local debug
+  debug="$(find "$build_root" -type f -name "$(basename "$found")" 2>/dev/null \
+           | grep -E '/debug/' | grep -E 'src/cmd/main' | sort | head -n 1)"
+  if [ -n "$debug" ]; then printf '%s' "$debug"; else printf '%s' "$found"; fi
 }
 
 find_node() {
@@ -123,6 +123,7 @@ MATRIX_TOTAL=0
 MANIFEST_TOTAL=0
 CREATE_TOTAL=0
 INCREMENTAL_TOTAL=0
+MACHINE_TOTAL=0
 
 # p1_one NAME EXPECTED_EXIT "pat1|pat2" <cli args...>
 # A case passes when the exit code matches AND every pipe-separated pattern
@@ -168,7 +169,7 @@ p2_one() {
     local ok actual sorted_expected
     ok="$(printf '%s' "$INVOKE_OUT" | jq -r '.ok')"
     [ "$ok" = "$expected_ok" ] || problems+="ok: expected $expected_ok, got $ok; "
-    actual="$(printf '%s' "$INVOKE_OUT" | jq -r '(.findings // [])[].code' 2>/dev/null | sort | paste -sd, -)"
+    actual="$(printf '%s' "$INVOKE_OUT" | jq -r '(.findings // [])[].code' 2>/dev/null | tr -d '\r' | sort | paste -sd, -)"
     sorted_expected="$(printf '%s\n' $expected_codes | sort | paste -sd, -)"
     [ "$actual" = "$sorted_expected" ] || problems+="codes: expected [$sorted_expected], got [$actual]; "
   fi
@@ -200,7 +201,7 @@ p3_one() {
     local ok actual sorted_expected
     ok="$(printf '%s' "$INVOKE_OUT" | jq -r '.ok')"
     [ "$ok" = "false" ] || problems+="ok: expected false, got $ok; "
-    actual="$(printf '%s' "$INVOKE_OUT" | jq -r '(.findings // [])[].code' 2>/dev/null | sort | paste -sd, -)"
+    actual="$(printf '%s' "$INVOKE_OUT" | jq -r '(.findings // [])[].code' 2>/dev/null | tr -d '\r' | sort | paste -sd, -)"
     sorted_expected="$(printf '%s\n' $expected_codes | sort | paste -sd, -)"
     [ "$actual" = "$sorted_expected" ] || problems+="codes: expected [$sorted_expected], got [$actual]; "
   fi
@@ -228,6 +229,7 @@ record_result() {
   case "$kind" in
     create) CREATE_TOTAL=$((CREATE_TOTAL + 1)) ;;
     incremental) INCREMENTAL_TOTAL=$((INCREMENTAL_TOTAL + 1)) ;;
+    machine) MACHINE_TOTAL=$((MACHINE_TOTAL + 1)) ;;
   esac
   if [ -z "$problems" ]; then
     echo "PASS  $kind: $name"
@@ -488,9 +490,119 @@ problems=""
 printf '%s' "$INVOKE_OUT" | grep -Eq '"ok":true' || problems+="json output missing ok:true; "
 record_result incremental "json mode" "$problems" "$INVOKE_OUT"
 
+# --- Part 6: machine contract and external anchor verification --------------
+
+MACHINE_TMP=".tmp-cli-machine-$$"
+rm -rf "$MACHINE_TMP"
+mkdir -p "$MACHINE_TMP"
+GOLDEN_DIGEST="sha256:16bbf1e91de3acfb8bd9091233926b454045c6d96c24327baec20272af583f1e"
+
+# Case 1: inspect emits the fixed golden manifest digest.
+invoke_cli inspect --json examples/valid-pack
+problems=""
+[ "$INVOKE_RC" = "0" ] || problems+="exit: expected 0, got $INVOKE_RC; "
+if ! printf '%s' "$INVOKE_OUT" | jq -e . >/dev/null 2>&1; then
+  problems+="output is not valid JSON; "
+else
+  [ "$(printf '%s' "$INVOKE_OUT" | jq -r '.schema')" = "moon-evidence-inspect/v1" ] || problems+="wrong schema; "
+  [ "$(printf '%s' "$INVOKE_OUT" | jq -r '.manifest_digest')" = "$GOLDEN_DIGEST" ] || problems+="wrong manifest digest; "
+  [ "$(printf '%s' "$INVOKE_OUT" | jq -r '.files_total')" = "2" ] || problems+="wrong files_total; "
+fi
+record_result machine "inspect golden digest" "$problems" "$INVOKE_OUT"
+
+# Case 2: matching external digest stays green.
+invoke_cli verify --json --expected-manifest-digest "$GOLDEN_DIGEST" examples/valid-pack
+problems=""
+[ "$INVOKE_RC" = "0" ] || problems+="exit: expected 0, got $INVOKE_RC; "
+[ "$(printf '%s' "$INVOKE_OUT" | jq -r '.ok' 2>/dev/null)" = "true" ] || problems+="expected ok:true; "
+record_result machine "external digest match" "$problems" "$INVOKE_OUT"
+
+# Case 3: different canonical digest produces exactly E2004.
+WRONG_DIGEST="sha256:$(printf '0%.0s' {1..64})"
+invoke_cli verify --json --expected-manifest-digest "$WRONG_DIGEST" examples/valid-pack
+problems=""
+[ "$INVOKE_RC" = "1" ] || problems+="exit: expected 1, got $INVOKE_RC; "
+[ "$(printf '%s' "$INVOKE_OUT" | jq -r '(.findings // [])[].code' 2>/dev/null)" = "E2004" ] || problems+="expected only E2004; "
+record_result machine "external digest mismatch" "$problems" "$INVOKE_OUT"
+
+# Case 4: malformed digest is a usage error.
+invoke_cli verify --json --expected-manifest-digest sha256:ABC examples/valid-pack
+problems=""
+[ "$INVOKE_RC" = "2" ] || problems+="exit: expected 2, got $INVOKE_RC; "
+printf '%s' "$INVOKE_OUT" | grep -Eq 'must be canonical' || problems+="missing canonical digest guidance; "
+record_result machine "malformed external digest" "$problems" "$INVOKE_OUT"
+
+# Case 5: pack copies nested input and returns a usable digest.
+source_dir="$MACHINE_TMP/source"
+packed_dir="$MACHINE_TMP/packed"
+mkdir -p "$source_dir"
+new_test_file "$source_dir" "a.txt" "alpha"
+new_test_file "$source_dir" "nested/b.txt" "beta"
+new_test_file "$source_dir" "manifest.json" '{"source":true}'
+invoke_cli pack "$source_dir" -o "$packed_dir" --subject-type dataset --json
+problems=""
+[ "$INVOKE_RC" = "0" ] || problems+="exit: expected 0, got $INVOKE_RC; "
+if ! printf '%s' "$INVOKE_OUT" | jq -e . >/dev/null 2>&1; then
+  problems+="output is not valid JSON; "
+  pack_digest=""
+else
+  [ "$(printf '%s' "$INVOKE_OUT" | jq -r '.schema')" = "moon-evidence-pack-result/v1" ] || problems+="wrong schema; "
+  [ "$(printf '%s' "$INVOKE_OUT" | jq -r '.subject.id')" = "source" ] || problems+="wrong default subject id; "
+  [ "$(printf '%s' "$INVOKE_OUT" | jq -r '.files_total')" = "3" ] || problems+="wrong files_total; "
+  pack_digest="$(printf '%s' "$INVOKE_OUT" | jq -r '.manifest_digest')"
+fi
+[ -f "$packed_dir/files/a.txt" ] || problems+="files/a.txt not copied; "
+[ -f "$packed_dir/files/nested/b.txt" ] || problems+="nested file not copied; "
+[ -f "$packed_dir/files/manifest.json" ] || problems+="source manifest.json was silently omitted; "
+if [ -z "$problems" ]; then
+  invoke_cli verify --json --expected-manifest-digest "$pack_digest" "$packed_dir"
+  [ "$INVOKE_RC" = "0" ] || problems+="packed output did not verify; "
+fi
+record_result machine "pack nested source" "$problems" "$INVOKE_OUT"
+
+# Case 6: existing output is never overwritten.
+before_hash="$(sha256sum "$packed_dir/manifest.json" | awk '{print $1}')"
+invoke_cli pack "$source_dir" -o "$packed_dir" --json
+problems=""
+[ "$INVOKE_RC" = "2" ] || problems+="exit: expected 2, got $INVOKE_RC; "
+[ "$(printf '%s' "$INVOKE_OUT" | jq -r '.ok' 2>/dev/null)" = "false" ] || problems+="expected ok:false JSON; "
+after_hash="$(sha256sum "$packed_dir/manifest.json" | awk '{print $1}')"
+[ "$before_hash" = "$after_hash" ] || problems+="existing manifest was modified; "
+record_result machine "pack overwrite refusal" "$problems" "$INVOKE_OUT"
+
+# Case 7: seal is an exact alias.
+sealed_dir="$MACHINE_TMP/sealed"
+invoke_cli seal "$source_dir" -o "$sealed_dir" --subject-id alias
+problems=""
+[ "$INVOKE_RC" = "0" ] || problems+="exit: expected 0, got $INVOKE_RC; "
+if [ -z "$problems" ]; then
+  invoke_cli verify "$sealed_dir"
+  [ "$INVOKE_RC" = "0" ] || problems+="sealed output did not verify; "
+fi
+record_result machine "seal alias" "$problems" "$INVOKE_OUT"
+
+# Case 8: legacy create gains additive JSON metadata.
+legacy_dir="$MACHINE_TMP/legacy"
+mkdir -p "$legacy_dir"
+new_test_file "$legacy_dir" "legacy.txt" "legacy"
+invoke_cli create "$legacy_dir" --subject-id legacy --json
+problems=""
+[ "$INVOKE_RC" = "0" ] || problems+="exit: expected 0, got $INVOKE_RC; "
+if ! printf '%s' "$INVOKE_OUT" | jq -e . >/dev/null 2>&1; then
+  problems+="output is not valid JSON; "
+else
+  create_digest="$(printf '%s' "$INVOKE_OUT" | jq -r '.manifest_digest')"
+  [ "$(printf '%s' "$INVOKE_OUT" | jq -r '.schema')" = "moon-evidence-pack-result/v1" ] || problems+="wrong schema; "
+  invoke_cli verify --expected-manifest-digest "$create_digest" "$legacy_dir"
+  [ "$INVOKE_RC" = "0" ] || problems+="create JSON digest did not verify; "
+fi
+record_result machine "create JSON metadata" "$problems" "$INVOKE_OUT"
+
+rm -rf "$MACHINE_TMP"
+
 # --- summary ----------------------------------------------------------------
 
-TOTAL=$((CASES_TOTAL + MATRIX_TOTAL + MANIFEST_TOTAL + CREATE_TOTAL + INCREMENTAL_TOTAL))
+TOTAL=$((CASES_TOTAL + MATRIX_TOTAL + MANIFEST_TOTAL + CREATE_TOTAL + INCREMENTAL_TOTAL + MACHINE_TOTAL))
 PASSED=$((TOTAL - FAILED))
 echo ""
 echo "cli-test ($TARGET): $PASSED/$TOTAL passed"

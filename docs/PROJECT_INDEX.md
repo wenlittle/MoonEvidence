@@ -4,7 +4,9 @@ This file is the entry index for MoonEvidence. Update it whenever a new decision
 
 ## One-Sentence Goal
 
-Build a reusable MoonBit library and CLI for trusted evidence pack verification: canonical JSON, digest validation, Merkle proof verification, version chain tracing, and explainable diagnostics.
+Build a reusable MoonBit library and CLI for deterministic evidence-pack
+creation and verification, with an optional Hyperledger Fabric adapter that
+anchors the verified manifest digest and feeds it back into verification.
 
 ## Current Decision
 
@@ -12,9 +14,9 @@ Build a reusable MoonBit library and CLI for trusted evidence pack verification:
 | --- | --- |
 | Project name | MoonEvidence |
 | Primary contribution | MoonBit ecosystem trusted data verification infrastructure |
-| Primary deliverable | MoonBit library + native CLI + browser experiences + examples + tests + CI |
-| Not the goal | Full blockchain system, smart contract framework, PKI platform, or vertical mural-costume business system |
-| MVP priority | Verification first, generation/seal later |
+| Primary deliverable | MoonBit library + CLI + browser experience + optional Fabric digest anchor + examples + tests + CI |
+| Not the goal | General blockchain platform, PKI platform, bulk on-chain file storage, or legal timestamp authority |
+| Current priority | Reproducible create/verify/anchor/query/backfeed delivery loop |
 
 ## Document Map
 
@@ -28,6 +30,9 @@ Build a reusable MoonBit library and CLI for trusted evidence pack verification:
 | `docs/DEVELOPMENT_REPORT.md` | Redirect to the authoritative report (single line) |
 | `docs/report/DEVELOPMENT_REPORT.md` | Authoritative development report (merged: feature list + AI collaboration + engineering quality) |
 | `docs/spec/EVIDENCE_PACK_SPEC.md` | Minimal evidence pack schema and verification semantics |
+| `docs/spec/CLI_MACHINE_CONTRACT.md` | Versioned CLI JSON and external-digest process contract |
+| `docs/spec/FABRIC_ANCHOR_SPEC.md` | Fabric state, transaction, privacy, idempotency, and error contract |
+| `integrations/fabric/README.md` | Chaincode deployment, local profiles, Gateway CLI, and Node API |
 | `docs/ENVIRONMENT.md` | Toolchain prerequisites and current environment state |
 | `docs/CODE_GUIDELINES.md` | Code style, comments, tests, and public API rules |
 | `docs/ROADMAP.md` | Phased implementation plan and future directions |
@@ -42,6 +47,7 @@ Build a reusable MoonBit library and CLI for trusted evidence pack verification:
 | `docs/records/DECISION_LOG.md` | Stable decisions and why they were made |
 | `docs/records/ACCEPTANCE_CHECKLIST.md` | Acceptance requirements self-check |
 | `docs/records/OSC2026_GUIDE_SELF_CHECK.md` | OSC2026 guide hard-gate self-review and reference-project comparison |
+| `docs/records/fabric-e2e/2026-07-11/` | Sanitized real Fabric deployment, transaction, query, and tamper-backfeed evidence |
 | `docs/research/MOONCAKES_COLLISION_CHECK.md` | Mooncakes keyword search and collision-risk record |
 | `docs/plans/2026-06-10-competition-master-plan.md` | Competition master plan: innovation points, step-by-step roadmap, and delivery checklist |
 | `docs/plans/2026-07-04-health-check-and-improvement-plan.md` | 2026-07-04 第 1 轮健康体检与改进计划（阶段 0-4 已执行） |
@@ -63,6 +69,8 @@ Important source packages:
 | Source | Purpose |
 | --- | --- |
 | `src/timing` | Native-only timing experiment package; calls project MoonBit Ed25519 verify/sign and reports Welch t |
+| `integrations/fabric/chaincode-go` | Immutable canonical manifest-digest anchor contract |
+| `integrations/fabric/gateway` | TypeScript Gateway, commit receipt, and MoonEvidence process adapter |
 
 ## Source Traceability Rule
 
@@ -79,7 +87,8 @@ Use `docs/records/RESULTS_LOG.md` for measured facts and `docs/records/DECISION_
 ## Next Actions
 
 1. **远端 CI 最终确认**：GitHub Actions `main` 最新 run 需要在页面上显示 green；本地与 WSL 已复现核心 gate，但远端状态以 Actions 页面为准。
-2. **演示视频**：按 `docs/DEMO_SCRIPT.md` 录制 5 分钟比赛展示视频，主视觉使用沉浸首屏、四章滚动叙事和篡改工作台闭环。
+2. **演示收口**：把已有网页/工作台视频与真实 Fabric 第 6 区块交易记录组合成最终展示，现场命令优先使用 `pack`、`anchor-pack`、`verify-anchor`。
 3. **Gitlink 默认分支确认**：确认 Gitlink 页面默认分支显示的是已同步的 `main`，且 README、LICENSE、源码、CI 文档可见。
 4. **流式哈希生产化增强**：把流式 SHA-256 接入适配层，将大包内存峰值从 Σ(全部文件) 降到 max(单文件)。
-5. 持续维护 `RESULTS_LOG.md` 与 `OSC2026_GUIDE_SELF_CHECK.md`，每次交付前重跑并记录命令与结果。
+5. **Fabric 生产化路线**：在真实部署中接入 CA 动态身份、外部密钥管理、持久化 Gateway 服务与组织治理；协议层继续只锚定规范摘要。
+6. 持续维护 `RESULTS_LOG.md` 与 `OSC2026_GUIDE_SELF_CHECK.md`，每次交付前重跑并记录命令与结果。

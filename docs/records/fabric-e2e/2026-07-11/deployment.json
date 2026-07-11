@@ -1,0 +1,43 @@
+{
+  "schema": "moon-evidence-fabric-e2e-deployment/v1",
+  "observed_at": "2026-07-11T13:45:25+08:00",
+  "environment": {
+    "docker_engine": "27.4.0",
+    "fabric_cli": "v2.5.15",
+    "fabric_runtime": "v3.1.4",
+    "fabric_runtime_commit": "57f91e9",
+    "go_chaincode_build": "go1.23.0 linux/amd64",
+    "moon": "0.1.20260529",
+    "node": "v24.12.0"
+  },
+  "channel": {
+    "name": "evidencechannel",
+    "organizations": [
+      "Org1MSP",
+      "Org2MSP"
+    ],
+    "observed_height_after_duplicate": 8,
+    "current_block_hash_base64": "WkIUl39tmV5YrTT1x5IF0yB5rIxlMSGuLEBHRVfxS2o=",
+    "previous_block_hash_base64": "Cg0G3eG/p0NLAUrUa99g1Fmcg5UIKmkAlbE/hLhE6Og=",
+    "org1_and_org2_tip_equal": true
+  },
+  "chaincode": {
+    "name": "moonevidence",
+    "version": "1.0",
+    "sequence": 1,
+    "package_id": "moonevidence_1.0:40f8ec7d43ff2d659825a9759cec1bea0a1f059e3149ddd08a0757ffd41bdafb",
+    "definition_transaction_id": "4fafea4e9ac514f65dff033768072b197e602eccc43479529cf1c3905fb80d5d",
+    "approvals": {
+      "Org1MSP": true,
+      "Org2MSP": true
+    },
+    "endorsement_policy": "channel default /Channel/Application/Endorsement (MAJORITY)",
+    "source_sha256": {
+      "go.mod": "f78528f1c2e763104d83488e72b44253726312424331e5664d3ab3620bf73145",
+      "go.sum": "cfbe6fdfad8582acbe4422ec4a8558330b4e80640a31594115c49d56edeabd0e",
+      "main.go": "52a0eb05a8a684f701f0508993e4743964c1f1df2c5bc975afcb747692e10e20",
+      "chaincode/anchor_contract.go": "28345ba02550d6adf5a1e06688492bea175b93701c60de2621573e8981a5639f",
+      "chaincode/anchor_contract_test.go": "d5a5dfecaf76208d4d638823b9145b402f4d718b5b9657c068bc49618ed06dbe"
+    }
+  }
+}

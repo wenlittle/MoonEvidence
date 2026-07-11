@@ -154,6 +154,37 @@ jobs:
       - name: Mutation testing (mutation-check)
         run: node tools/mutation-check.mjs
 
+  fabric-adapters:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: integrations/fabric/chaincode-go/go.mod
+          cache-dependency-path: integrations/fabric/chaincode-go/go.sum
+
+      - name: Test Fabric chaincode with race detector
+        working-directory: integrations/fabric/chaincode-go
+        run: |
+          go vet ./...
+          go test -race -cover ./...
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: integrations/fabric/gateway/package-lock.json
+
+      - name: Check and test Fabric Gateway adapter
+        working-directory: integrations/fabric/gateway
+        run: |
+          npm ci
+          npm run check
+          npm test
+
   # Informational benchmark job (P2-2: explicitly non-blocking). Benchmark
   # timing is inherently noisy on shared runners, so regressions here must
   # not break the main CI flow. See RESULTS_LOG for local benchmark results.

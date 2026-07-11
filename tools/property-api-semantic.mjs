@@ -21,6 +21,7 @@ import {
   verify_evidence,
   verify_proof,
 } from "../_build/js/release/build/src/api/api.js";
+import { createHash } from "node:crypto";
 
 const args = new Map();
 for (let i = 2; i < process.argv.length; i++) {
@@ -114,12 +115,37 @@ function checkCreateVerifyProofRound(round) {
   }, `create round ${round}`);
   assert(createResp.ok === true, `create failed round ${round}: ${JSON.stringify(createResp)}`);
 
+  // create_evidence_pack returns canonical JSON, so an independent Node hash
+  // over those exact bytes is the external anchor consumed by MoonBit.
+  const manifestDigest =
+    algorithm +
+    ":" +
+    createHash(algorithm).update(createResp.manifest, "utf8").digest("hex");
   const verifyResp = call(verify_evidence, {
     manifest: createResp.manifest,
     files,
+    expected_manifest_digest: manifestDigest,
   }, `verify round ${round}`);
   assert(verifyResp.ok === true, `created pack did not verify round ${round}: ${JSON.stringify(verifyResp)}`);
   assert(verifyResp.report.findings.length === 0, `created pack had findings round ${round}`);
+
+  const digestHex = manifestDigest.slice(algorithm.length + 1);
+  const wrongDigest =
+    algorithm +
+    ":" +
+    digestHex.slice(0, -1) +
+    (digestHex.endsWith("0") ? "1" : "0");
+  const anchorReject = call(verify_evidence, {
+    manifest: createResp.manifest,
+    files,
+    expected_manifest_digest: wrongDigest,
+  }, `external anchor rejection round ${round}`);
+  assert(anchorReject.ok === false, `wrong anchor passed round ${round}`);
+  assert(
+    anchorReject.report.findings.length === 1 &&
+      anchorReject.report.findings[0].code === "E2004",
+    `wrong anchor did not produce only E2004 round ${round}: ${JSON.stringify(anchorReject)}`,
+  );
 
   const manifest = JSON.parse(createResp.manifest);
   const treeResp = call(compute_merkle_tree, {

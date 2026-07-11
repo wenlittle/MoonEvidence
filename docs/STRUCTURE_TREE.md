@@ -1,6 +1,6 @@
 # Structure Tree
 
-Current preparation tree as of 2026-07-10 Asia/Shanghai.
+Current preparation tree as of 2026-07-11 Asia/Shanghai.
 
 ```text
 moon-evidence/
@@ -13,6 +13,7 @@ moon-evidence/
   .gitattributes
   .gitignore
   moon.mod
+  package.json                  # local Node workspace helpers; excluded from Mooncakes
   README.md
   README.zh.md
   docs/
@@ -41,12 +42,16 @@ moon-evidence/
       ACCEPTANCE_CHECKLIST.md
       DECISION_LOG.md
       RESULTS_LOG.md
+      fabric-e2e/
+        2026-07-11/             # sanitized real Fabric receipts and backfeed results
     report/
       DEVELOPMENT_REPORT.md
     research/
       MOONCAKES_COLLISION_CHECK.md
     spec/
+      CLI_MACHINE_CONTRACT.md
       EVIDENCE_PACK_SPEC.md
+      FABRIC_ANCHOR_SPEC.md
   demo/
     web/
       index.html
@@ -94,6 +99,30 @@ moon-evidence/
     README.md
     package.json
     vite.config.ts
+  integrations/
+    fabric/
+      README.md               # test-network deployment and adapter guide
+      chaincode-go/
+        chaincode/
+          anchor_contract.go
+          anchor_contract_test.go
+        go.mod
+        go.sum
+        main.go
+      gateway/
+        profiles/
+          test-network-org1.example.json
+        src/
+          anchor.ts
+          cli.ts
+          gateway.ts
+          index.ts
+          moon-cli.ts
+          profile.ts
+        test/
+        package.json
+        package-lock.json
+        tsconfig.json
   src/
     README.md
     api/                       # 浏览器 ESM 适配器
@@ -204,13 +233,13 @@ moon-evidence/
         valid/
       version-chain/           # 版本链篡改夹具
   tools/
-    cli-test.ps1               # 54 用例黑盒 CLI 套件
+    cli-test.ps1               # 62 用例黑盒 CLI 套件
     env-check.ps1              # 只读环境检查
     gen-fixtures.mjs           # 篡改矩阵生成（独立 Node 参考实现）
     gen-merkle-fixtures.mjs    # Merkle golden 数据生成
     gen-pack-fixture.mjs       # 单个证据包夹具生成
-    smoke-api.mjs              # 浏览器适配器烟测
-    cli-test.sh                # 54 用例黑盒 CLI（bash 版，与 ps1 1:1 对等）
+    smoke-api.mjs              # 浏览器适配器 36 断言烟测
+    cli-test.sh                # 62 用例黑盒 CLI（bash 版，与 ps1 1:1 对等）
     cross-verify.mjs           # 独立 Node 交叉验证（create/store/audit 重算对比）
     differential-crypto.mjs    # Ed25519 JS API 与 Node.js crypto 随机差分对拍
     differential-digest.mjs    # SHA/HMAC JS API 与 Node.js crypto 随机差分对拍
@@ -233,6 +262,11 @@ moon-evidence/
 - **扩展包**：`create`（证据包创建）/ `store`（内容寻址存储）/ `audit`（审计日志）/ `crypto`（Ed25519 签名）
 - **适配器**：`cmd/main`（native CLI）/ `api`（浏览器 ESM）
 - **实验工具包**：`timing`（native-only Ed25519 verify/sign timing evidence，不作为产品 API）
+
+`integrations/fabric/` 是公开源码仓库中的可选跨系统适配器：Go Chaincode
+保存不可变 manifest 摘要，TypeScript Gateway 负责提交、查询和把链上摘要
+回灌 MoonBit CLI。它与根 `package.json` 均被 `moon.mod` 和包内容门禁排除，
+不会把 Go/Node 依赖带入 Mooncakes 库包。
 
 ## Tracking Rule
 

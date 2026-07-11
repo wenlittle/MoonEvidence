@@ -12,7 +12,7 @@
 // What it checks:
 //   1. Commit count (git rev-list --count HEAD) matches numbers in docs
 //   2. MoonBit line count (find src -name '*.mbt') matches numbers in docs
-//   3. Test count (grep '^test ' in *_wbtest.mbt) matches numbers in docs
+//   3. Declared/executable test counts match public and application docs
 //   4. Package count (find src -name 'moon.pkg') matches numbers in docs
 //   5. moon.mod version matches CHANGELOG latest version
 //   6. CLI_VERSION in the native adapter matches moon.mod version
@@ -84,13 +84,18 @@ const implOnly = allMbtLines - testLines;
 
 // Test declarations: grep '^test ' in *_wbtest.mbt
 let testCount = 0;
+let benchmarkWrapperCount = 0;
 for (const f of wbTestFiles) {
   const content = readFileSync(f, "utf-8");
   const lines = content.split("\n");
   for (const line of lines) {
-    if (line.match(/^test /)) testCount++;
+    if (line.match(/^test /)) {
+      testCount++;
+      if (line.match(/^test\s+"bench:/)) benchmarkWrapperCount++;
+    }
   }
 }
+const executableTestCount = testCount - benchmarkWrapperCount;
 
 const commits = parseInt(run("git rev-list --count HEAD"), 10);
 const pkgCount = moonPkgFiles.length;
@@ -102,7 +107,7 @@ const moonModVersion = versionMatch ? versionMatch[1] : "UNKNOWN";
 
 // CHANGELOG latest version
 const changelog = readFileSync(join(repoRoot, "CHANGELOG.md"), "utf-8");
-const clMatch = changelog.match(/^##\s*\[([^\]]+)\]/m);
+const clMatch = changelog.match(/^##\s*\[(\d+\.\d+\.\d+)\]/m);
 const changelogVersion = clMatch ? clMatch[1] : "UNKNOWN";
 
 // CLI_VERSION in native CLI adapter
@@ -116,6 +121,8 @@ const actual = {
   implLines: implOnly,
   testLines: testLines,
   testCount,
+  executableTestCount,
+  benchmarkWrapperCount,
   pkgCount,
   moonModVersion,
   changelogVersion,
@@ -198,7 +205,7 @@ const assertions = [
   {
     file: "docs/STRUCTURE_TREE.md",
     pattern: /(\d+)\s+用例黑盒 CLI/,
-    expected: 54, // CLI black-box is 54, not derived from grep
+    expected: 62, // CLI black-box is maintained by both shell implementations
     desc: "STRUCTURE_TREE.md CLI case count",
   },
   // Version consistency
@@ -216,6 +223,25 @@ const assertions = [
     desc: `CLI_VERSION (${cliVersion}) == moon.mod version (${moonModVersion})`,
     isVersion: true,
   },
+  ...[
+    ["docs/application/OSC2026_APPLICATION.md", "OSC2026 application"],
+    ["docs/申报书.md", "one-page application Markdown"],
+    ["docs/申报书.html", "one-page application HTML"],
+    ["docs/申报书.tex", "one-page application TeX"],
+  ].flatMap(([file, label]) => [
+    {
+      file,
+      pattern: /产品实现\s*(\d+)\s*行，测试\s*(\d+)\s*行，总计\s*(\d+)\s*行 MoonBit/,
+      expected: { 1: implOnly, 2: testLines, 3: allMbtLines },
+      desc: `${label} line counts`,
+    },
+    {
+      file,
+      pattern: /测试体系[：:]\s*(\d+)\s*个可执行 MoonBit 测试、(\d+)\s*个测试声明、(\d+)\s*个 CLI 黑盒用例/,
+      expected: { 1: executableTestCount, 2: testCount, 3: 62 },
+      desc: `${label} test counts`,
+    },
+  ]),
 ];
 
 // ---------------------------------------------------------------------------
@@ -229,12 +255,16 @@ for (const a of assertions) {
   try {
     content = readFileSync(join(repoRoot, a.file), "utf-8");
   } catch {
-    console.log(`⚠ SKIP ${a.desc}: file ${a.file} not found`);
+    checks++;
+    failures++;
+    console.log(`✗ FAIL ${a.desc}: required file ${a.file} not found`);
     continue;
   }
   const match = content.match(a.pattern);
   if (!match) {
-    console.log(`⚠ SKIP ${a.desc}: pattern not found in ${a.file}`);
+    checks++;
+    failures++;
+    console.log(`✗ FAIL ${a.desc}: required pattern not found in ${a.file}`);
     continue;
   }
 

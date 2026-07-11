@@ -1959,6 +1959,31 @@ assurance with stale privacy and crypto wording.
 | Post-hardening live Gateway query | PASS: Org1 and Org2 independently ran `verify-anchor`; both returned the original block-6 transaction and a 2/2 local verification report |
 | Package/metrics/format guards | PASS: 232 packaged files; 44/44 metric assertions; `git diff --check` |
 
+## 2026-07-11 Asia/Shanghai (v0.5.0 release candidate)
+
+### Release Scope
+
+| Area | Result |
+| --- | --- |
+| Version contract | `moon.mod`, `CLI_VERSION`, and latest CHANGELOG entry aligned on `0.5.0`; semver minor chosen for additive machine/API behavior |
+| Mooncakes boundary | Fabric Go/TypeScript sources remain repository-only; the package contains 232 files and no `integrations/` or root Node workspace metadata |
+| Artifact | `_build/publish/starlittle-MoonEvidence-0.5.0.zip`; 648555 bytes; SHA256 `474986490eef49294dc2e83229eb3712092f424d0e2802950fa1fd7c2d28eb4c` |
+| Publish preflight | Server returned HTTP 202 with `Dry run completed successfully. No changes were made` for v0.5.0; this Moon CLI build nevertheless exited 1 after printing the accepted response, so the actual publish procedure must query the registry before any retry |
+
+### Release Gate
+
+| Command / flow | Result |
+| --- | --- |
+| `moon fmt --check`; `moon check --deny-warn --target all`; `moon info` interface diff | PASS |
+| Portable MoonBit tests | PASS: wasm, wasm-gc, and js each 347/347 |
+| Windows MSVC native tests | PASS: 347/347 |
+| CLI process contract | PASS: PowerShell and bash, JS and native, each 62/62 |
+| Independent/reference gates | PASS: cross-verify 10/10; Wycheproof inventory 150; browser smoke 36/36 |
+| Release randomized profile | PASS: 1217 malformed cases; 768 semantic checks; Ed25519 differential 1000/1000; digest differential 1000/1000 |
+| Mutation quality gate | PASS: 16/16 mutations caught; source restored byte-for-byte |
+| Fabric adapters | PASS: Gateway 19/19; Go vet/race pass; Chaincode core coverage 82.1% |
+| Package/metric guards | PASS: package 232 files; metrics 44/44; diff whitespace clean |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

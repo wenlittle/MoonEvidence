@@ -2,9 +2,9 @@
 
 本文件记录 MoonEvidence 的版本演进。版本号遵循语义化版本（SemVer）。
 
-## [Unreleased]
+## [0.5.0] - 2026-07-11
 
-下一次 minor 发布候选：把证据包机器接口连接到真实 Hyperledger
+本次 minor 发布把证据包机器接口连接到真实 Hyperledger
 Fabric 摘要锚定流程，同时保持 MoonBit 为唯一证据语义来源。
 
 ### Added
@@ -126,5 +126,6 @@ MVP：可信证据包验证核心，三后端全绿，可发布 Mooncakes。
 - **测试体系**：篡改矩阵 fixtures、独立 Node 参考实现交叉验证 golden 数据、property test、benchmark。
 - **双语 README** 与用户指南、证据包规范、架构文档、决策/结果双日志。
 
+[0.5.0]: https://github.com/wenlittle/MoonEvidence/releases/tag/v0.5.0
 [0.4.1]: https://github.com/wenlittle/MoonEvidence/releases/tag/v0.4.1
 [0.4.0]: https://github.com/wenlittle/MoonEvidence/releases/tag/v0.4.0

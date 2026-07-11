@@ -64,11 +64,11 @@ MoonBit API 产生，无 iframe、无后端。架构与生产构建命令见
 
 ## 30 秒上手
 
-Mooncakes 注册表版本：`starlittle/MoonEvidence` v0.4.1。
+Mooncakes 注册表版本：`starlittle/MoonEvidence` v0.5.0。
 
-已发布的 v0.4.1 是稳定 MoonBit 库基线。当前仓库 HEAD 是下一次 minor 发布
-候选，新增 `pack` / `inspect` 机器合同、外部锚点校验和仓库级 Fabric 适配器；
-以下新路径从当前源码构建运行，并已记录在 CHANGELOG 的 `Unreleased` 节。
+v0.5.0 将 `pack` / `inspect` 机器合同与外部锚点校验加入 MoonBit 包。
+仓库同时交付下文的可选 Fabric 适配器；该适配器不进入 Mooncakes 制品，
+因此可复用 MoonBit 库继续保持原有依赖边界。
 
 ```powershell
 moon add starlittle/MoonEvidence

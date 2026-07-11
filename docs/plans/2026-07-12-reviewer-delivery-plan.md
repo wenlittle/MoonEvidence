@@ -69,8 +69,8 @@
 
 ## 最终发布
 
-- [ ] 运行 MoonBit 四后端、CLI、浏览器 API、Showcase、Fabric、随机差分和故障注入门禁。
-- [ ] 更新 `RESULTS_LOG.md`、验收清单、项目索引、结构树和开发报告中的最终基线。
+- [x] 运行 MoonBit 四后端、CLI、浏览器 API、Showcase、Fabric、随机差分和故障注入门禁。
+- [x] 更新 `RESULTS_LOG.md`、验收清单、项目索引、结构树和开发报告中的最终基线。
 - [ ] 检查 Git 工作区只包含本轮预期变更。
 - [ ] 分阶段提交并同步 GitHub、GitLink。
 - [ ] 创建不可移动的 `v0.5.1` 标签并核对发布产物摘要。

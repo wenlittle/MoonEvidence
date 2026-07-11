@@ -1,12 +1,12 @@
 {
   "schema": "moon-evidence-fabric-release-e2e-deployment/v1",
-  "observed_at": "2026-07-12T03:51:25+08:00",
+  "observed_at": "2026-07-12T04:22:02+08:00",
   "artifact": {
     "name": "starlittle-MoonEvidence-0.5.1.zip",
     "module_version": "0.5.1",
-    "source_commit": "9352e08c3b7fb6ab40f5fe8a9793782bddc5d406",
-    "size_bytes": 741143,
-    "sha256": "2d47fff645044767e16d0d2bebbd06092ccca6bef344a09adc1759d017fcfa35",
+    "source_commit": "86d9ce49bbf69d587f5dfee46cfa539f7ceb11e6",
+    "size_bytes": 741180,
+    "sha256": "0c462427fe9f6ed6d1186f018a36bae5175db242c9cabf321a00a909073b7b7d",
     "deterministic_rebuilds_matched": true
   },
   "evidence_pack": {
@@ -14,8 +14,8 @@
     "subject_type": "release-artifact",
     "version_id": "v0.5.1",
     "files_total": 2,
-    "manifest_digest": "sha256:91bf70a0194e849c9ff692272fad0da1194e83051b52424feacf951f3ca3870e",
-    "merkle_root": "sha256:0ca102a3b216fbaf028d0fd754954eadae63ba8d66fd6becb994f5e41e909cf0"
+    "manifest_digest": "sha256:58410f36cc89b40b2decf79895128bf6ed81c545127f1db6d25e5ce1a154ff69",
+    "merkle_root": "sha256:0230021d6f323b62ede761004b0e9ea55f6d6e59eed4f37b8569c956d98108c4"
   },
   "fabric": {
     "runtime_images": "3.1.4",
@@ -31,9 +31,9 @@
       "Org2MSP": true
     },
     "channel_tip": {
-      "height": 14,
-      "current_block_hash_base64": "pdIJDl4Z0GrnvcId6mTVBD5b9ZgeTIJRAq1IyMhe+xo=",
-      "previous_block_hash_base64": "h7WuLvWyrHmKt+hg7jBJFC02juFmKykhe1g9zQA2moM=",
+      "height": 16,
+      "current_block_hash_base64": "ZB4tX9qPdoEH3H9y7WmyrnRd7XmxXCpLdQo3keOBUkk=",
+      "previous_block_hash_base64": "SDvnLZyRXVtSDgsiyaktSUmcZgG/T5BJSJXnBuwGEC8=",
       "org1_org2_equal": true
     }
   },

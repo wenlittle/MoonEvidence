@@ -1,24 +1,24 @@
 {
   "schema": "moon-evidence-fabric-release-e2e-transactions/v1",
-  "manifest_digest": "sha256:91bf70a0194e849c9ff692272fad0da1194e83051b52424feacf951f3ca3870e",
+  "manifest_digest": "sha256:58410f36cc89b40b2decf79895128bf6ed81c545127f1db6d25e5ce1a154ff69",
   "first_submission": {
     "organization": "Org1MSP",
     "outcome": "created",
-    "transaction_id": "77dfcf43cad878a8f0eba42ed12ead827940f9b072560f44832039d361896018",
-    "block_number": "12",
+    "transaction_id": "43c9247f5b078ee7b96b71c99d1befcb7898b8cc9af6158b05f0cc43b497802f",
+    "block_number": "14",
     "status_code": 0,
     "validation_status": "VALID",
     "successful": true
   },
   "queries": {
     "Org1MSP": {
-      "manifest_digest": "sha256:91bf70a0194e849c9ff692272fad0da1194e83051b52424feacf951f3ca3870e",
-      "transaction_id": "77dfcf43cad878a8f0eba42ed12ead827940f9b072560f44832039d361896018",
+      "manifest_digest": "sha256:58410f36cc89b40b2decf79895128bf6ed81c545127f1db6d25e5ce1a154ff69",
+      "transaction_id": "43c9247f5b078ee7b96b71c99d1befcb7898b8cc9af6158b05f0cc43b497802f",
       "submitter_msp": "Org1MSP"
     },
     "Org2MSP": {
-      "manifest_digest": "sha256:91bf70a0194e849c9ff692272fad0da1194e83051b52424feacf951f3ca3870e",
-      "transaction_id": "77dfcf43cad878a8f0eba42ed12ead827940f9b072560f44832039d361896018",
+      "manifest_digest": "sha256:58410f36cc89b40b2decf79895128bf6ed81c545127f1db6d25e5ce1a154ff69",
+      "transaction_id": "43c9247f5b078ee7b96b71c99d1befcb7898b8cc9af6158b05f0cc43b497802f",
       "submitter_msp": "Org1MSP"
     },
     "equal": true
@@ -26,10 +26,10 @@
   "duplicate_submission": {
     "organization": "Org2MSP",
     "outcome": "already_anchored",
-    "transaction_id": "30892dced67dd44eeadf84071eb4b98a058810b52442d750211e5167a590dabb",
-    "block_number": "13",
+    "transaction_id": "122426f540eee48227f635de23910ce985928b9ad3f5a35cf1903231b68b55ab",
+    "block_number": "15",
     "status_code": 0,
     "successful": true,
-    "preserved_anchor_transaction_id": "77dfcf43cad878a8f0eba42ed12ead827940f9b072560f44832039d361896018"
+    "preserved_anchor_transaction_id": "43c9247f5b078ee7b96b71c99d1befcb7898b8cc9af6158b05f0cc43b497802f"
   }
 }

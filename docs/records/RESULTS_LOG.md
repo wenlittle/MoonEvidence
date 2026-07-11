@@ -2296,6 +2296,36 @@ deployed protocol and revalidated the Gateway boundary around that record.
 | Clean clone | PASS at `bd40972`: JS build, README valid/create/tamper flow with expected `E2003` and exit 1, JS tests `353/353`, metrics, package guard, and fixture guard; clone remained clean |
 | `git diff --check` | PASS |
 
+## 2026-07-12 Asia/Shanghai (v0.5.1 final release evidence)
+
+### Artifact And Ledger
+
+| Item | Result |
+| --- | --- |
+| Module artifact | `_build/publish/starlittle-MoonEvidence-0.5.1.zip`, 741,180 bytes, SHA-256 `0c462427fe9f6ed6d1186f018a36bae5175db242c9cabf321a00a909073b7b7d` |
+| Reproducibility | Two consecutive package builds at source commit `86d9ce49bbf69d587f5dfee46cfa539f7ceb11e6` were byte-identical; updating excluded Fabric records did not change the archive |
+| Evidence pack | 2 files; manifest `sha256:58410f36cc89b40b2decf79895128bf6ed81c545127f1db6d25e5ce1a154ff69`; Merkle root `sha256:0230021d6f323b62ede761004b0e9ea55f6d6e59eed4f37b8569c956d98108c4` |
+| Fabric first commit | Org1MSP, block 14, status code 0 / `VALID`, transaction `43c9247f5b078ee7b96b71c99d1befcb7898b8cc9af6158b05f0cc43b497802f` |
+| Cross-organization result | Org1 and Org2 returned the same digest, submitter and first transaction; Org2 duplicate in block 15 preserved the first anchor |
+| Digest backfeed | Original release pack passed 2/2; changed checksum sidecar produced `E2003`; regenerated manifest produced `E2004` against the ledger digest |
+| Sanitized record | `docs/records/fabric-e2e/2026-07-12-v0.5.1/`; no payload, certificate, private key, profile, local absolute path or token retained |
+
+### Final Gates
+
+| Command / flow | Result |
+| --- | --- |
+| Type, format and interface | PASS: `moon fmt --check`; `moon check --deny-warn --target all`; `moon info`; generated-interface diff clean |
+| MoonBit tests | PASS: native, wasm, wasm-gc and js each `353/353`; native used MSVC 19.44 |
+| CLI processes | PASS: JS and native PowerShell suites each `68/68`; release JS CLI ran independently with Node.js |
+| MoonBit quickstart | PASS: create, original verification and changed-file rejection completed in one command |
+| Browser API | PASS: release adapter smoke `41/41` |
+| Randomized release profile | PASS: 1,222 malformed cases; 768 semantic checks; Ed25519 `1000/1000`; SHA-2/HMAC `1000/1000` |
+| Independent and fault gates | PASS: fixture regeneration clean; cross-verify `11/11`; Wycheproof 150; branch map 221 invariants; mutation `18/18` caught and source restored |
+| Showcase | PASS: TypeScript check, production build and five Playwright reviewer paths |
+| Fabric adapters | PASS: Gateway `19/19`; Go vet; WSL/Linux race; Chaincode core coverage 82.1% |
+| Package governance | PASS: deterministic package; 245-file content guard; metrics `51/51`; `git diff --check` clean |
+| Pre-publication consumer | PASS: clean Mooncakes consumer pinned to published `0.5.0`, `2/2`; the same gate will pin `0.5.1` immediately after publication |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

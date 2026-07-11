@@ -95,7 +95,7 @@ npm run fabric:test              # Gateway 19/19
 
 > "上链存证、数据集归档、AI 产物审计，MoonEvidence 先用 MoonBit 验证本地证据，再把唯一的规范摘要锚定到 Fabric，最后把链上值回灌复核。证据语义只有一套，CLI、浏览器和账本共用同一个可信核心。"
 
-指一下 `docs/GUIDE.md`（三场景）与 `README.zh.md`（架构图 + API 速览）作为延伸阅读。
+指一下 `docs/GUIDE.md`（完整操作路径）与 `README.md`（项目首页、架构和质量证据）作为延伸阅读。
 
 ---
 

@@ -1,68 +1,71 @@
 # MoonEvidence
 
 [![CI](https://github.com/wenlittle/MoonEvidence/actions/workflows/ci.yml/badge.svg)](https://github.com/wenlittle/MoonEvidence/actions/workflows/ci.yml)
+[![Showcase](https://github.com/wenlittle/MoonEvidence/actions/workflows/showcase-pages.yml/badge.svg)](https://wenlittle.github.io/MoonEvidence/)
+[![Mooncakes](https://img.shields.io/badge/Mooncakes-v0.5.0-2f6f44)](https://mooncakes.io/docs/#/starlittle/MoonEvidence)
+[![License](https://img.shields.io/badge/license-Apache--2.0-202124)](LICENSE)
 
-English | [中文](README.zh.md)
+简体中文 | [English](README.en.md)
 
-MoonEvidence is a MoonBit ecosystem project for trusted evidence pack verification.
+**面向文件归档、AI 产物审计和上链存证的可信证据包工具。**
 
-The project provides a reusable MoonBit library and CLI that can create and
-verify deterministic evidence packs, plus an optional Hyperledger Fabric
-adapter that anchors the verified manifest digest and feeds it back into local
-verification.
+MoonEvidence 将一组文件整理成可复核的证据包，生成稳定摘要，并在内容发生变化时定位异常文件。核心能力由 MoonBit 实现，可作为库、命令行工具和浏览器工作台运行；可选的 Hyperledger Fabric 适配器负责记录已验证摘要，形成从本地检查到共享账本复核的完整流程。
 
-Maintainer: Chen Junwen (GitHub `@wenlittle`; GitLink and Mooncakes namespace
-`starlittle`).
+[在线体验](https://wenlittle.github.io/MoonEvidence/) · [开始验证](https://wenlittle.github.io/MoonEvidence/#workbench/verify) · [查看五分钟流程](#快速开始)
 
-## Positioning
+![MoonEvidence 首页](docs/images/trust-observatory.png)
 
-MoonEvidence keeps evidence semantics chain-agnostic: prove that a local pack
-is complete, deterministic, and untampered before notarization, archival,
-copyright packaging, AI output audit, or research release. When a shared
-ledger is required, the Fabric adapter records only that verified pack's
-canonical manifest digest and returns transaction, block, and validation
-evidence.
+## 概览
 
-## 5-Minute Reviewer Path
+一次 MoonEvidence 流程接收原始文件，输出自包含证据包、规范清单、稳定摘要和结构化验证结果。证据包可以随文件一起归档，摘要可以写入数据库、对象存储或共享账本。
 
-This path exercises the project value loop end to end: build the CLI, verify a
-known-good pack, create a new pack, tamper with one byte, and confirm the
-diagnostic catches it. Run from the repository root:
+复核时，验证器重新计算文件摘要和 Merkle 根，并检查清单、版本关系和外部锚点。内容变化会形成带路径和错误码的诊断，脚本可以继续处理同一份机器可读结果。
 
-```powershell
-moon build --target js
-$cli = "_build/js/debug/build/src/cmd/main/main.js"
+| 输入 | 交付物 | 复核结果 |
+| --- | --- | --- |
+| 文件目录 | `manifest.json`、`files/`、规范摘要 | 通过，或定位到发生变化的文件 |
+| 现有证据包 | 结构化报告、退出码、可读诊断 | 文件变化、清单冲突、版本异常 |
+| 外部锚点 | 账本摘要或归档摘要 | 当前证据包和既有记录是否一致 |
 
-node $cli verify examples/valid-pack
+## 使用场景
 
-Remove-Item -Recurse -Force "$env:TEMP\moon-evidence-review-pack" -ErrorAction SilentlyContinue
-node $cli pack examples/valid-pack/files -o "$env:TEMP\moon-evidence-review-pack" --subject-id review --json
-node $cli verify "$env:TEMP\moon-evidence-review-pack"
+### 数据集归档
 
-Add-Content "$env:TEMP\moon-evidence-review-pack\files\a.txt" "tamper"
-node $cli explain "$env:TEMP\moon-evidence-review-pack"
+发布前固定文件清单、字节长度、摘要和版本关系。资料经过迁移、备份或长期保存后，可以重新验证并定位损坏文件。
 
-moon build --target js --release src/api
-node tools/smoke-api.mjs
+### AI 产物审计
+
+将模型输出、提示词、配置和评估结果放入同一证据包。交付双方使用同一份清单复核内容，验证报告可以进入自动化审计流水线。
+
+### 上链存证
+
+本地验证通过后提交规范摘要，文件内容继续保留在链下。后续复核同时检查当前文件和原始链上锚点，清单被重新生成时仍能识别历史不一致。
+
+## 工作流程
+
+```mermaid
+flowchart LR
+    A["原始文件"] --> B["创建证据包"]
+    B --> C["文件清单"]
+    B --> D["稳定摘要"]
+    D -.-> E["归档或链上锚点"]
+    C --> F["重新验证"]
+    E -.-> F
+    F -->|一致| G["通过"]
+    F -->|发生变化| H["定位文件"]
 ```
 
-The same release JS artifact powers `demo/web/`; the optional Fabric path uses
-the same canonical digest and verification report rather than implementing a
-second evidence model.
+证据包保留完整检查信息，外部系统只需保存稳定摘要。两者在复核阶段重新汇合，既能发现文件变化，也能识别重新生成清单后的历史冲突。
 
-## Interactive Web Experience
+## 快速开始
 
-[Open the live MoonEvidence experience](https://wenlittle.github.io/MoonEvidence/)
+### 网页体验
 
-The public homepage introduces the product first, then turns one byte-level
-change into a four-chapter scroll story: collect the material, create a
-reviewable credential, observe the result fork, and locate the rejected file.
-The desktop story reuses the live Three.js evidence graph; mobile presents the
-same conclusions in a purpose-built compact flow.
+[在线首页](https://wenlittle.github.io/MoonEvidence/) 展示完整工作流程；[验证工作台](https://wenlittle.github.io/MoonEvidence/#workbench/verify) 可以直接加载内置样例或本地文件；[篡改实验](https://wenlittle.github.io/MoonEvidence/#workbench/tamper) 会显示单字节变化如何传递到摘要、Merkle 根和最终结论。
 
-![MoonEvidence immersive homepage](docs/images/trust-observatory.png)
+计算过程在浏览器 Web Worker 中完成，调用同一套 MoonBit 编译产物。文件无需上传到服务端。
 
-Run it locally:
+本地启动需要 Node.js 22、npm 和 MoonBit 工具链：
 
 ```powershell
 cd showcase
@@ -70,310 +73,205 @@ npm ci
 npm run dev
 ```
 
-`Start verification` opens a separate native React Evidence Workbench with six
-operational tools: verify, create, Merkle proof, audit log, Ed25519 signing,
-and a byte-level tamper lab. The homepage and Workbench are distinct surfaces,
-while the Workbench keeps its state when navigating between them. All real
-results come from one Web Worker and the same 12 compiled MoonBit APIs, with no
-iframe or backend involved.
+![MoonEvidence 验证工作台](docs/images/evidence-workbench.png)
 
-![MoonEvidence Evidence Workbench](docs/images/evidence-workbench.png)
+### 命令行
 
-See [`showcase/README.md`](showcase/README.md) for the architecture and
-production build commands.
+下面的 PowerShell 命令依次验证完好样例、创建新证据包、修改一个文件，再输出定位结果：
 
-## Features
+```powershell
+git clone https://github.com/wenlittle/MoonEvidence.git
+cd MoonEvidence
 
-### Core Verification
-- Canonical JSON serialization (RFC 8785) for stable digests.
-- Pure MoonBit SHA-256 and SHA-512 digest implementations.
-- HMAC-SHA256 message authentication (RFC 2104).
-- Evidence manifest model and validation (path traversal rejected at parse time).
-- Merkle root/proof verification (RFC 6962 style).
-- Linear version chain verification (unique root, no cycles, no forks).
-- 7-step verification pipeline: parse → canonicalize → digest → merkle → version chain → diagnostics.
-- Structured diagnostics and human-readable explain output.
-- Frozen exit codes: 0 (pass), 1 (fail), 2 (usage/IO error).
+moon build --target js
+$cli = "_build/js/debug/build/src/cmd/main/main.js"
 
-### Pack Creation & Extensions
-- **One-command evidence pack creation**: `pack`/`seal` creates the complete
-  `manifest.json + files/` layout; `create` remains available for existing
-  directory layouts.
-- **Machine contract**: versioned JSON from `pack`, `create`, and `inspect`,
-  plus external-anchor verification through `--expected-manifest-digest`.
-- **Incremental verification**: digest caching, skip unchanged files.
-- **Batch CLI mode**: verify multiple packs at once, summarize results.
-- **In-memory deduplication store**: content stored once per unique SHA-256 digest.
+# 验证仓库内的完好样例
+node $cli verify examples/valid-pack
 
-### Advanced Capabilities
-- **Audit log**: hash-chained append-only operation records.
-- **Ed25519 digital signatures**: pure MoonBit implementation, from finite field to sign/verify (~800 lines).
-- **Audit log + signature integration**: optional Ed25519 signature verification.
-- **Hyperledger Fabric anchor**: immutable Go chaincode and a TypeScript
-  Gateway adapter with commit-status receipts, duplicate normalization, and
-  two-organization ledger-backfed verification.
+# 创建一份新的证据包
+$pack = Join-Path $env:TEMP "moon-evidence-review-pack"
+Remove-Item -Recurse -Force $pack -ErrorAction SilentlyContinue
+node $cli pack examples/valid-pack/files -o $pack --subject-id review --json
+node $cli verify $pack
 
-## Architecture at a Glance
-
-```mermaid
-graph TD
-  subgraph adapters["Adapters (the only place IO happens)"]
-    CLI["src/cmd/main<br/>CLI: pack / inspect / verify"]
-    API["src/api<br/>browser esm adapter"]
-    CREATE["src/create<br/>evidence pack creation"]
-    AUDIT["src/audit<br/>audit log + signatures"]
-  end
-  subgraph ledger["Optional Fabric Anchor"]
-    GATEWAY["TypeScript Gateway<br/>anchor-pack / verify-anchor"]
-    CHAINCODE["Go chaincode<br/>immutable manifest digest"]
-    FABRIC["Fabric ledger<br/>tx ID · block · status"]
-  end
-  subgraph core["Verification Core (zero IO, 3-backend portable)"]
-    VERIFY["verify<br/>7-step pipeline + version chain"]
-    MODEL["model<br/>manifest / version chain"]
-    DIAG["diag<br/>structured findings · explain"]
-  end
-  subgraph foundation["Foundation Layer"]
-    CANON["canonjson<br/>RFC 8785 canonicalization"]
-    DIGEST["digest<br/>SHA-256 / SHA-512 / HMAC"]
-    MERKLE["merkle<br/>RFC 6962 style tree"]
-    CRYPTO["crypto<br/>Ed25519 signatures"]
-    STORE["store<br/>content-addressed storage"]
-  end
-  CLI --> VERIFY
-  CLI --> CREATE
-  API --> VERIFY
-  CREATE --> DIGEST
-  CREATE --> MERKLE
-  CREATE --> CANON
-  AUDIT --> CRYPTO
-  AUDIT --> DIGEST
-  VERIFY --> MODEL
-  VERIFY --> DIAG
-  VERIFY --> CANON
-  VERIFY --> MERKLE
-  VERIFY --> DIGEST
-  MODEL --> DIGEST
-  MERKLE --> DIGEST
-  DIAG --> CANON
-  CLI --> GATEWAY
-  GATEWAY --> CHAINCODE
-  CHAINCODE --> FABRIC
-  FABRIC -. expected manifest digest .-> VERIFY
+# 修改一个文件并重新验证
+Add-Content "$pack/files/a.txt" "tamper"
+node $cli explain $pack
 ```
 
-File bytes are injected by the adapters (`Map[String, Bytes]`); the core
-only computes. That boundary is what lets the same semantics run in the
-CLI, in CI's three-backend matrix, and in the browser.
+最后一条命令返回退出码 `1`，并指出 `files/a.txt` 的摘要不一致。CLI 的稳定退出码为：`0` 表示成功或验证通过，`1` 表示验证拒绝，`2` 表示用法或 IO 错误。
 
-## Project Documents
+完整命令、批量模式和故障排查见[用户指南](docs/GUIDE.md)。
 
-### Getting Started
-- [User Guide (three real scenarios)](docs/GUIDE.md)
-- [Hyperledger Fabric integration (source repository)](https://github.com/wenlittle/MoonEvidence/tree/main/integrations/fabric)
-- [Environment Setup](docs/ENVIRONMENT.md)
-- [Demo Script (5-minute presentation)](docs/DEMO_SCRIPT.md)
+### MoonBit 接入
 
-### Deep Dive
-- [Architecture](docs/ARCHITECTURE.md)
-- [Evidence Pack Specification](docs/spec/EVIDENCE_PACK_SPEC.md)
-- [CLI Machine Contract](docs/spec/CLI_MACHINE_CONTRACT.md)
-- [Fabric Anchor Contract](docs/spec/FABRIC_ANCHOR_SPEC.md)
-- [Roadmap](docs/ROADMAP.md)
-- [Development Report](docs/report/DEVELOPMENT_REPORT.md)
-
-### Engineering & Quality
-- [Project Index](docs/PROJECT_INDEX.md)
-- [Code Guidelines](docs/CODE_GUIDELINES.md)
-- Results Log (repo-only, [see GitHub](https://github.com/wenlittle/MoonEvidence/blob/main/docs/records/RESULTS_LOG.md))
-- Acceptance Checklist (repo-only, [see GitHub](https://github.com/wenlittle/MoonEvidence/blob/main/docs/records/ACCEPTANCE_CHECKLIST.md))
-- Decision Log (repo-only, [see GitHub](https://github.com/wenlittle/MoonEvidence/blob/main/docs/records/DECISION_LOG.md))
-
-## Quick Start (CLI)
-
-Mooncakes registry version: `starlittle/MoonEvidence` v0.5.0.
-
-Version 0.5.0 adds the `pack`/`inspect` machine contract and external-anchor
-verification to the MoonBit package. The repository also ships the optional
-Fabric adapter described below; that adapter remains outside the Mooncakes
-artifact so the reusable MoonBit library keeps its existing dependency boundary.
+Mooncakes 已发布 `starlittle/MoonEvidence` v0.5.0：
 
 ```powershell
 moon add starlittle/MoonEvidence
 ```
 
-```powershell
-# build the CLI (js artifact, runs via node; native works wherever a C compiler exists)
-moon build --target js
-$cli = "_build/js/debug/build/src/cmd/main/main.js"
+在应用的 `moon.pkg` 中导入需要的包：
 
-# verify the bundled example packs
-node $cli verify examples/valid-pack
-node $cli explain examples/tampered-pack
-
-# create a complete evidence pack and expose its canonical anchor
-node $cli pack examples/valid-pack/files -o my-pack --subject-id demo --json
-node $cli inspect --json my-pack
-node $cli verify my-pack
-
-# machine-readable report / human-readable findings
-node $cli verify --json examples/valid-pack
-node $cli explain examples/tampered-pack
-
-# run the full black-box suite
-powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target js
-bash ./tools/cli-test.sh js
+```moonbit
+import {
+  "starlittle/MoonEvidence/src/create",
+  "starlittle/MoonEvidence/src/diag",
+  "starlittle/MoonEvidence/src/digest",
+  "starlittle/MoonEvidence/src/verify",
+}
 ```
 
-Exit codes are frozen: `0` verification passed, `1` verification failed,
-`2` usage or IO error. On machines with a system C compiler (and in CI) the
-same CLI builds natively: `moon build --target native` then
-`tools/cli-test.ps1 -Target native`.
+创建清单后可以直接使用同一组内存文件完成验证：
 
-## Hyperledger Fabric Anchor
+```moonbit
+fn main {
+  let files : Map[String, Bytes] = {
+    "files/report.txt": b"reviewed result",
+    "files/config.json": b"{\"model\":\"v1\"}",
+  }
+  let options : @create.CreateOptions = {
+    subject: { id: "release-001", kind: "ai-output" },
+    algorithm: @digest.Sha256,
+    version_id: "v1",
+    version_parent: None,
+  }
+  let manifest = @create.create_manifest(files, options)
+  let report = @verify.verify_manifest(manifest, files)
+  println(@diag.explain(report))
+}
+```
 
-The optional adapter runs the complete boundary rather than presenting an
-on-chain mock:
+证据包格式和字段语义见[证据包规范](docs/spec/EVIDENCE_PACK_SPEC.md)。
+
+## 验证结果
+
+完好证据包会给出明确结论和检查统计：
 
 ```text
-MoonBit pack/verify -> TypeScript Gateway -> Go chaincode -> Fabric ledger
-                    <- ledger query <- expected digest verification
+verification OK
+checked 2 files, 2 passed; merkle root verified; 0 errors, 0 warnings
 ```
 
-The recorded two-organization experiment committed the bundled golden pack as
-`VALID` in block 6. Org1 and Org2 queried the same immutable record; an Org2
-duplicate preserved the original transaction ID. Feeding the ledger digest
-back into MoonEvidence passed the original pack, produced exactly `E2003` for
-a changed payload, and exactly `E2004` after regenerating a manifest around
-that changed payload.
-
-Build the adapter with `npm --prefix integrations/fabric/gateway ci` and
-`npm run fabric:build`, then use `me-fabric anchor-pack` and
-`me-fabric verify-anchor`. Full test-network deployment commands, local profile
-rules, and programmatic Node.js usage are in
-the [Fabric integration source guide](https://github.com/wenlittle/MoonEvidence/blob/main/integrations/fabric/README.md).
-Sanitized transaction receipts are in the
-[Fabric E2E record](https://github.com/wenlittle/MoonEvidence/tree/main/docs/records/fabric-e2e/2026-07-11).
-
-## Try It in the Browser
-
-The same pure verification core compiles to a self-contained esm bundle
-(`src/api`, exporting a string-in/string-out `verify_evidence`), so packs
-can be verified entirely client-side - no upload, no server round-trip:
-
-```powershell
-moon build --target js --release src/api
-
-# serve the repository root with any static server, then open
-#   http://localhost:8765/demo/web/
-python -m http.server 8765
-```
-
-Pick `examples/valid-pack` or `examples/tampered-pack` in the page (or
-paste a manifest JSON to check its structure, canonicalization, and
-Merkle root without file bytes):
-
-![Browser demo verifying a tampered manifest](docs/images/demo-web.png)
-
-The findings table and the `explain` text mirror the CLI byte for byte;
-`node tools/smoke-api.mjs` runs the same adapter contract in CI.
-
-## Diagnostics Preview
-
-Every verification failure maps to a frozen error code (`E1xxx`..`E5xxx`,
-`W1xxx`). The `explain` renderer prints one finding per line and always
-closes with a summary:
+样例中的单字节变化会被定位到具体文件：
 
 ```text
 verification FAILED
-  [E2003] files/data.csv: digest mismatch, expected sha256:ab.. got sha256:cd..
-  [W1001] files/extra.bin: file present in pack but not listed in manifest
-checked 12 files, 11 passed; merkle root verified; 1 error, 1 warning
+  [E2003] files/a.txt: digest mismatch, expected sha256:a948... got sha256:7509...
+checked 2 files, 1 passed; merkle root verified; 1 error, 0 warnings
 ```
 
-The machine-readable twin (`to_json`) emits the same report as canonical
-JSON (RFC 8785 key order), so report bytes are digest-stable:
+`verify --json` 输出相同语义的规范 JSON，便于 CI、网关和审计脚本消费。完整错误码和机器接口见 [CLI 契约](docs/spec/CLI_MACHINE_CONTRACT.md)。
 
-```json
-{"findings":[],"ok":true,"stats":{"files_passed":2,"files_total":2,"merkle_checked":true}}
+## 核心能力
+
+| 用户结果 | 实现方式 |
+| --- | --- |
+| 同一内容得到稳定记录 | RFC 8785 规范 JSON、SHA-256、SHA-512、HMAC-SHA256 |
+| 多文件状态可以整体复核 | RFC 6962 风格 Merkle 根和包含性证明 |
+| 变化可以定位到文件 | 七步验证流程、结构化错误码、可读诊断 |
+| 多次发布保留连续历史 | 唯一根节点、无环、无分叉的版本链检查 |
+| 自动化工具获得稳定接口 | `pack`、`inspect`、`verify` 的版本化 JSON 和固定退出码 |
+| 操作记录可以继续签名复核 | 哈希链审计日志、纯 MoonBit Ed25519 签名和验签 |
+| 同一语义覆盖多种入口 | MoonBit 库、native/wasm/wasm-gc/js、CLI、浏览器工作台 |
+
+核心计算不访问文件系统。CLI、浏览器和 Fabric 网关负责输入输出，所有入口共享同一套清单和验证语义。
+
+## Fabric 锚定
+
+可选适配器将本地验证通过的规范摘要提交到 Hyperledger Fabric。TypeScript Gateway 负责连接网络和读取提交回执，Go Chaincode 按摘要保存首条不可变记录；文件、路径和完整清单继续留在链下。
+
+```text
+本地创建和验证 → 规范摘要 → Fabric Gateway → Chaincode → 交易回执
+                  当前证据包 ← 账本查询 ← 原始摘要
 ```
 
-## Performance
+2026-07-11 的双组织实验留下了可复核记录：
 
-Measured with `moon bench --target js` (criterion-style, 10 batches per
-bench) on moon 0.1.20260529 / Node v22.22.0 / Windows. Payloads are
-deterministic (seeded splitmix64), and the pipeline packs carry real
-digests and a real Merkle root - a guard assertion aborts if the pack
-ever stops verifying, so the benchmark cannot silently measure the
-cheaper failure path.
+| 检查项 | 结果 |
+| --- | --- |
+| 网络 | Fabric v3.1.4，Org1 和 Org2，`evidencechannel` |
+| 首次提交 | block `6`，状态 `VALID`，交易 `ca3dc781…a28393` |
+| 跨组织查询 | Org1、Org2 返回同一条原始记录 |
+| 文件变化 | 本地复核返回 `E2003` |
+| 清单重建 | 对照原始账本摘要返回 `E2004` |
 
-| Benchmark | Mean ± σ | Derived rate |
+[Fabric 集成指南](integrations/fabric/README.md)提供部署和调用命令，[实验记录](docs/records/fabric-e2e/2026-07-11/)保存交易、查询和回灌结果。
+
+## 系统架构
+
+```mermaid
+flowchart TB
+    subgraph I["使用入口"]
+        A["网页工作台"]
+        B["命令行"]
+        C["MoonBit API"]
+    end
+    subgraph M["MoonEvidence"]
+        D["证据包创建"]
+        E["规范清单和稳定摘要"]
+        F["验证和诊断"]
+    end
+    subgraph X["外部系统"]
+        G["本地文件"]
+        H["归档系统"]
+        J["Hyperledger Fabric"]
+    end
+    G --> D
+    A --> F
+    B --> D
+    B --> F
+    C --> D
+    C --> F
+    D --> E
+    E --> F
+    E -.摘要.-> H
+    E -.摘要.-> J
+    H -.锚点.-> F
+    J -.锚点.-> F
+```
+
+文件读写和账本连接停留在入口层，验证核心只接收文本和字节。这个边界让 CLI、浏览器、多后端 CI 和 Fabric 集成保持一致结果，也为部署环境保留独立的权限和密钥管理空间。
+
+深入设计见[架构文档](docs/ARCHITECTURE.md)，外部锚点格式见 [Fabric 规范](docs/spec/FABRIC_ANCHOR_SPEC.md)。
+
+## 质量证据
+
+| 证据 | 当前基线 | 来源 |
 | --- | --- | --- |
-| SHA-256, 1 MiB payload | 17.10 ms ± 0.21 ms | ~58 MiB/s |
-| SHA-256, 64 KiB payload | 1.12 ms ± 0.02 ms | ~56 MiB/s |
-| Full verify, 1k-file manifest (64 B files) | 25.65 ms ± 0.78 ms | ~26 µs/file |
-| Full verify, 10k-file manifest (64 B files) | 283.52 ms ± 6.18 ms | ~28 µs/file |
+| MoonBit 测试 | **351** 个测试声明，347 个可执行测试，4 个基准包装 | [结果记录](docs/records/RESULTS_LOG.md) |
+| 独立参考 | 4 条 RFC 8032 样例、150 条 Google Wycheproof Ed25519 向量、独立 Node.js 摘要和 Merkle 结果 | [测试计划](docs/TEST_PLAN.md) |
+| 故障注入 | 16/16 个实现故障被现有测试捕获 | [门禁脚本](tools/mutation-check.mjs) |
+| 多后端 | native、wasm、wasm-gc、js 进入 CI 检查；CLI PowerShell/bash 各 62/62 | [CI](https://github.com/wenlittle/MoonEvidence/actions/workflows/ci.yml) |
+| 浏览器 | 12 个 MoonBit API 共用 Web Worker，并由 smoke、异常输入和语义属性检查覆盖 | [展示说明](showcase/README.md) |
+| Fabric | Chaincode 82.1% 语句覆盖，Gateway 19/19，双组织实链闭环已记录 | [实验记录](docs/records/fabric-e2e/2026-07-11/) |
+| MoonBit 源码 | **14,571** 行（实现 6,453 + 测试 8,118），12 个产品包和 1 个原生计时工具包 | [项目结构](docs/STRUCTURE_TREE.md) |
 
-Full verify covers parse, canonicalization, per-file digests, and Merkle
-root recomputation. Cost scales near-linearly in file count (10x files
--> 11.05x time; the residual is the Merkle tree's log-depth term), so
-manifest size, not file count, is the practical ceiling. Numbers come
-from the pure-MoonBit SHA-256 on the js backend; the native backend (CI)
-is expected to be faster. Methodology and raw output:
-`docs/records/RESULTS_LOG.md` (step 8 task 4).
+测试从标准样例、独立参考结果、随机差分、异常输入、故障注入一路覆盖到 CLI 黑盒和真实账本实验。门禁关注测试能否抓住错误，避免只统计通过数量。
 
-## Current Status
+## 适用范围
 
-All 12 product packages are implemented and fully tested across three backends;
-`src/timing` is a native-only measurement package for local Ed25519 timing
-experiments.
+当前版本适合可复现归档、数据交付、AI 产物审计、教学研究、竞赛展示和受控业务原型。核心库提供确定性证据语义，外部适配器负责文件权限、网络身份和账本连接。
 
-### Core Packages (zero IO)
-- `canonjson` — RFC 8785 escaping, code-unit key order, full ECMAScript number serialization (Appendix B vectors)
-- `digest` — pure MoonBit SHA-256 / SHA-512 / HMAC (NIST vectors)
-- `merkle` — RFC 6962 style domain separation, cross-checked against independent Node reference
-- `model` — validated manifest + version chain, path traversal rejected at parse time
-- `verify` — seven-step verification pipeline
-- `diag` — structured findings, explain, canonical JSON reports
+保护高价值资产的生产部署需要完成独立密码学审查、托管密钥接入、操作系统级文件保护、Fabric 组织治理和持续运行监控。现有分层允许这些控制独立演进，证据包格式和验证接口保持稳定。
 
-### Extension Packages
-- `create` — evidence pack creation from raw files
-- `store` — in-memory deduplication map (SHA-256 keyed)
-- `audit` — hash-chained append-only audit log
-- `crypto` — Ed25519 digital signatures (pure MoonBit, from GF(2^255-19) up)
+当前保障级别、报告渠道和部署检查项见[安全说明](SECURITY.md)。
 
-### Adapters
-- **CLI** (`src/cmd/main`): `pack` / `inspect` / `verify` / `explain` /
-  `create`, with versioned JSON and frozen exit codes
-- **Browser** (`src/api`): esm bundle for client-side verification
-- **Fabric** (`integrations/fabric`): TypeScript Gateway adapter + immutable Go
-  digest-anchor chaincode
+## 文档索引
 
-### Test Coverage
-- **351 unit tests** declared (347 executable tests + 4 benchmark wrappers), with native/wasm-gc/js passing locally
-- **62-case black-box CLI suite**: the 54-case verification/create contract plus 8 machine-interface and external-anchor cases, with PowerShell/bash parity
-- **Fabric adapter tests**: Go chaincode 82.1% statement coverage; TypeScript Gateway 19/19 tests; real two-organization anchor/query/duplicate/tamper E2E recorded
-- **Property tests**: canonicalization idempotence, Merkle proof soundness (mutation-verified)
-- **Native timing probe**: dudect-style Ed25519 verify/sign sampler for local native release builds; reports Welch t as an engineering assurance signal for this toolchain
-- **CI three-backend matrix**: native / wasm-gc / js build + test + browser smoke test
+| 任务 | 文档 |
+| --- | --- |
+| 开始使用 | [用户指南](docs/GUIDE.md) · [网页说明](showcase/README.md) · [演示脚本](docs/DEMO_SCRIPT.md) |
+| 理解设计 | [架构文档](docs/ARCHITECTURE.md) · [开发报告](docs/report/DEVELOPMENT_REPORT.md) · [证据包规范](docs/spec/EVIDENCE_PACK_SPEC.md) |
+| 接入系统 | [CLI 契约](docs/spec/CLI_MACHINE_CONTRACT.md) · [Fabric 规范](docs/spec/FABRIC_ANCHOR_SPEC.md) · [Fabric 指南](integrations/fabric/README.md) |
+| 检查质量 | [测试计划](docs/TEST_PLAN.md) · [测试治理](docs/TEST_GOVERNANCE.md) · [验收清单](docs/records/ACCEPTANCE_CHECKLIST.md) |
+| 维护项目 | [项目索引](docs/PROJECT_INDEX.md) · [决策记录](docs/records/DECISION_LOG.md) · [路线图](docs/ROADMAP.md) |
 
-```powershell
-moon check
-moon test --target native,wasm-gc,js
-moon build --target js
-moon build --target js --release src/api
-moon build --target native
-powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target js
-powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target native
-bash ./tools/cli-test.sh js
-bash ./tools/cli-test.sh native
-node tools/smoke-api.mjs
-npm run fabric:test
-moon bench --target js
-```
+## 开源许可
 
-As of 2026-07-11 Asia/Shanghai, the local native/wasm-gc/js test baseline is
-green; native was verified on Windows with MSVC 19.44 and Windows SDK
-10.0.26100.0. Codebase is 14571
-effective MoonBit lines (implementation 6453 + tests 8118); the implementation
-size remains within the 4-10k competition range.
+MoonEvidence 使用 [Apache License 2.0](LICENSE)。
+
+维护者：陈俊文。GitHub 使用 [`wenlittle`](https://github.com/wenlittle)，GitLink 和 Mooncakes 使用 `starlittle` 命名空间。
+
+[GitHub](https://github.com/wenlittle/MoonEvidence) · [GitLink](https://gitlink.org.cn/starlittle/MoonEvidence) · [Mooncakes](https://mooncakes.io/docs/#/starlittle/MoonEvidence)

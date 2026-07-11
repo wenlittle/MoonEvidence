@@ -14,8 +14,9 @@ moon-evidence/
   .gitignore
   moon.mod
   package.json                  # local Node workspace helpers; excluded from Mooncakes
-  README.md
-  README.zh.md
+  README.md                     # Chinese primary project page
+  README.en.md                  # English mirror
+  README.zh.md                  # compatibility link to README.md
   docs/
     ARCHITECTURE.md
     CODE_GUIDELINES.md

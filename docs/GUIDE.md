@@ -22,7 +22,7 @@ my-pack/
     └── version_chain.json        # 可选：版本演进的线性历史
 ```
 
-`manifest.json` 是唯一的事实来源。验证器回答一个问题：**目录里的字节和清单承诺的字节是否完全一致？** 任何偏离都会映射到一个冻结的错误码（完整表见 [README](../README.zh.md#错误码表) 与 [规范](spec/EVIDENCE_PACK_SPEC.md)）。
+`manifest.json` 是唯一的事实来源。验证器回答一个问题：**目录里的字节和清单承诺的字节是否完全一致？** 任何偏离都会映射到一个冻结的错误码，完整定义见[证据包规范](spec/EVIDENCE_PACK_SPEC.md#error-codes-frozen)。
 
 MoonEvidence 是**验证方**，不规定外部系统使用什么语言。日常打包可直接使用 `pack`：它复制源目录、生成 manifest，并返回可供脚本或账本适配器消费的规范摘要。仓库内 `tools/gen-fixtures.mjs` 仍作为独立 Node 参考实现，用于交叉验证而不是生产语义来源。
 

@@ -62,6 +62,10 @@ function countFileLines(filepath) {
   }
 }
 
+function parseMetricNumber(value) {
+  return parseInt(value.replaceAll(",", ""), 10);
+}
+
 function isMbt(f) { return f.endsWith(".mbt"); }
 function isWbTest(f) { return f.endsWith("_wbtest.mbt"); }
 function isBench(f) { return f.includes("_bench") && f.endsWith(".mbt"); }
@@ -141,22 +145,28 @@ const assertions = [
   // README.md
   {
     file: "README.md",
-    pattern: /\*{2}(\d+)\s+unit\s+tests\*{2}/i,
+    pattern: /MoonBit 测试\s*\|\s*\*{2}([\d,]+)\*{2}\s+个测试声明/,
     expected: testCount,
-    desc: "README.md unit test count",
+    desc: "README.md test declaration count",
   },
   {
     file: "README.md",
-    pattern: /Codebase is (\d+)\s*\neffective MoonBit lines \(implementation (\d+) \+ tests (\d+)\)/,
+    pattern: /MoonBit 源码\s*\|\s*\*{2}([\d,]+)\*{2}\s+行（实现\s+([\d,]+)\s+\+\s+测试\s+([\d,]+)）/,
     expected: { 1: allMbtLines, 2: implOnly, 3: testLines },
     desc: "README.md line counts",
   },
-  // README.zh.md
+  // README.en.md mirrors the same public facts.
   {
-    file: "README.zh.md",
-    pattern: /\*{2}(\d+)\s+个单元测试\*{2}/,
+    file: "README.en.md",
+    pattern: /MoonBit tests\s*\|\s*\*{2}([\d,]+)\*{2}\s+test declarations/,
     expected: testCount,
-    desc: "README.zh.md unit test count",
+    desc: "README.en.md test declaration count",
+  },
+  {
+    file: "README.en.md",
+    pattern: /MoonBit source\s*\|\s*\*{2}([\d,]+)\*{2}\s+lines:\s+([\d,]+)\s+implementation\s+\+\s+([\d,]+)\s+tests/,
+    expected: { 1: allMbtLines, 2: implOnly, 3: testLines },
+    desc: "README.en.md line counts",
   },
   // DEVELOPMENT_REPORT.md
   // Commit count uses `minimum` because it increases on every commit,
@@ -283,7 +293,7 @@ for (const a of assertions) {
   if (typeof a.expected === "object") {
     const minMap = typeof a.minimum === "object" ? a.minimum : {};
     for (const [group, expectedVal] of Object.entries(a.expected)) {
-      const found = parseInt(match[parseInt(group)], 10);
+      const found = parseMetricNumber(match[parseInt(group)]);
       checks++;
       // For minimum checks: actual (expectedVal) must be >= doc (found),
       // i.e. the repo meets the floor stated in docs. This prevents the
@@ -298,7 +308,7 @@ for (const a of assertions) {
       }
     }
   } else {
-    const found = parseInt(match[1], 10);
+    const found = parseMetricNumber(match[1]);
     checks++;
     const isMin = a.minimum === true;
     const pass = isMin ? a.expected >= found : found === a.expected;

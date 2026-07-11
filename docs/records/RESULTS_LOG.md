@@ -2022,6 +2022,37 @@ assurance with stale privacy and crypto wording.
   remains the public repositories, reproducible README path, green CI,
   runnable examples, tests, Mooncakes package, and OSI license.
 
+## 2026-07-11 Asia/Shanghai (documentation rewrite round 1)
+
+### Scope
+
+| Item | Result |
+| --- | --- |
+| Repository baseline | `codex/documentation-restructure` at `1769697` before the README rewrite |
+| Public entry | `README.md` is the Chinese primary page; `README.en.md` mirrors its 12-section structure; `README.zh.md` preserves old links |
+| Content model | Scene, workflow, runnable entry points, observable results, Fabric evidence, architecture, quality evidence, scope, and task-based navigation |
+| Fact gate | `tools/check-metrics.mjs` now validates visible metrics in both maintained READMEs and accepts formatted thousands separators |
+
+### Verification
+
+| Command / flow | Result |
+| --- | --- |
+| Local Markdown link scan | PASS for both READMEs, the compatibility page, GUIDE, demo script, and project index |
+| `node tools/check-metrics.mjs` | PASS: 47/47 assertions; 351 test declarations; 14571 MoonBit lines |
+| `moon check --deny-warn --target all`; `moon info` interface diff | PASS; generated interfaces unchanged |
+| Portable MoonBit tests | PASS: wasm, wasm-gc, and js each 347/347 |
+| Windows MSVC native tests | PASS: 347/347 after loading `vcvars64.bat` |
+| README CLI flow | PASS: valid example, `pack --json` schema v1, created-pack recheck, and exact `E2003 files/a.txt` tamper rejection |
+| README MoonBit snippet | PASS: the documented imports and source compiled and ran as a temporary main package; 2/2 files verified |
+| Browser API smoke | PASS: 36/36 |
+| Showcase | Clean `npm ci`, TypeScript check, and Vite production build PASS |
+| Fixture, branch, package, format guards | PASS; Mooncakes package guard inspected 233 files |
+| Public endpoints | GitHub Pages, GitLink, and Mooncakes returned HTTP 200 |
+
+The first Showcase install attempt met a Windows file lock held by two older
+workspace preview processes. Those workspace-specific processes were stopped;
+the clean install, type check, and production build then completed normally.
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

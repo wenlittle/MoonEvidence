@@ -1,6 +1,6 @@
 # MoonEvidence 测试计划
 
-> 基线版本：v0.5.0
+> 基线版本：v0.5.1
 >
 > 最近复核：2026-07-11 Asia/Shanghai
 >
@@ -226,7 +226,7 @@ Go Chaincode 的 `go test -race -cover ./...` 由 Ubuntu required CI 执行。Wi
 | 修改公开数字或安全声明 | metrics、链接、对应命令和 `RESULTS_LOG.md` |
 | 新增发布文件 | Mooncakes 包内容门禁和干净消费者检查 |
 
-当前 v0.5.0 没有开放的 P0 或 P1 测试缺口。流式摘要、目标机器码复核、专门 dudect 活动和生产 Fabric 治理由部署等级触发，验收条件已经写入 [SECURITY.md](../SECURITY.md) 和 [CONST_TIME_AUDIT.md](CONST_TIME_AUDIT.md)。
+当前 v0.5.1 没有开放的 P0 或 P1 测试缺口。流式摘要、目标机器码复核、专门 dudect 活动和生产 Fabric 治理由部署等级触发，验收条件已经写入 [SECURITY.md](../SECURITY.md) 和 [CONST_TIME_AUDIT.md](CONST_TIME_AUDIT.md)。
 
 ## 9. 完成条件
 

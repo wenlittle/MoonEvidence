@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/wenlittle/MoonEvidence/actions/workflows/ci.yml/badge.svg)](https://github.com/wenlittle/MoonEvidence/actions/workflows/ci.yml)
 [![Showcase](https://github.com/wenlittle/MoonEvidence/actions/workflows/showcase-pages.yml/badge.svg)](https://wenlittle.github.io/MoonEvidence/)
-[![Mooncakes](https://img.shields.io/badge/Mooncakes-v0.5.0-2f6f44)](https://mooncakes.io/docs/#/starlittle/MoonEvidence)
+[![Mooncakes](https://img.shields.io/badge/Mooncakes-v0.5.1-2f6f44)](https://mooncakes.io/docs/#/starlittle/MoonEvidence)
 [![License](https://img.shields.io/badge/license-Apache--2.0-202124)](LICENSE)
 
 简体中文 | [English](README.en.md)
@@ -108,7 +108,7 @@ node $cli explain $pack
 
 ### MoonBit 接入
 
-Mooncakes 已发布 `starlittle/MoonEvidence` v0.5.0：
+Mooncakes 已发布 `starlittle/MoonEvidence` v0.5.1：
 
 ```powershell
 moon add starlittle/MoonEvidence

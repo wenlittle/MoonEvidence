@@ -2,6 +2,33 @@
 
 本文件记录 MoonEvidence 的版本演进。版本号遵循语义化版本（SemVer）。
 
+## [0.5.1] - 2026-07-12
+
+本次 patch 发布把 v0.5.0 之后的核心修复、直接使用入口和真实实验展示收拢为同一份评审交付物。GitHub、GitLink、Mooncakes、CLI 和公开页面使用同一版本基线。
+
+### Added
+
+- **可运行 MoonBit 示例**：`moon run examples/quickstart` 依次创建清单、验证原始文件，并确认修改后的文件被拒绝。
+- **终端用户 CLI 产物**：标签发布同时生成跨平台 JS CLI 压缩包、Windows/Unix 启动器、有效样例和 SHA-256 校验文件。解压后只需要 Node.js 20+，不需要仓库源码或 MoonBit 工具链。
+- **浏览器评审门禁**：5 条 Playwright 路径持续检查首页、工作台入口、正常验证、篡改拒绝、移动端布局和实链记录页。
+- **实链记录页**：Showcase 增加 Fabric v3.1.4 双组织实验回放，展示区块、交易、跨组织查询、重复提交和 `E2003` / `E2004` 摘要回灌结果。
+- **发布展示资产**：新增 1280 x 640 仓库社交预览图，并完善 GitHub 主页、简介和 topics。
+
+### Fixed
+
+- 浏览器验证和篡改工具把可选版本链完整转发到 MoonBit API，版本异常不再被界面层遗漏。
+- CLI 在目录清单扫描、读取或深度检查不完整时返回 IO 失败，不再把部分文件集合交给验证器。
+- Merkle 包含性证明拒绝长度错误的节点摘要，SHA-512 根、证明和完整证据包由独立 Node.js 夹具固定。
+- 故障注入扩展到摘要常量、外部锚点、对象存储和增量验证等关键不变量，当前 18/18 个定向故障均被捕获。
+- Showcase、演示脚本、环境记录和路线图统一到 357 个测试声明、353 个可执行测试；指标门禁覆盖公开网页源码。
+- 删除抢占 GitLink 首屏的兼容跳转页，中文 `README.md` 成为双仓唯一中文项目首页。
+
+### Delivery
+
+- 标签发布在生成 Release 前执行版本匹配、指标、接口、可移植测试、包内容和完整 CLI 黑盒门禁。
+- Release notes 直接来自当前 Changelog 条目；Mooncakes 包和 JS CLI 分别绑定 SHA-256。
+- README、用户指南、架构、测试计划、开发报告、验收清单和项目索引指向同一 `v0.5.1` 基线。
+
 ## [0.5.0] - 2026-07-11
 
 本次 minor 发布把证据包机器接口连接到真实 Hyperledger
@@ -126,6 +153,7 @@ MVP：可信证据包验证核心，三后端全绿，可发布 Mooncakes。
 - **测试体系**：篡改矩阵 fixtures、独立 Node 参考实现交叉验证 golden 数据、property test、benchmark。
 - **双语 README** 与用户指南、证据包规范、架构文档、决策/结果双日志。
 
+[0.5.1]: https://github.com/wenlittle/MoonEvidence/releases/tag/v0.5.1
 [0.5.0]: https://github.com/wenlittle/MoonEvidence/releases/tag/v0.5.0
 [0.4.1]: https://github.com/wenlittle/MoonEvidence/releases/tag/v0.4.1
 [0.4.0]: https://github.com/wenlittle/MoonEvidence/releases/tag/v0.4.0

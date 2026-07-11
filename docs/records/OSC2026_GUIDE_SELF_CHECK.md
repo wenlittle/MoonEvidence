@@ -1,6 +1,6 @@
 # OSC2026 Guide Self-Check
 
-Date: 2026-07-11 Asia/Shanghai
+Date: 2026-07-12 Asia/Shanghai
 
 Sources:
 
@@ -21,13 +21,13 @@ mapping, real CLI/browser behavior, and the optional Fabric protocol boundary.
 
 | Gate | Status | Evidence |
 | --- | --- | --- |
-| Valid MoonBit project | Pass | `moon.mod` declares `starlittle/MoonEvidence` v0.5.0 with Apache-2.0 license and GitHub repository metadata |
+| Valid MoonBit project | Pass | `moon.mod` declares `starlittle/MoonEvidence` v0.5.1 with Apache-2.0 license and GitHub repository metadata |
 | Standard check/test | Pass | `moon check --deny-warn --target all`; wasm/wasm-gc/js and Windows/MSVC native each passed 353/353 |
 | Public interface drift | Pass | `moon info && git diff --exit-code -- '**/pkg.generated.mbti'` passed locally |
 | Formatting | Pass | `moon fmt --check` passed locally |
-| Packaging | Pass | `moon package` produced `_build/publish/starlittle-MoonEvidence-0.5.0.zip` |
+| Packaging | Pass | `moon package` produced `_build/publish/starlittle-MoonEvidence-0.5.1.zip` |
 | Package hygiene | Pass | `tools/check-package-contents.mjs` keeps contest materials, local records, root Node metadata, and optional Go/TypeScript Fabric integration out of the Mooncakes package |
-| Mooncakes publication | Pass | `starlittle/MoonEvidence` v0.5.0 is published; version matches `moon.mod` |
+| Mooncakes publication | Pass | `starlittle/MoonEvidence` v0.5.1 is published; version matches `moon.mod` |
 | License and provenance | Pass | Root `LICENSE` is Apache-2.0; the converted Wycheproof corpus records source, version, and Apache-2.0 license; Fabric dependencies are lockfile-pinned and permissively licensed |
 | README and examples | Pass | Bilingual README, `docs/GUIDE.md`, examples, browser workbench, CLI machine contract, and Fabric integration guide describe runnable local and ledger-backed flows |
 | Repository CI | Pass locally and remotely | GitHub `main` run `29147807818` succeeded at `8088147`: `check-test-build`, `fabric-adapters`, and `bench`; Showcase Pages run `29147807822` also succeeded |
@@ -81,9 +81,9 @@ workflows.
 | Windows/MSVC `moon test --deny-warn --target native` | Pass: 353/353 |
 | PowerShell CLI black box, JS and native | Pass: 68/68 per target |
 | Browser adapter and Showcase | API smoke 41/41; TypeScript check and production build pass |
-| Package and document guards | `moon package` pass; 232 files; metrics 44/44; branch audit current |
+| Package and document guards | `moon package` pass; 245 files; metrics 51/51; branch audit current |
 | Fabric adapters | Gateway check/build and 19/19 tests pass; local Go vet and 82.1% coverage pass; latest required CI also passes Go race |
-| Remote repositories and release | GitHub/Gitlink default branch `main`; both v0.5.0 tags peel to `8088147`; GitHub Release and Mooncakes v0.5.0 available |
+| Remote repositories and release | GitHub/Gitlink default branch `main`; both v0.5.1 tags point to the release commit; GitHub Release and Mooncakes v0.5.1 available |
 
 ## Remaining External Action
 

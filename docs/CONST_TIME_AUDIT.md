@@ -4,7 +4,7 @@ Date: 2026-07-07 Asia/Shanghai
 
 This audit records the source-level control-flow review for the pure MoonBit
 Ed25519 implementation plus one reproducible native dudect-style timing
-experiment. The v0.5.0 assurance profile combines source review, independent
+experiment. The v0.5.1 assurance profile combines source review, independent
 crypto vectors, mutation and differential testing, and native timing into one
 reproducible review trail. Production certification adds backend disassembly,
 runtime-behavior review, and a specialist dudect campaign for each target

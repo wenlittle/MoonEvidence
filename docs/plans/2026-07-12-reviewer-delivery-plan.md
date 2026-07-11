@@ -20,12 +20,13 @@
 
 ## 第一阶段：交付一致性
 
-- [ ] 将模块版本和 CLI 版本升级到 `0.5.1`。
-- [ ] 新增 `0.5.1` Changelog，准确归纳 `v0.5.0..HEAD` 的产品变更。
+- [x] 将模块版本和 CLI 版本升级到 `0.5.1`。
+- [x] 新增 `0.5.1` Changelog，准确归纳 `v0.5.0..HEAD` 的产品变更。
 - [x] 修正 Showcase 和演示材料中的测试数字漂移。
 - [x] 扩展 `tools/check-metrics.mjs`，覆盖 Showcase 和当前公开材料。
 - [x] 移除 GitLink 优先展示的兼容跳转页 `README.zh.md`，同步文档索引和包内容门禁。
-- [ ] 在干净临时目录创建 MoonBit 消费者工程，从 Mooncakes 安装并调用公开 API。
+- [x] 新增跨平台干净消费者门禁 `tools/smoke-mooncakes-consumer.mjs`，可固定安装任意已发布版本并调用公开 API。
+- [ ] 发布后在干净临时目录固定安装 `0.5.1`，确认创建、验证和篡改拒绝 `2/2` 通过。
 - [ ] 发布 `v0.5.1` Git tag、GitHub Release、GitLink tag 和 Mooncakes 包。
 
 验收条件：
@@ -39,10 +40,10 @@
 
 - [x] 新增可直接运行的 `examples/quickstart` MoonBit 示例。
 - [x] 示例覆盖创建、验证和篡改拒绝三个观察点。
-- [ ] 为 Release 生成可直接运行的 Windows/Linux x64 CLI，或经过黑盒验证的完整 JS CLI 发行物。
-- [ ] 为 CLI 发行物生成 SHA-256 校验文件。
+- [x] 为 Release 生成经过 68 项黑盒验证的完整 JS CLI 发行物，并提供 Windows/Unix 启动器。
+- [x] 为 Mooncakes 包和 CLI 发行物生成 SHA-256 校验文件。
 - [x] 增加不超过 5 条的 Playwright 评审路径测试。
-- [ ] 将评审路径测试接入 CI，并在失败时保留截图或 trace。
+- [x] 将评审路径测试接入 Pages CI，并在失败时保留截图和 trace。
 
 验收条件：
 
@@ -56,7 +57,8 @@
 - [x] 页面展示网络版本、组织、交易、区块、跨组织查询和摘要回传结果。
 - [ ] 使用真实 `v0.5.1` Release 压缩包创建证据包并完成 Fabric 提交、查询和回灌验证。
 - [ ] 保存脱敏后的命令、交易回执、区块信息、摘要和校验结果。
-- [ ] 设置 GitHub 仓库简介、主页、topics 和自定义社交预览图。
+- [x] 设置 GitHub 仓库简介、主页和 topics，提交 1280 x 640 社交预览图源文件。
+- [ ] 在已登录的 GitHub 网页中上传自定义社交预览图。
 - [ ] 在 GitLink 支持范围内同步简介、主页和 topics。
 
 验收条件：

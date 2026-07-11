@@ -1,6 +1,6 @@
 # MoonEvidence 架构
 
-> 当前版本：v0.5.0
+> 当前版本：v0.5.1
 >
 > 架构基线：2026-07-11 Asia/Shanghai
 
@@ -199,7 +199,7 @@ flowchart TB
 | 契约 | 当前版本 | 权威来源 | 保证内容 |
 | --- | --- | --- | --- |
 | 证据包 | `moon-evidence/v0` | [证据包规范](spec/EVIDENCE_PACK_SPEC.md) | 字段、路径、Merkle、版本链和错误码 |
-| MoonBit API | v0.5.0 | `src/<package>/pkg.generated.mbti` | 当前公开类型和函数 |
+| MoonBit API | v0.5.1 | `src/<package>/pkg.generated.mbti` | 当前公开类型和函数 |
 | CLI 进程 | `v1` JSON 结果 | [CLI 契约](spec/CLI_MACHINE_CONTRACT.md) | JSON 形状、退出码、外部摘要参数 |
 | Fabric 锚点 | `moon-evidence-anchor/v1` | [Fabric 规范](spec/FABRIC_ANCHOR_SPEC.md) | 状态、交易、隐私、幂等和错误前缀 |
 | 验证报告 | `VerifyReport` | `src/diag/pkg.generated.mbti` | 结论、发现列表和检查统计 |

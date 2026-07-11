@@ -23,7 +23,7 @@ moon build --target js
 
 $cli = "_build/js/debug/build/src/cmd/main/main.js"
 node $cli --version
-# moon-evidence 0.5.0
+# moon-evidence 0.5.1
 ```
 
 bash 或 WSL 使用同一产物：

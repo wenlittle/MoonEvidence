@@ -10,22 +10,22 @@ fixture.
 | Field | Value |
 | --- | --- |
 | Archive | `starlittle-MoonEvidence-0.5.1.zip` |
-| Source commit | `38e5a7d80690055b8b8c09b1e040f644f440c616` |
-| Size | 741,188 bytes |
-| Archive SHA-256 | `b6a69a3547d827624265aa4988ec5f4ec3d1789d7c2e9b178993c7b6e07b7c2b` |
-| Evidence manifest | `sha256:fd31247052458a221ec63b8a2ad4e6533a978ecfe5c87b69cb232b1978925722` |
-| Merkle root | `sha256:5c9a0e0bcbd7bf1f6e6d2da8d0ae63fdf577f770b40d900fc69eaa25cd60a5d6` |
+| Source commit | `9352e08c3b7fb6ab40f5fe8a9793782bddc5d406` |
+| Size | 741,143 bytes |
+| Archive SHA-256 | `2d47fff645044767e16d0d2bebbd06092ccca6bef344a09adc1759d017fcfa35` |
+| Evidence manifest | `sha256:91bf70a0194e849c9ff692272fad0da1194e83051b52424feacf951f3ca3870e` |
+| Merkle root | `sha256:0ca102a3b216fbaf028d0fd754954eadae63ba8d66fd6becb994f5e41e909cf0` |
 
 Two consecutive `moon package` runs and a clean rebuild from the release-prep
-commit produced the same 741,188-byte archive and SHA-256 value. The final tag
+commit produced the same 741,143-byte archive and SHA-256 value. The final tag
 workflow builds the same module input; this record is updated only after the
 published Release checksum is compared with the value above.
 
 ## Ledger Result
 
 Org1 submitted the canonical evidence-manifest digest. Fabric committed the
-transaction as `VALID` in block 10. Org1 and Org2 then returned the same anchor
-record. An Org2 duplicate entered block 11 as `already_anchored` while preserving
+transaction as `VALID` in block 12. Org1 and Org2 then returned the same anchor
+record. An Org2 duplicate entered block 13 as `already_anchored` while preserving
 the original transaction ID.
 
 | Field | Value |
@@ -33,10 +33,10 @@ the original transaction ID.
 | Runtime | Hyperledger Fabric 3.1.4 |
 | Channel | `evidencechannel` |
 | Chaincode | `moonevidence` 1.0, sequence 1 |
-| First transaction | `da1528196809eb6e1abc86fb6dac09663e8cf66776bad233d2b538404f9233fe` |
-| First block | 10 |
-| Duplicate block | 11 |
-| Channel height after both commits | 12 |
+| First transaction | `77dfcf43cad878a8f0eba42ed12ead827940f9b072560f44832039d361896018` |
+| First block | 12 |
+| Duplicate block | 13 |
+| Channel height after both commits | 14 |
 
 ## Backfeed Result
 

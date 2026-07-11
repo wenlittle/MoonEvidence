@@ -86,9 +86,9 @@ Use `docs/records/RESULTS_LOG.md` for measured facts and `docs/records/DECISION_
 
 ## Next Actions
 
-1. **远端 CI 最终确认**：GitHub Actions `main` 最新 run 需要在页面上显示 green；本地与 WSL 已复现核心 gate，但远端状态以 Actions 页面为准。
-2. **演示收口**：把已有网页/工作台视频与真实 Fabric 第 6 区块交易记录组合成最终展示，现场命令优先使用 `pack`、`anchor-pack`、`verify-anchor`。
-3. **Gitlink 默认分支确认**：确认 Gitlink 页面默认分支显示的是已同步的 `main`，且 README、LICENSE、源码、CI 文档可见。
+1. **完成赛事运营提交**：按赛事群或组委会通知提交 GitHub、Gitlink 与必要表单；公开章程未规定演示视频为基础验收必交材料。
+2. **准备可选展示入口**：优先提供在线首页/工作台、Mooncakes、GitHub Release 与 Fabric block 6 记录；只有组委会明确需要时再交付视频文件。
+3. **本地环境维护**：赛后把 Windows MoonBit 工具链从 moonc v0.9.3 更新到 v0.10.3 或更新版本；当前最新工具链兼容性已由 required CI 和 WSL 记录覆盖。
 4. **流式哈希生产化增强**：把流式 SHA-256 接入适配层，将大包内存峰值从 Σ(全部文件) 降到 max(单文件)。
 5. **Fabric 生产化路线**：在真实部署中接入 CA 动态身份、外部密钥管理、持久化 Gateway 服务与组织治理；协议层继续只锚定规范摘要。
 6. 持续维护 `RESULTS_LOG.md` 与 `OSC2026_GUIDE_SELF_CHECK.md`，每次交付前重跑并记录命令与结果。

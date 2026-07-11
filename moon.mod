@@ -37,6 +37,8 @@ options(
     "docs/申报书.md",
     "docs/申报书.pdf",
     "docs/申报书.tex",
+    "integrations",
+    "package.json",
     "report",
     "showcase",
     "比赛要求.txt",

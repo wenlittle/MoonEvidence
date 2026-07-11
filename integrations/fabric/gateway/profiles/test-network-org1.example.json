@@ -1,0 +1,11 @@
+{
+  "schema": "moon-evidence-fabric-profile/v1",
+  "channel": "evidencechannel",
+  "chaincode": "moonevidence",
+  "msp_id": "Org1MSP",
+  "peer_endpoint": "localhost:7051",
+  "peer_host_alias": "peer0.org1.example.com",
+  "tls_certificate_path": "/absolute/path/to/fabric-samples/test-network/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt",
+  "certificate_path": "/absolute/path/to/fabric-samples/test-network/organizations/peerOrganizations/org1.example.com/users/User1@org1.example.com/msp/signcerts/User1@org1.example.com-cert.pem",
+  "private_key_path": "/absolute/path/to/fabric-samples/test-network/organizations/peerOrganizations/org1.example.com/users/User1@org1.example.com/msp/keystore/priv_sk"
+}

@@ -1,0 +1,10 @@
+{
+  "name": "moon-evidence-workspace",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fabric:build": "npm --prefix integrations/fabric/gateway run build",
+    "fabric:check": "npm --prefix integrations/fabric/gateway run check",
+    "fabric:test": "npm --prefix integrations/fabric/gateway test"
+  }
+}

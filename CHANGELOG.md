@@ -2,6 +2,37 @@
 
 本文件记录 MoonEvidence 的版本演进。版本号遵循语义化版本（SemVer）。
 
+## [Unreleased]
+
+下一次 minor 发布候选：把证据包机器接口连接到真实 Hyperledger
+Fabric 摘要锚定流程，同时保持 MoonBit 为唯一证据语义来源。
+
+### Added
+
+- **CLI 机器合同**：新增 `pack` / `seal`、`inspect --json`、`create --json`
+  与 `verify --expected-manifest-digest`，冻结版本化结果 envelope、规范摘要和
+  退出码。
+- **外部摘要验证 API**：`verify_evidence` 可接收链上或归档系统返回的规范
+  manifest 摘要；匹配时通过，不匹配时精确返回 `E2004`。
+- **Hyperledger Fabric 集成**：新增不可变 Go Chaincode、TypeScript Gateway、
+  双组织部署指南与脱敏 E2E 记录；首笔锚定在 block 6 以 `VALID` 提交。
+- **Fabric CI**：required job 执行 Go vet/race/coverage 与 TypeScript
+  check/build/test。
+
+### Changed
+
+- 指标防漂移门禁扩展到 OSC 申报源文档、Markdown、HTML 与 TeX，并将缺失
+  文件/匹配模式从静默跳过改为阻断失败。
+- Mooncakes 包内容门禁明确排除仓库级 Fabric 适配器与 Node workspace，保持
+  已发布 MoonBit 库的依赖边界。
+
+### Tests
+
+- MoonBit：351 个测试声明（347 可执行 + 4 benchmark wrapper），三后端
+  347/347；CLI PowerShell/bash 各 62/62。
+- Fabric：Chaincode 核心语句覆盖率 82.1%；Gateway 19/19；真实 Org1/Org2
+  上链、查询、重复提交、`E2003`/`E2004` 回灌闭环已记录。
+
 ## [0.4.1] - 2026-07-09
 
 发布面收口补丁：把当前仓库的包卫生规则、浏览器复现命令和公开 API 文档同步到 Mooncakes 可安装版本。

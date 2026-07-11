@@ -6,11 +6,19 @@ English | [中文](README.zh.md)
 
 MoonEvidence is a MoonBit ecosystem project for trusted evidence pack verification.
 
-The project goal is to provide a reusable MoonBit library and native CLI that can verify whether a group of files, metadata, Merkle proofs, and version records remain complete and untampered.
+The project provides a reusable MoonBit library and CLI that can create and
+verify deterministic evidence packs, plus an optional Hyperledger Fabric
+adapter that anchors the verified manifest digest and feeds it back into local
+verification.
 
 ## Positioning
 
-MoonEvidence is a chain-agnostic verification core for the step before notarization, archival, copyright packaging, AI output audit, or research artifact release: prove that the local evidence pack is complete, deterministic, and untampered before any external system records it.
+MoonEvidence keeps evidence semantics chain-agnostic: prove that a local pack
+is complete, deterministic, and untampered before notarization, archival,
+copyright packaging, AI output audit, or research release. When a shared
+ledger is required, the Fabric adapter records only that verified pack's
+canonical manifest digest and returns transaction, block, and validation
+evidence.
 
 ## 5-Minute Reviewer Path
 
@@ -25,7 +33,7 @@ $cli = "_build/js/debug/build/src/cmd/main/main.js"
 node $cli verify examples/valid-pack
 
 Remove-Item -Recurse -Force "$env:TEMP\moon-evidence-review-pack" -ErrorAction SilentlyContinue
-node $cli create examples/valid-pack/files "$env:TEMP\moon-evidence-review-pack"
+node $cli pack examples/valid-pack/files -o "$env:TEMP\moon-evidence-review-pack" --subject-id review --json
 node $cli verify "$env:TEMP\moon-evidence-review-pack"
 
 Add-Content "$env:TEMP\moon-evidence-review-pack\files\a.txt" "tamper"
@@ -35,8 +43,9 @@ moon build --target js --release src/api
 node tools/smoke-api.mjs
 ```
 
-The same release JS artifact powers `demo/web/`, so the browser demo verifies
-packs locally before any blockchain notarization or external archival step.
+The same release JS artifact powers `demo/web/`; the optional Fabric path uses
+the same canonical digest and verification report rather than implementing a
+second evidence model.
 
 ## Interactive Web Experience
 
@@ -84,7 +93,11 @@ production build commands.
 - Frozen exit codes: 0 (pass), 1 (fail), 2 (usage/IO error).
 
 ### Pack Creation & Extensions
-- **Evidence pack creation**: `create` CLI command + `create_manifest` API.
+- **One-command evidence pack creation**: `pack`/`seal` creates the complete
+  `manifest.json + files/` layout; `create` remains available for existing
+  directory layouts.
+- **Machine contract**: versioned JSON from `pack`, `create`, and `inspect`,
+  plus external-anchor verification through `--expected-manifest-digest`.
 - **Incremental verification**: digest caching, skip unchanged files.
 - **Batch CLI mode**: verify multiple packs at once, summarize results.
 - **In-memory deduplication store**: content stored once per unique SHA-256 digest.
@@ -93,16 +106,24 @@ production build commands.
 - **Audit log**: hash-chained append-only operation records.
 - **Ed25519 digital signatures**: pure MoonBit implementation, from finite field to sign/verify (~800 lines).
 - **Audit log + signature integration**: optional Ed25519 signature verification.
+- **Hyperledger Fabric anchor**: immutable Go chaincode and a TypeScript
+  Gateway adapter with commit-status receipts, duplicate normalization, and
+  two-organization ledger-backfed verification.
 
 ## Architecture at a Glance
 
 ```mermaid
 graph TD
   subgraph adapters["Adapters (the only place IO happens)"]
-    CLI["src/cmd/main<br/>CLI: verify / explain / create"]
+    CLI["src/cmd/main<br/>CLI: pack / inspect / verify"]
     API["src/api<br/>browser esm adapter"]
     CREATE["src/create<br/>evidence pack creation"]
     AUDIT["src/audit<br/>audit log + signatures"]
+  end
+  subgraph ledger["Optional Fabric Anchor"]
+    GATEWAY["TypeScript Gateway<br/>anchor-pack / verify-anchor"]
+    CHAINCODE["Go chaincode<br/>immutable manifest digest"]
+    FABRIC["Fabric ledger<br/>tx ID · block · status"]
   end
   subgraph core["Verification Core (zero IO, 3-backend portable)"]
     VERIFY["verify<br/>7-step pipeline + version chain"]
@@ -132,6 +153,10 @@ graph TD
   MODEL --> DIGEST
   MERKLE --> DIGEST
   DIAG --> CANON
+  CLI --> GATEWAY
+  GATEWAY --> CHAINCODE
+  CHAINCODE --> FABRIC
+  FABRIC -. expected manifest digest .-> VERIFY
 ```
 
 File bytes are injected by the adapters (`Map[String, Bytes]`); the core
@@ -142,12 +167,15 @@ CLI, in CI's three-backend matrix, and in the browser.
 
 ### Getting Started
 - [User Guide (three real scenarios)](docs/GUIDE.md)
+- [Hyperledger Fabric integration (source repository)](https://github.com/wenlittle/MoonEvidence/tree/main/integrations/fabric)
 - [Environment Setup](docs/ENVIRONMENT.md)
 - [Demo Script (5-minute presentation)](docs/DEMO_SCRIPT.md)
 
 ### Deep Dive
 - [Architecture](docs/ARCHITECTURE.md)
 - [Evidence Pack Specification](docs/spec/EVIDENCE_PACK_SPEC.md)
+- [CLI Machine Contract](docs/spec/CLI_MACHINE_CONTRACT.md)
+- [Fabric Anchor Contract](docs/spec/FABRIC_ANCHOR_SPEC.md)
 - [Roadmap](docs/ROADMAP.md)
 - [Development Report](docs/report/DEVELOPMENT_REPORT.md)
 
@@ -162,6 +190,12 @@ CLI, in CI's three-backend matrix, and in the browser.
 
 Mooncakes registry version: `starlittle/MoonEvidence` v0.4.1.
 
+The published v0.4.1 package is the stable MoonBit library baseline. Repository
+HEAD is the next minor release candidate and adds the `pack`/`inspect`
+machine contract, external-anchor verification, and the repository-level
+Fabric adapter described below. Build this checkout to exercise those paths;
+they are tracked under `Unreleased` in the changelog.
+
 ```powershell
 moon add starlittle/MoonEvidence
 ```
@@ -175,8 +209,9 @@ $cli = "_build/js/debug/build/src/cmd/main/main.js"
 node $cli verify examples/valid-pack
 node $cli explain examples/tampered-pack
 
-# create your own evidence pack
-node $cli create examples/valid-pack/files my-pack
+# create a complete evidence pack and expose its canonical anchor
+node $cli pack examples/valid-pack/files -o my-pack --subject-id demo --json
+node $cli inspect --json my-pack
 node $cli verify my-pack
 
 # machine-readable report / human-readable findings
@@ -192,6 +227,31 @@ Exit codes are frozen: `0` verification passed, `1` verification failed,
 `2` usage or IO error. On machines with a system C compiler (and in CI) the
 same CLI builds natively: `moon build --target native` then
 `tools/cli-test.ps1 -Target native`.
+
+## Hyperledger Fabric Anchor
+
+The optional adapter runs the complete boundary rather than presenting an
+on-chain mock:
+
+```text
+MoonBit pack/verify -> TypeScript Gateway -> Go chaincode -> Fabric ledger
+                    <- ledger query <- expected digest verification
+```
+
+The recorded two-organization experiment committed the bundled golden pack as
+`VALID` in block 6. Org1 and Org2 queried the same immutable record; an Org2
+duplicate preserved the original transaction ID. Feeding the ledger digest
+back into MoonEvidence passed the original pack, produced exactly `E2003` for
+a changed payload, and exactly `E2004` after regenerating a manifest around
+that changed payload.
+
+Build the adapter with `npm --prefix integrations/fabric/gateway ci` and
+`npm run fabric:build`, then use `me-fabric anchor-pack` and
+`me-fabric verify-anchor`. Full test-network deployment commands, local profile
+rules, and programmatic Node.js usage are in
+the [Fabric integration source guide](https://github.com/wenlittle/MoonEvidence/blob/main/integrations/fabric/README.md).
+Sanitized transaction receipts are in the
+[Fabric E2E record](https://github.com/wenlittle/MoonEvidence/tree/main/docs/records/fabric-e2e/2026-07-11).
 
 ## Try It in the Browser
 
@@ -281,12 +341,16 @@ experiments.
 - `crypto` — Ed25519 digital signatures (pure MoonBit, from GF(2^255-19) up)
 
 ### Adapters
-- **CLI** (`src/cmd/main`): `verify` / `explain` / `create` with frozen exit codes
+- **CLI** (`src/cmd/main`): `pack` / `inspect` / `verify` / `explain` /
+  `create`, with versioned JSON and frozen exit codes
 - **Browser** (`src/api`): esm bundle for client-side verification
+- **Fabric** (`integrations/fabric`): TypeScript Gateway adapter + immutable Go
+  digest-anchor chaincode
 
 ### Test Coverage
-- **348 unit tests** declared (344 executable tests + 4 benchmark wrappers), with native/wasm-gc/js passing locally
-- **54-case black-box CLI suite**: 12 command-shape + 10-pack tamper matrix + 19 error-code fixtures + 10 create + 3 incremental, with native/js passing locally
+- **351 unit tests** declared (347 executable tests + 4 benchmark wrappers), with native/wasm-gc/js passing locally
+- **62-case black-box CLI suite**: the 54-case verification/create contract plus 8 machine-interface and external-anchor cases, with PowerShell/bash parity
+- **Fabric adapter tests**: Go chaincode 82.1% statement coverage; TypeScript Gateway 19/19 tests; real two-organization anchor/query/duplicate/tamper E2E recorded
 - **Property tests**: canonicalization idempotence, Merkle proof soundness (mutation-verified)
 - **Native timing probe**: dudect-style Ed25519 verify/sign sampler for local native release builds; reports Welch t as an engineering assurance signal for this toolchain
 - **CI three-backend matrix**: native / wasm-gc / js build + test + browser smoke test
@@ -302,11 +366,12 @@ powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target native
 bash ./tools/cli-test.sh js
 bash ./tools/cli-test.sh native
 node tools/smoke-api.mjs
+npm run fabric:test
 moon bench --target js
 ```
 
-As of 2026-07-07 Asia/Shanghai, the local native/wasm-gc/js test baseline is
+As of 2026-07-11 Asia/Shanghai, the local native/wasm-gc/js test baseline is
 green; native was verified on Windows with MSVC 19.44 and Windows SDK
-10.0.26100.0. Codebase is 13943
-effective MoonBit lines (implementation 5876 + tests 8067); the implementation
+10.0.26100.0. Codebase is 14571
+effective MoonBit lines (implementation 6453 + tests 8118); the implementation
 size remains within the 4-10k competition range.

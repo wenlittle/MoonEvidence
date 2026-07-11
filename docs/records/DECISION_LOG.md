@@ -272,3 +272,66 @@ Reason:
 > **2026-07-05 update (round 4):** The original entry above claimed check-metrics was a CI gate, but `.github/workflows/ci.yml` did not actually reference it — the "gate" was manual-only. This has been corrected: ci.yml now runs `check-metrics.mjs`, `cross-verify.mjs`, and `mutation-check.mjs` as blocking steps. `cross-verify.mjs` was also updated to recognize negative test packs (bad-*/tampered-*/missing-*) so their expected verification failures count as PASS. `mutation-check.mjs` mutation targets were updated to match the post-SHA-512 multi-algorithm code structure.
 >
 > **2026-07-06 update:** `check-metrics.mjs` now also asserts `src/cmd/main/main.mbt` `CLI_VERSION == moon.mod version`, closing the remaining hard-coded CLI version drift gap.
+
+## 2026-07-11: MoonBit remains the sole evidence-semantics authority
+
+Decision: Manifest construction, canonicalization, digest calculation, Merkle
+semantics, and evidence verification remain in the MoonBit core and CLI. The
+Fabric adapter consumes MoonBit's versioned machine envelopes and does not
+reimplement those rules in TypeScript or Go.
+
+Reason:
+
+- One semantic implementation prevents cross-language drift at the trust
+  boundary.
+- The adapter can be replaced or extended without changing evidence-pack
+  meaning.
+- Process-contract tests reject malformed or inconsistent CLI responses before
+  any ledger submission.
+
+## 2026-07-11: Fabric stores one canonical digest and immutable context only
+
+Decision: Fabric world state stores the canonical manifest digest, the first
+committing transaction ID, and submitter MSP. Files, manifests, paths,
+per-file digests, Merkle leaves, and subject metadata remain off-chain. The v1
+contract exposes no update or delete transaction.
+
+Reason:
+
+- Fabric transaction arguments are recorded in block data, so omitting
+  sensitive fields only from world state would not protect them.
+- Digest-only anchoring minimizes disclosure and ledger growth while retaining
+  a deterministic value that MoonEvidence can verify later.
+- An immutable first-write record gives retries one stable reference instead
+  of creating competing versions of the same anchor.
+
+## 2026-07-11: Commit evidence is transaction ID, block, and validation status
+
+Decision: A successful anchor receipt records Fabric transaction ID, block
+number, numeric validation code, and success flag. Fabric proposal timestamps
+are not presented as independently trusted time. Only validation code 11 may be
+normalized as a concurrent MVCC duplicate after a matching ledger query.
+
+Reason:
+
+- `GetTxTimestamp()` comes from the proposal channel header supplied by the
+  client; endorsement consistency does not turn it into an independent clock.
+- Commit status proves whether ordering and validation accepted the
+  transaction, while an endorsement result alone does not.
+- Restricting duplicate normalization to the actual MVCC conflict code avoids
+  converting unrelated invalid transactions into apparent success.
+
+## 2026-07-11: Fabric samples is the protocol-integration environment
+
+Decision: The two-organization Fabric samples test-network is used to prove the
+implemented path crosses Gateway, endorsement, ordering, validation,
+world-state, and cross-organization query boundaries. Production identity
+enrollment, governance, availability, private-data policy, and trusted-time
+policy remain deployment concerns.
+
+Reason:
+
+- This topology is sufficient to distinguish a real protocol execution from a
+  mock or chaincode-only unit test.
+- It does not represent a production consortium or legal timestamp service,
+  so those operational properties must not be inferred from the experiment.

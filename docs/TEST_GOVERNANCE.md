@@ -151,6 +151,7 @@ Local Windows pre-release gate:
 node tools/check-metrics.mjs
 node tools/cross-verify.mjs
 node tools/check-wycheproof-ed25519.mjs
+node tools/check-package-contents.mjs
 moon check
 moon fmt --check
 moon test --target wasm-gc
@@ -163,16 +164,23 @@ moon build --target js --release src/api
 node tools/smoke-api.mjs
 node tools/randomized-hardening.mjs --profile release --skip-build
 node tools/mutation-check.mjs
+npm run fabric:check
+npm run fabric:test
+Push-Location integrations/fabric/chaincode-go
+go vet ./...
+go test ./... -cover
+Pop-Location
 ```
 
 Native test note:
 
-- On this Windows workstation, native tests may fail when no C compiler is
-  installed.
-- Native remains a release gate in Ubuntu CI because the runner has a C
-  toolchain.
-- A local native environment failure must be recorded as an environment gap,
-  not as a product pass.
+- Native tests pass locally with the installed MSVC toolchain and remain a
+  required Ubuntu/gcc CI gate.
+- The Go race detector is required in Ubuntu CI; a Windows run with
+  `CGO_ENABLED=0` runs normal coverage locally and does not substitute for that
+  CI result.
+- Rerun the real Fabric two-organization protocol when chaincode, Gateway SDK,
+  profile semantics, endorsement assumptions, or commit handling changes.
 
 Canonical CI gate:
 
@@ -181,7 +189,8 @@ Canonical CI gate:
   Wycheproof vector inventory, type check, format check, `wasm-gc/js/native`
   tests, native/js CLI black-box tests (PowerShell and bash), browser adapter
   smoke, API malformed fuzz, API semantic property checks, Ed25519/digest
-  differential checks, and mutation testing.
+  differential checks, mutation testing, and the required Fabric
+  chaincode/Gateway adapter job.
 - The benchmark job is informational unless a release explicitly declares a
   performance SLO.
 - `.github/workflows/release.yml` packages and publishes tagged artifacts, but
@@ -240,15 +249,21 @@ Reject these during review:
 
 ## Current Baseline
 
-As of 2026-07-06:
+As of 2026-07-11:
 
-- `moon test` baseline is 344 executable tests on `wasm-gc` and `js`.
-- `check-metrics` counts 348 test declarations because 4 benchmark wrappers
+- `moon test` baseline is 347 executable tests on native, wasm, wasm-gc, and
+  js where applicable.
+- `check-metrics` counts 351 test declarations because 4 benchmark wrappers
   use `test "bench: ..."` declarations.
+- PowerShell and bash CLI black-box suites both pass 62/62, including eight
+  machine-contract and external-anchor cases.
 - CI includes the important gates: metrics, fixture rot, cross-verify,
   Wycheproof inventory, type/format checks, multi-backend tests, CLI tests,
   smoke API, API malformed fuzz, API semantic property checks, Ed25519/digest
   differential checks, and mutation testing.
+- Fabric has layered evidence: Go contract coverage at 82.1%, Gateway 19/19
+  unit tests, a required CI job, and a real two-organization v3.1.4 record with
+  first commit, equal queries, idempotent duplicate, and E2003/E2004 backfeed.
 - Independent oracles exist for Ed25519 Wycheproof vectors, store integrity,
   and incremental golden-manifest behavior.
 - Ed25519 exact branch tests now cover length guards, invalid point decoding,

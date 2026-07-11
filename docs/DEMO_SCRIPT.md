@@ -1,7 +1,7 @@
 # MoonEvidence 5 分钟演示脚本
 
 > 目标：让评委在 5 分钟内看到“承诺 → 篡改 → 抓住 → 解释”的完整闭环，并现场体验滚动叙事首页与真实证据工作台。
-> 前置（演示前完成，不计时）：根目录执行 `moon build --target js src/cmd/main`；`showcase/` 目录执行 `npm ci`、`npm run build`、`npm run preview`；浏览器开好 `http://localhost:4173/` 待命。
+> 前置（演示前完成，不计时）：根目录执行 `moon build --target js src/cmd/main`；`showcase/` 目录执行 `npm ci`、`npm run build`、`npm run preview`；浏览器开好 `http://localhost:4173/`；Fabric 环节使用已保存的双组织交易记录，现场网络可用时再执行查询命令。
 
 ## 第 0 分钟 · 开场一句话
 
@@ -58,12 +58,31 @@ Remove-Item -Recurse -Force $env:TEMP/live-demo
 
 讲解点：这是 MoonBit 多后端的直接收益——`src/api` 适配器与零 IO 纯核心让同一语义进入 CLI、CI 和浏览器。React/Three.js 负责交互与叙事，可信计算仍由 MoonBit 完成。
 
-## 第 4 分钟 · 质量底座（一屏讲完）
+## 第 4 分钟 · 真实 Fabric 锚定 + 质量底座
+
+先打开 `docs/records/fabric-e2e/2026-07-11/transactions.json`，指出首笔交易：
+
+- `VALID`，第 6 区块；
+- Org1/Org2 查询记录完全一致；
+- Org2 重复提交保留首笔 anchor 交易 ID；
+- 链上摘要回灌后，改文件触发 `E2003`，重建 manifest 触发 `E2004`。
+
+现场网络已启动时只跑查询，不把部署过程塞进 5 分钟：
 
 ```powershell
-moon test --target wasm-gc,js    # 344/344 双后端
-powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target js   # 54/54 黑盒
-bash ./tools/cli-test.sh js      # 54/54 bash 对等黑盒
+node integrations/fabric/gateway/dist/src/cli.js query `
+  --profile integrations/fabric/gateway/.local/org1.json `
+  --manifest-digest sha256:16bbf1e91de3acfb8bd9091233926b454045c6d96c24327baec20272af583f1e `
+  --json
+```
+
+最后用一屏 CI/本地基线收口：
+
+```powershell
+moon test --target wasm-gc,js    # 347/347 双后端
+powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target js   # 62/62 黑盒
+bash ./tools/cli-test.sh js      # 62/62 bash 对等黑盒
+npm run fabric:test              # Gateway 19/19
 ```
 
 讲解点（不必全跑，指着 CI 页面/README 说）：
@@ -74,7 +93,7 @@ bash ./tools/cli-test.sh js      # 54/54 bash 对等黑盒
 
 ## 第 5 分钟 · 收尾
 
-> "上链存证、数据集归档、AI 产物审计，链上锚点只需要 manifest 的规范摘要——验证这件事，MoonEvidence 把它做成了 MoonBit 生态里可复用的基础件。十二个纯包各自独立可用，欢迎拆着用。"
+> "上链存证、数据集归档、AI 产物审计，MoonEvidence 先用 MoonBit 验证本地证据，再把唯一的规范摘要锚定到 Fabric，最后把链上值回灌复核。证据语义只有一套，CLI、浏览器和账本共用同一个可信核心。"
 
 指一下 `docs/GUIDE.md`（三场景）与 `README.zh.md`（架构图 + API 速览）作为延伸阅读。
 
@@ -84,6 +103,8 @@ bash ./tools/cli-test.sh js      # 54/54 bash 对等黑盒
 
 - [ ] `showcase/` 已执行 `npm ci`、`npm run build`，`npm run preview` 正在运行
 - [ ] `moon build --target js src/cmd/main` 已构建（`$cli` 路径存在）
+- [ ] `npm run fabric:build` 已执行；现场查询时本地 Fabric 网络和 `.local` profile 可用
+- [ ] `docs/records/fabric-e2e/2026-07-11/transactions.json` 已提前打开，网络不可用时仍可展示完整收据
 - [ ] MoonEvidence 首页已在 `http://localhost:4173/` 打开过一次（MoonBit API 与场景资源已缓存）
 - [ ] 终端字体够大；`$cli` 变量已设
 - [ ] 临时目录 `$env:TEMP/live-demo` 不存在残留

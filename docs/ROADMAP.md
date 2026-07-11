@@ -39,7 +39,7 @@
 
 ### 高优先级（必做）
 
-- [x] **证据包创建**（约 1000 行）：从文件构建证据包，不只是验证。CLI `create` 命令 + 库 API。让项目从"只能验"变成"能建能验"，实用价值翻倍
+- [x] **证据包创建**：`create_manifest` 纯 API + CLI `pack`/`seal` 完整目录创建 + legacy `create`，从"只能验"变成"能建能验"
 - [x] **HMAC-SHA256**（约 300 行）：基于已有 SHA-256 实现消息认证码。为清单签名和认证元数据提供基础
 
 ### 中优先级（有时间就做）
@@ -52,7 +52,7 @@
 
 - [x] **内存去重 Map**（约 250 行）：SHA-256 键去重，含完整性验证和文件重建
 - [x] **开发报告**：`docs/report/DEVELOPMENT_REPORT.md`（单一权威，合并功能清单/架构/密码学/测试/AI 协作/工程实践）
-- [ ] **演示视频**：比赛展示用
+- [x] **演示视频**：Playwright 自动交互录制，H.264 1280x720 交付编码已验证
 - [ ] **moondoc 完整性**：所有公开 API 补全文档注释
 
 ## 第三阶段：进阶探索（已完成核心功能）
@@ -70,17 +70,27 @@
 - [x] **审计日志 + Ed25519 集成**：审计记录可选 Ed25519 签名
   - `AuditLog::sign_last(sk)` / `AuditLog::verify_signatures(pk)`
 
-### 统计
+## 第四阶段：Fabric 摘要锚定（2026-07-11 已完成）
 
-- 总测试数：**219**（全绿）
-- 总代码量：**6891** 有效 MoonBit 行（实现 3590 + 测试 3301）
+- [x] CLI 机器合同：`pack` / `inspect` 版本化 JSON 与外部摘要 E2004 回灌
+- [x] Go Chaincode：不可变 `CreateAnchor` / `ReadAnchor` / `AnchorExists`
+- [x] TypeScript Gateway：TLS profile、commit status、顺序重复/MVCC 归一化、`anchor-pack` / `verify-anchor`
+- [x] required CI：Chaincode vet/race/coverage + Gateway check/build/test
+- [x] Fabric v3.1.4 双组织真实 E2E：block 6 `VALID`、双查询、重复提交、E2003/E2004 负向证据
+
+### 当前统计
+
+- MoonBit 测试：**351 个声明**（347 可执行 + 4 benchmark wrapper），三后端全绿
+- CLI：PowerShell / bash 各 **62/62**
+- Fabric：Chaincode 82.1% 语句覆盖；Gateway **19/19**；真实 E2E 已留存
+- MoonBit 代码量：**14571** 有效行（实现 6453 + 测试 8118）
 
 ### 未来方向
 
 > 以下均为尚未开始的真实待办（已完成项不再重复列出）。
 
-- [ ] 多链适配器
+- [ ] 其他账本适配器（沿用同一 digest-only 协议，不复制证据语义）
+- [ ] Fabric 生产身份与治理：CA 动态 enrollment、外部密钥管理、长期 Gateway 服务
 - [ ] 完整 in-toto/SLSA 兼容
 - [ ] 版本 DAG（当前仅支持线性版本链）
-- [ ] 演示视频：比赛展示用
 - [ ] moondoc 完整性：所有公开 API 补全文档注释

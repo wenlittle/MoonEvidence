@@ -1920,6 +1920,45 @@ assurance with stale privacy and crypto wording.
 | Demo path | Homepage hero -> four scroll chapters -> valid verification -> byte-tamper rejection -> manifest creation |
 | Media integrity | PASS: FFmpeg decoded both complete files with zero errors; the final frame shows `证据清单已创建` |
 
+## 2026-07-11 Asia/Shanghai (scriptable CLI and real Fabric anchor loop)
+
+### Changes
+
+| Area | Result |
+| --- | --- |
+| MoonBit machine contract | Added `pack`/`seal`, `inspect --json`, `create --json`, and `verify --expected-manifest-digest`; output schemas, exit codes, canonical digest forms, overwrite refusal, and partial-output rollback are frozen in `CLI_MACHINE_CONTRACT.md` |
+| Public API | `verify_evidence` accepts an optional external manifest digest, rejects malformed forms at the adapter boundary, and returns exactly `E2004` for a canonical mismatch |
+| Fabric Chaincode | Added immutable Go `CreateAnchor`, `ReadAnchor`, and `AnchorExists` transactions; state contains only canonical manifest digest, first transaction ID, and submitter MSP |
+| Fabric Gateway | Added strict TLS/profile loading, local MoonBit inspect/verify, asynchronous commit receipt capture, ledger query, sequential idempotency, code-11-only MVCC normalization, and chain-to-MoonBit verification |
+| Delivery boundary | Fabric integration stays in `integrations/` and is excluded from the Mooncakes artifact; CI has a required Go/TypeScript adapter job |
+| Public evidence | Added sanitized deployment, transaction, cross-organization query, and tamper-verification records under `docs/records/fabric-e2e/2026-07-11/` |
+
+### Real Two-Organization Result
+
+| Observation | Result |
+| --- | --- |
+| Fabric topology | Runtime v3.1.4; Org1MSP + Org2MSP; dedicated `evidencechannel`; `moonevidence` 1.0 sequence 1 |
+| First anchor | Manifest `sha256:16bbf1e91de3acfb8bd9091233926b454045c6d96c24327baec20272af583f1e`; transaction `ca3dc7810d375ddabd3ba7d0bbba6f3e95a48c1224c6dfbd892d50edf7a28393`; block 6; `VALID` / status 0; submitter Org1MSP |
+| Cross-organization query | Org1 and Org2 returned byte-equivalent immutable anchor records |
+| Sequential duplicate | Org2 transaction `332e406825ea1f52448967bca2c218f99f7127e877b68093a5680a41d7755169` committed in block 7 as `already_anchored`; the original anchor transaction ID was preserved |
+| Ledger backfeed | Original pack passed; payload-only change returned exactly `E2003`; payload change plus regenerated manifest returned exactly `E2004` against the original ledger digest |
+| Data boundary | Records contain no evidence payload, full manifest, local identity profile, certificate path, certificate, or private key |
+
+### Verification
+
+| Command / flow | Result |
+| --- | --- |
+| `moon fmt --check`; `moon check --deny-warn --target all`; `moon info` + generated-interface diff | PASS |
+| `moon test --deny-warn --target wasm,wasm-gc,js` | PASS: 347/347 on each backend |
+| Windows MSVC native test run | PASS: 347/347 |
+| PowerShell and bash CLI suites on JS/native | PASS: 62/62 per shell/target combination |
+| Browser API smoke / malformed fuzz / semantic property | PASS: 36/36; 281 malformed cases; 48 checks over 16 rounds |
+| Independent crypto/digest evidence | PASS: Wycheproof 150; Ed25519 differential 64/64; digest differential 64/64; mutation 16/16 caught |
+| Go Chaincode | PASS: `go vet`; `go test -race -cover`; 82.1% core statement coverage |
+| TypeScript Gateway | PASS: type check, build, and 19/19 tests, including malformed local-CLI envelopes, commit-response consistency, and non-MVCC rejection |
+| Post-hardening live Gateway query | PASS: Org1 and Org2 independently ran `verify-anchor`; both returned the original block-6 transaction and a 2/2 local verification report |
+| Package/metrics/format guards | PASS: 232 packaged files; 44/44 metric assertions; `git diff --check` |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

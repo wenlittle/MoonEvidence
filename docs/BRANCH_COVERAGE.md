@@ -309,6 +309,43 @@ semantics and tamper rejection are covered by `tools/property-api-semantic.mjs`.
 | API-47 | `ed25519_keypair` validates optional 32-byte seed and warns on demo seed | `api.mbt:765`, `api.mbt:785` | `api_wbtest`: explicit seed round-trip and demo warning; fuzz seed type/hex/length | `covered` | |
 | API-48 | `ed25519_sign` validates secret key and message hex before signing | `api.mbt:815`, `api.mbt:824` | `api_wbtest`: sign/verify round-trip; fuzz bad secret key/message cases | `covered` | |
 | API-49 | `ed25519_verify` validates public key/message/signature hex and lengths, then returns semantic validity | `api.mbt:848`, `api.mbt:866` | `api_wbtest`: valid signature and wrong message; fuzz bad pk/message/signature type/hex/length; `property-api-semantic.mjs` randomized valid/tampered message checks | `covered` | |
+| API-50 | `verify_evidence` accepts an absent/null external digest without changing existing semantics | `verify_evidence` external-anchor parse | Existing golden/tampered tests plus API smoke without the field | `covered` | Additive compatibility branch. |
+| API-51 | `verify_evidence` rejects non-string or non-canonical external digests at the adapter boundary | `verify_evidence` external-anchor parse | `api_wbtest` malformed digest; `fuzz-api-malformed.mjs` wrong type and uppercase/truncated form; smoke malformed-anchor assertion | `covered` | Prevents ambiguous ledger keys. |
+| API-52 | A canonical matching external digest passes and a canonical mismatch produces exactly E2004 | `verify_evidence` call into `verify_manifest` | `api_wbtest` match/mismatch; smoke exact E2004; `property-api-semantic.mjs` uses independent Node hash for randomized match/reject loops | `oracle-covered` | External oracle breaks create/verify self-cycle. |
+
+## CLI Machine Adapter
+
+File: `src/cmd/main/main.mbt`
+
+| ID | Branch / Invariant | Source | Evidence | Status | Notes |
+| --- | --- | --- | --- | --- | --- |
+| CM-01 | `inspect` emits the independently fixed golden manifest digest | `run_inspect` | PowerShell/bash machine case `inspect golden digest` | `oracle-covered` | Golden digest was computed outside MoonBit. |
+| CM-02 | External digest match passes; canonical mismatch returns exactly E2004; malformed form exits 2 | `run_verify` / `run_verify_single` | Three exact machine cases in both CLI suites | `oracle-covered` | Exercises full process boundary. |
+| CM-03 | `pack` copies every nested input, including a source file named `manifest.json`, into a new `files/` tree and its returned digest verifies | `run_pack` | `pack nested source` case in both shells | `covered` | Tests layout, reserved-name preservation, and pack->verify loop. |
+| CM-04 | Existing output is rejected without changing its manifest | `run_pack` overwrite guard | Before/after SHA-256 assertion in both shells | `oracle-covered` | Prevents destructive retries. |
+| CM-05 | `seal` behaves as an exact alias | command dispatch | `seal alias` in both shells | `covered` | |
+| CM-06 | `create --json` is additive and returns a digest accepted by verify | `run_create` JSON branch | `create JSON metadata` in both shells | `covered` | Legacy layout remains available. |
+| CM-07 | Depth/file caps abort before silent partial packaging | `collect_create_files` / `run_pack` | Existing create depth-cap black-box plus pack shares the same collector | `covered` | Pack output is created only after collection and manifest construction. |
+| CM-08 | A write failure rolls back only the newly created output tree | `remove_created_tree` | Source review + output-ownership guard; no portable deterministic filesystem failure injection | `accepted-risk` | Existing output is rejected before rollback can run, so pre-existing user data is outside rollback ownership. |
+
+## Fabric Adapter
+
+Files: `integrations/fabric/chaincode-go`, `integrations/fabric/gateway`
+
+| ID | Branch / Invariant | Evidence | Status | Notes |
+| --- | --- | --- | --- | --- |
+| F-01 | Chaincode rejects non-canonical SHA-256/SHA-512 digests | Go unit boundary table | `covered` | |
+| F-02 | First create stores schema/digest/tx/MSP and emits one event | Go first-write test | `covered` | State derives from Fabric context. |
+| F-03 | Sequential duplicate preserves state and emits no second event | Go idempotency test + real Org2 duplicate | `protocol-covered` | Original anchor tx remains unchanged. |
+| F-04 | Missing, read/write/event, empty identity, and empty tx ID paths fail with stable prefixes | Go failure tests | `covered` | |
+| F-05 | Corrupt existing state is rejected and never overwritten | Go corrupt-state table | `covered` | |
+| F-06 | Gateway profile rejects bad schema, missing files, invalid timeout values, and a malformed timeout section | Node profile tests | `covered` | Real credentials remain local/ignored. |
+| F-07 | Commit receipt preserves tx ID, block, status code, and success | Node submit tests + real block 6 receipt | `protocol-covered` | |
+| F-08 | Only validation code 11 (MVCC read conflict) can normalize after a matching ledger query; all other rejected commits remain errors | Node conflict positive/negative/non-MVCC tests | `covered` | Actual race outcome is nondeterministic, so branch is deterministic at adapter unit level. |
+| F-09 | Org1 and Org2 query the same immutable anchor | Real Fabric v3.1.4 record | `protocol-covered` | `transactions.json` records equality. |
+| F-10 | Ledger-backfed verification distinguishes payload tamper E2003 from regenerated-manifest E2004 | Real Fabric E2E `verification.json` | `protocol-covered` | Closes the actual user trust loop. |
+| F-11 | The Gateway rejects incomplete MoonBit inspect/verify envelopes and inconsistent process exit status | Node fake-process contract tests | `covered` | Prevents adapter success on a drifted or malformed local CLI response. |
+| F-12 | A first-write chaincode response must record the same transaction ID as the successful commit | Node response/receipt test | `covered` | Sequential duplicates may correctly preserve an earlier transaction ID. |
 
 ## Open Follow-Ups
 

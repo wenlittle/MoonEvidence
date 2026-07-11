@@ -17,6 +17,8 @@ src/audit      -> hash-chained append-only audit log
 src/crypto     -> Ed25519 digital signatures (pure MoonBit)
 src/cmd/main   -> native CLI adapter
 src/api        -> browser ESM adapter (string-in/string-out)
+integrations/fabric/gateway      -> TypeScript Fabric Gateway adapter
+integrations/fabric/chaincode-go -> immutable manifest-digest chaincode
 showcase/      -> immersive React/Three.js homepage + separate native React workbench
 examples/      -> valid and tampered evidence packs
 tests/         -> fixtures and black-box regression tests
@@ -29,6 +31,15 @@ tests/         -> fixtures and black-box regression tests
 - `verify` may depend on `model`, `canonjson`, `digest`, `merkle`, and `diag`.
 - `diag` should not depend on `cmd/main`.
 - Crypto primitives should be wrapped behind `digest` so dependencies can change without rewriting verification logic.
+- MoonBit is the only layer that creates, canonicalizes, or verifies evidence
+  manifests. Fabric adapters consume its versioned JSON contract and do not
+  reimplement evidence semantics.
+- The TypeScript Gateway may pass a pack path to the MoonEvidence process, but
+  it must not read or hash evidence files itself. It submits only the canonical
+  manifest digest.
+- The Go chaincode accepts only a canonical SHA-256/SHA-512 digest. Files,
+  paths, per-file digests, Merkle leaves, full manifests, and credentials must
+  not appear in transaction arguments or ledger state.
 
 ## MVP Verification Flow
 
@@ -85,7 +96,8 @@ Notes on two deliberate deviations from earlier drafts:
 - `verify_manifest` takes an explicit `files` map because pure packages must
   not read the file system; the CLI adapter loads file bytes and injects them.
 
-`seal(directory, options)` is useful, but it is not part of the first implementation checkpoint.
+The later CLI adapter adds `pack` with `seal` as an exact alias. This is an IO
+adapter feature; the frozen pure `create_manifest` API remains unchanged.
 
 ## Public API Shape (frozen v2, 2026-07-04)
 
@@ -171,6 +183,47 @@ The v1 signatures above remain valid; `verify_manifest` gained an optional
 labeled parameter `~expected_manifest_digest?` (manifest-digest assertion,
 E2004) and its return type is spelled `@diag.VerifyReport` to match the
 actual code.
+
+## Fabric Anchor Boundary (frozen v1, 2026-07-11)
+
+```text
+source directory
+  -> MoonBit pack
+  -> MoonBit inspect + verify
+  -> canonical manifest_digest
+  -> TypeScript Gateway submitAsync
+  -> Go CreateAnchor
+  -> Fabric endorsement / ordering / validation
+  -> transaction ID + block number + validation status
+  -> ReadAnchor from either organization
+  -> MoonBit verify --expected-manifest-digest
+```
+
+The process boundary is versioned in `docs/spec/CLI_MACHINE_CONTRACT.md`; the
+ledger state and transaction boundary are versioned in
+`docs/spec/FABRIC_ANCHOR_SPEC.md`.
+
+The chaincode stores one record under `anchor:<manifest_digest>`. A first write
+captures the Fabric transaction ID and invoking MSP. A sequential duplicate
+returns the original record without overwriting it. Concurrent first writes
+may yield an MVCC conflict; the Gateway normalizes the losing operation only
+after a ledger query finds the identical digest.
+
+The off-chain receipt records commit transaction ID, block number, numeric
+validation status, and success. Fabric proposal timestamps are not used as an
+independent clock. Production identity enrollment, channel governance,
+availability, and legal timestamp policy remain deployment concerns while the
+digest-anchor protocol stays unchanged.
+
+`integrations/` and the root Node workspace metadata are excluded from the
+Mooncakes package. They remain in the public source repository as an optional
+adapter, while Mooncakes consumers receive the dependency-free MoonBit library
+surface.
+
+The 2026-07-11 execution record proves the boundary on a two-organization
+Fabric v3.1.4 network: first commit `VALID` in block 6, equal Org1/Org2 query
+results, idempotent duplicate behavior, and ledger-backfed `E2003`/`E2004`
+tamper rejection. See `docs/records/fabric-e2e/2026-07-11/`.
 
 ## 0.3.1 Root-Cause Hardening Notes (2026-07-04)
 

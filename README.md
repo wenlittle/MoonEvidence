@@ -211,7 +211,7 @@ checked 2 files, 1 passed; merkle root verified; 1 error, 0 warnings
 | 文件变化 | 本地复核返回 `E2003` |
 | 清单重建 | 对照原始账本摘要返回 `E2004` |
 
-[Fabric 集成指南](integrations/fabric/README.md)提供部署和调用命令，[实验记录](docs/records/fabric-e2e/2026-07-11/)保存交易、查询和回灌结果。
+[实链记录页](https://wenlittle.github.io/MoonEvidence/#ledger)提供可视化回放，[Fabric 集成指南](integrations/fabric/README.md)提供部署和调用命令，[实验记录](docs/records/fabric-e2e/2026-07-11/)保存交易、查询和回灌结果。
 
 ## 系统架构
 

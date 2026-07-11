@@ -87,6 +87,10 @@ moon-evidence/
       components/
         HomePage.tsx
         SiteHeader.tsx
+      ledger/
+        LedgerPage.tsx          # recorded Fabric transaction replay
+        ledger.css
+        record.ts               # sanitized facts linked to tracked JSON
       scene/
         EvidenceScene.tsx
         HeroScene.tsx
@@ -265,6 +269,7 @@ moon-evidence/
     check-fixtures.mjs         # fixtures 防腐化校验
     check-metrics.mjs          # CI 数字对齐门禁（提交/行/测试/包/版本一致性断言）
     check-package-contents.mjs # Mooncakes 包内容卫生门禁
+  docs/images/social-preview.png # 1280x640 repository social preview source
 ```
 
 ## Package Summary

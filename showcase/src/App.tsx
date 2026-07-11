@@ -4,15 +4,17 @@ import { SiteHeader, type SiteSurface } from "./components/SiteHeader";
 import { buildEvidenceScenario } from "./moon-rpc";
 import { useStoryStore } from "./store";
 import { LoaderCircle, ShieldAlert } from "lucide-react";
+import { LedgerPage } from "./ledger/LedgerPage";
 import { Workbench, type WorkbenchView } from "./workbench/Workbench";
 
 const WORKBENCH_VIEWS: WorkbenchView[] = ["verify", "create", "proof", "audit", "sign", "tamper"];
 
 function readLocation(): { surface: SiteSurface; view: WorkbenchView } {
   const match = window.location.hash.match(/^#workbench(?:\/(\w+))?$/);
+  const ledger = window.location.hash === "#ledger";
   const requested = match?.[1] as WorkbenchView | undefined;
   return {
-    surface: match ? "workbench" : "home",
+    surface: match ? "workbench" : ledger ? "ledger" : "home",
     view: requested && WORKBENCH_VIEWS.includes(requested) ? requested : "verify",
   };
 }
@@ -50,6 +52,13 @@ export default function App() {
     setSurface("home");
     window.history.pushState(null, "", `${window.location.pathname}${window.location.search}`);
     window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+  };
+
+  const openLedger = () => {
+    if (surface === "ledger") return;
+    setSurface("ledger");
+    window.history.pushState(null, "", "#ledger");
+    window.requestAnimationFrame(() => window.scrollTo({ top: 0 }));
   };
 
   const scrollToStory = () => {
@@ -124,11 +133,13 @@ export default function App() {
         surface={surface}
         onHome={openHome}
         onStory={scrollToStory}
+        onLedger={openLedger}
         onStart={() => openWorkbench("verify")}
       />
       {surface === "home" && (
         <HomePage scenario={scenario} openWorkbench={openWorkbench} />
       )}
+      {surface === "ledger" && <LedgerPage onStart={() => openWorkbench("verify")} />}
       {workbenchMounted && (
         <section
           className={`workbench-shell${surface === "workbench" ? " active" : ""}`}

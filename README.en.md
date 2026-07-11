@@ -212,7 +212,7 @@ The two-organization experiment recorded on 2026-07-11 produced reviewable evide
 | File change | Local backfeed verification returned `E2003` |
 | Regenerated manifest | Comparison with the original ledger digest returned `E2004` |
 
-The [Fabric Integration Guide](integrations/fabric/README.md) provides deployment and invocation commands. The [experiment record](docs/records/fabric-e2e/2026-07-11/) stores transaction, query, and digest-backfeed results.
+The [recorded ledger page](https://wenlittle.github.io/MoonEvidence/#ledger) presents a visual replay. The [Fabric Integration Guide](integrations/fabric/README.md) provides deployment and invocation commands, while the [experiment record](docs/records/fabric-e2e/2026-07-11/) stores transaction, query, and digest-backfeed results.
 
 ## Architecture
 

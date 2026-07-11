@@ -1,16 +1,18 @@
-import { ArrowLeft, GitFork, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Blocks, GitFork, ShieldCheck } from "lucide-react";
 
-export type SiteSurface = "home" | "workbench";
+export type SiteSurface = "home" | "workbench" | "ledger";
 
 export function SiteHeader({
   surface,
   onHome,
   onStory,
+  onLedger,
   onStart,
 }: {
   surface: SiteSurface;
   onHome: () => void;
   onStory: () => void;
+  onLedger: () => void;
   onStart: () => void;
 }) {
   return (
@@ -25,6 +27,7 @@ export function SiteHeader({
       {surface === "home" ? (
         <nav className="site-nav" aria-label="首页导航">
           <button type="button" onClick={onStory}>工作原理</button>
+          <button type="button" onClick={onLedger}><Blocks size={16} /><span>实链记录</span></button>
           <a href="https://github.com/wenlittle/MoonEvidence" target="_blank" rel="noreferrer">
             <GitFork size={16} />
             <span>GitHub</span>

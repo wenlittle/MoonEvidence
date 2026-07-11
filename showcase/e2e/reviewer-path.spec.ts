@@ -64,3 +64,16 @@ test("mobile homepage and workbench remain within the viewport", async ({ page }
   await expectNoHorizontalOverflow(page);
   expect(errors).toEqual([]);
 });
+
+test("recorded Fabric run exposes its transaction evidence", async ({ page }) => {
+  const errors = capturePageErrors(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "实链记录" }).click();
+
+  await expect(page).toHaveURL(/#ledger$/);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("穿过两个组织");
+  await expect(page.getByText("VALID", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("ca3dc7810d375ddabd3ba7d0bbba6f3e95a48c1224c6dfbd892d50edf7a28393")).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  expect(errors).toEqual([]);
+});

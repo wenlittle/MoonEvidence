@@ -209,6 +209,7 @@ export function HomePage({
       <footer className="site-footer">
         <strong>MoonEvidence</strong>
         <span>可信证据包验证核心</span>
+        <a href="#ledger">实链记录</a>
         <a href="https://github.com/wenlittle/MoonEvidence" target="_blank" rel="noreferrer">GitHub</a>
       </footer>
     </div>

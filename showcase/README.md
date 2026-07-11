@@ -4,7 +4,7 @@ The public product homepage and native Evidence Workbench for MoonEvidence.
 
 [Open the live experience](https://wenlittle.github.io/MoonEvidence/)
 
-[Chinese user guide](../docs/GUIDE.md#浏览器复核) · [Verification workbench](https://wenlittle.github.io/MoonEvidence/#workbench/verify) · [Tamper lab](https://wenlittle.github.io/MoonEvidence/#workbench/tamper)
+[Chinese user guide](../docs/GUIDE.md#浏览器复核) · [Verification workbench](https://wenlittle.github.io/MoonEvidence/#workbench/verify) · [Tamper lab](https://wenlittle.github.io/MoonEvidence/#workbench/tamper) · [Recorded Fabric run](https://wenlittle.github.io/MoonEvidence/#ledger)
 
 ## Surfaces
 
@@ -31,6 +31,12 @@ needed. Changing a relevant input immediately invalidates the previous result.
 The Workbench shares one Web Worker and all 12 compiled MoonBit browser APIs.
 There is no iframe or backend, and tool state stays mounted while the user
 moves between the homepage and Workbench.
+
+`#ledger` presents the sanitized record of the completed Fabric v3.1.4
+two-organization run. It displays the committed block and transaction,
+cross-organization query equality, idempotent duplicate behavior, and the
+`E2003` / `E2004` digest-backfeed results. The page is a recorded experiment,
+with links to the tracked JSON evidence; it does not simulate a live ledger.
 
 ## Run Locally
 
@@ -90,4 +96,5 @@ homepage keeps technical detail subordinate to the user-facing conclusion;
 the Workbench presents the conclusion first and keeps the complete MoonBit
 result available in an accessible disclosure. Four Playwright evaluator-path
 tests protect homepage loading, the primary workbench entry, valid-pack
-acceptance, tampered-pack rejection, and mobile overflow.
+acceptance, tampered-pack rejection, mobile overflow, and the recorded Fabric
+evidence route.

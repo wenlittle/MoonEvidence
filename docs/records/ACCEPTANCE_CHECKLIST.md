@@ -24,7 +24,7 @@
 | Mooncakes | v0.5.1 可由全新消费者项目解析、导入并运行公开 API |
 | CI | MoonBit 主任务、Fabric 适配器和 Showcase Pages 均有公开成功记录；工作流入口位于 [GitHub Actions](https://github.com/wenlittle/MoonEvidence/actions) |
 | 质量基线 | native、wasm、wasm-gc、js 各 `353/353`；独立参考、随机差分和 mutation 全绿 |
-| Fabric | [发布双组织记录](fabric-e2e/2026-07-12-v0.5.1/)保存 `v0.5.1` 制品哈希、block 8 `VALID` 交易、跨组织查询、幂等重复和 `E2003`/`E2004` 回传 |
+| Fabric | [发布双组织记录](fabric-e2e/2026-07-12-v0.5.1/)保存 `v0.5.1` 制品哈希、block 10 `VALID` 交易、跨组织查询、幂等重复和 `E2003`/`E2004` 回传 |
 | 许可证 | GitHub 已识别 Apache-2.0，Mooncakes 发布元数据保持一致 |
 
 ## 运营动作

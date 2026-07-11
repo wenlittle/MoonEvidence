@@ -76,7 +76,7 @@
 - [x] Go Chaincode：不可变 `CreateAnchor` / `ReadAnchor` / `AnchorExists`
 - [x] TypeScript Gateway：TLS profile、commit status、顺序重复/MVCC 归一化、`anchor-pack` / `verify-anchor`
 - [x] required CI：Chaincode vet/race/coverage + Gateway check/build/test
-- [x] Fabric v3.1.4 双组织发布 E2E：`v0.5.1` 压缩包在 block 8 `VALID`、双查询、重复提交、E2003/E2004 回灌
+- [x] Fabric v3.1.4 双组织发布 E2E：`v0.5.1` 压缩包 `VALID` 提交、双查询、重复提交、E2003/E2004 回灌
 
 ### 当前统计
 

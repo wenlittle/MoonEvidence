@@ -88,9 +88,11 @@ Remove-Item -LiteralPath $live -Recurse -Force
 现场先展示已保存交易；网络已启动时补充一次查询：
 
 ```powershell
+$digest = (Get-Content -Raw docs/records/fabric-e2e/2026-07-12-v0.5.1/deployment.json |
+  ConvertFrom-Json).evidence_pack.manifest_digest
 node integrations/fabric/gateway/dist/src/cli.js query `
   --profile integrations/fabric/gateway/.local/org1.json `
-  --manifest-digest sha256:2435ee0178697fbde634615f85b7458667a5bd00d56ba5d7ecdd361dfb2d3cb6 `
+  --manifest-digest $digest `
   --json
 ```
 

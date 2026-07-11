@@ -207,8 +207,8 @@ The two-organization experiment recorded on 2026-07-12 used the `v0.5.1` release
 | --- | --- |
 | Network | Fabric v3.1.4, Org1 and Org2, `evidencechannel` |
 | Digest algorithm | This protocol run used SHA-256; the contract also accepts canonical SHA-512 digests |
-| Release asset | `starlittle-MoonEvidence-0.5.1.zip`, SHA-256 `7208a251…479a3ef` |
-| First commit | block `8`, status `VALID`, transaction `a6d812ac…4529dc` |
+| Release asset | `starlittle-MoonEvidence-0.5.1.zip`; the complete SHA-256 is in the release experiment record |
+| Fabric commit | status `VALID`; transaction ID and block number are in the release experiment record |
 | Cross-organization query | Org1 and Org2 returned the same original record |
 | File change | Local backfeed verification returned `E2003` |
 | Regenerated manifest | Comparison with the original ledger digest returned `E2004` |

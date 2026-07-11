@@ -206,8 +206,8 @@ checked 2 files, 1 passed; merkle root verified; 1 error, 0 warnings
 | --- | --- |
 | 网络 | Fabric v3.1.4，Org1 和 Org2，`evidencechannel` |
 | 摘要算法 | 本次协议运行使用 SHA-256；合同同时接受规范 SHA-512 摘要 |
-| 发布文件 | `starlittle-MoonEvidence-0.5.1.zip`，SHA-256 `7208a251…479a3ef` |
-| 首次提交 | block `8`，状态 `VALID`，交易 `a6d812ac…4529dc` |
+| 发布文件 | `starlittle-MoonEvidence-0.5.1.zip`，完整 SHA-256 见发布实验记录 |
+| Fabric 提交 | 状态 `VALID`，交易 ID 和区块号见发布实验记录 |
 | 跨组织查询 | Org1、Org2 返回同一条原始记录 |
 | 文件变化 | 本地复核返回 `E2003` |
 | 清单重建 | 对照原始账本摘要返回 `E2004` |

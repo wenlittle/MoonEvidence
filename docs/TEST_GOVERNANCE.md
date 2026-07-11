@@ -1,312 +1,233 @@
-# MoonEvidence Test Governance
+# MoonEvidence 测试治理
 
-This document is the quality gate and stop-rule for MoonEvidence testing.
-`docs/TEST_PLAN.md` is the backlog and implementation plan; this file decides
-which work blocks a change, which work blocks a release, and which work belongs
-in backlog.
+> 适用版本：v0.5.x
+>
+> 详细覆盖：[TEST_PLAN.md](TEST_PLAN.md)
+>
+> 运行记录：[RESULTS_LOG.md](records/RESULTS_LOG.md)
 
-## Why This Exists
+本文件规定风险等级、合并条件、发布门禁和测试收口标准。测试计划负责说明覆盖内容和执行档位，CI 工作流负责执行自动门禁，结果记录负责保存可复核事实。
 
-The project should not keep adding tests because a number looks comforting.
-Every test must map to one of these purposes:
+## 1. 治理原则
 
-1. Prove a security or correctness invariant.
-2. Pin a public CLI/API/spec contract.
-3. Catch a known regression class.
-4. Validate that a test can fail when the implementation is broken.
+| 原则 | 执行要求 |
+| --- | --- |
+| 声明绑定证据 | 每个安全或质量结论指向标准样例、独立参考、测试、审计或协议记录 |
+| 独立答案优先 | 安全关键结果优先采用 RFC/NIST/Wycheproof、Node.js 或独立固定夹具 |
+| 测试可证伪 | mutation、先失败后修复的回归或定向守卫能够证明门禁会变红 |
+| 层级服从风险 | 包测试定位算法，黑盒测试固定进程合同，实链实验固定协议行为 |
+| 随机过程可复现 | 固定种子、轮次、环境和最小失败输入进入日志 |
+| 结论按环境生效 | 性能、计时和真实网络结果记录工具链、机器、版本和日期 |
+| 维护成本受控 | 新测试覆盖新的风险类别，重复样例合并到已有矩阵 |
 
-If a proposed test does not map to one of those purposes, it is probably
-maintenance cost, not quality.
+本治理口径参考 NIST SSDF、OWASP ASVS、Google 工程实践和 mutation testing 实践。项目将通用方法映射到证据包规范、密码学实现、机器接口和 Fabric 适配边界。
 
-## Source Principles
+## 2. 风险等级
 
-| Source | Principle used here | Project mapping |
+### P0 核心阻断
+
+P0 影响证据结论、密钥安全或不可逆外部记录。问题关闭前，受影响边界不得合并或发布。
+
+典型范围：
+
+- Canonical JSON、SHA-2、HMAC、Merkle 和 Ed25519 语义。
+- Manifest 解析、路径约束、完整验证和外部摘要对照。
+- 增量缓存、对象存储、审计签名和严格重建。
+- CLI 在本地验证失败后仍进入 Fabric 提交。
+- Chaincode 不可变语义、提交回执一致性和摘要回传。
+- 宣称保护上述边界的 required CI 缺失或失败。
+
+关闭条件：
+
+1. 失败模式和攻击者可控输入已经列明。
+2. 目标行为有独立 oracle 或可手工推导的边界值。
+3. 反向证明能够捕获该故障。
+4. 相关包、进程、后端和 required CI 全部通过。
+5. 安全说明和结果记录同步更新。
+
+### P1 发布阻断
+
+P1 影响公开合同、可复现性或交付一致性。开发分支可以继续推进，标签、比赛提交和 ready 声明必须等待关闭。
+
+典型范围：
+
+- CLI/API schema、错误码、退出码和公开函数接口。
+- native、wasm、wasm-gc、js 的构建与行为一致性。
+- PowerShell/bash 黑盒对等。
+- 固定夹具、生成接口、版本、包内容和依赖锁文件漂移。
+- README 命令、公开数字、安全口径和许可证材料。
+- Showcase、浏览器工作台和最小示例无法按文档复现。
+
+关闭条件：
+
+1. 用户可见合同有包测试或黑盒测试。
+2. 生成文件由权威命令重建并保持稳定。
+3. 文档、示例、版本和发布元数据一致。
+4. 当前提交通过 canonical CI 和对应交付工作流。
+
+### P2 计划增强
+
+P2 提高性能、体验或保障深度。每一项保留明确触发条件、验收结果和责任边界。
+
+典型范围：
+
+- 已固定核心不变量后的更大 fuzz 轮次。
+- 共享 runner 上的信息性基准。
+- 已有 mutation 覆盖后的更多等价变异。
+- UI 动效、演示节奏和非合同文案。
+- 高价值生产环境的机器码复核、专业 timing 活动和组织治理。
+
+P2 在触发条件出现时升级：公开性能承诺使相关基准进入 P1；目标工具链变化使 timing 复核进入生产认证门禁；新攻击类别影响接受/拒绝结论时进入 P0。
+
+## 3. 变更分级
+
+| 变更范围 | 默认等级 | 评审重点 |
 | --- | --- | --- |
-| NIST SSDF SP 800-218 v1.1, February 2022 | Define and use criteria for security checks throughout the SDLC; test executable code and triage findings. | MoonEvidence uses explicit P0/P1/P2 gates instead of ad-hoc "add more tests". |
-| NIST SSDF SP 800-218 v1.1, PW.8/RV.1 | Scope, design, run, document, and keep confirming security findings with automated analysis/testing. | Test results and remaining risks go into `RESULTS_LOG`, `TEST_PLAN`, or this document. |
-| OWASP ASVS 5.0.0, May 2025 | Verification requirements need security impact and pass/fail results; automation is not a substitute for application-specific verification. | MoonEvidence maps tests to risk IDs, error codes, trust boundaries, or public contracts. |
-| Google code review guidance | Tests must be correct, useful, and able to fail when code is broken. | Superficial assertions and self-referential oracles are not sufficient for security-critical paths. |
-| Test Pyramid / Google test sizes | Keep most confidence in fast deterministic low-level tests; use larger tests for boundaries. | L0-L3 carry correctness; CLI/API/CI tests prove integration and user contracts. |
-| Google/PIT mutation testing practice | Inject faults and confirm tests detect them; run focused, useful mutants instead of chasing a global score. | Security-critical invariants need mutation or an equivalent falsification check. |
+| `src/canonjson`、`digest`、`merkle`、`crypto` | P0 | 规范字节、算法边界、独立差分、mutation、后端一致性 |
+| `src/model`、`create`、`verify`、`store`、`audit` | P0 | 输入分区、错误集合、路径、缓存、内容完整性 |
+| `src/api`、`src/cmd`、CLI 机器合同 | P1；绕过验证时升为 P0 | schema、错误码、退出码、文件副作用、异常 envelope |
+| Fabric Chaincode 和 Gateway | P1；不可变记录或提交前验证变化时升为 P0 | 状态语义、并发、身份、回执、摘要回传 |
+| `moon.mod`、锁文件、CI 和发布流程 | P1；安全门禁失效时升为 P0 | 工具链、依赖、生成接口、包内容、发布来源 |
+| README、规范、安全文档 | P1 | 命令可执行、声明有证据、版本和链接一致 |
+| Showcase、demo 和展示材料 | P2；交付入口失效时升为 P1 | 构建、交互路径、浏览器错误、响应式布局 |
+| 纯重排或格式化 | P2 | 语义 diff、生成文件和 stale-check |
 
-Primary references are listed at the end of this document.
+一个变更触及多个范围时，使用最高等级。
 
-## Risk Classes
+## 4. 完成定义
 
-### P0 Blocker
+### 4.1 安全核心
 
-A P0 issue blocks changes to the affected trust boundary and blocks release.
+合并前应具备：
 
-P0 includes:
+- 风险等级和信任边界。
+- 正常、边界、异常和对抗输入分区。
+- 独立答案或明确不变量。
+- 能够失败的回归证据。
+- 相关分支图复核。
+- 相关包测试、差分、mutation 和多后端结果。
+- 对公开安全结论的同步更新。
 
-- Cryptographic verification behavior: Ed25519, scalar/canonical checks,
-  signature parsing, public-key decoding, audit signatures.
-- Digest/canonicalization/Merkle correctness: SHA implementations, JCS output,
-  Merkle domain separation, proof semantics, multi-algorithm plumbing.
-- Verification trust boundaries: `verify`, `incremental`, manifest digest
-  assertions, file digest checks, cache trust model.
-- Store integrity and strict reconstruction.
-- Path traversal or pack file collection behavior.
-- CI gates that claim to protect the above but are not actually wired or are
-  failing.
+### 4.2 CLI 和浏览器 API
 
-P0 exit criteria:
+合并前应具备：
 
-- A test or documented static audit covers the failure mode.
-- For security-critical code, the expected result comes from an independent
-  oracle when practical: RFC/NIST/Wycheproof vector, Node.js crypto, golden
-  fixture generated by a separate implementation, or explicit hand-derived
-  boundary case.
-- The test is capable of failing: mutation check, direct guard script, or a
-  reviewed failing-first reproduction.
-- Required gates pass.
+- 输入 schema、输出 schema、错误码和退出码测试。
+- 正常、拒绝和运行错误三类进程结果。
+- PowerShell/bash 对等用例。
+- 浏览器 smoke、malformed fuzz 和 semantic property。
+- 公开命令和示例复跑结果。
 
-P0 is not waived by "all existing tests are green". Green tests only mean the
-current suite did not notice a problem.
+### 4.3 Fabric
 
-### P1 Release Gate
+合并前应具备：
 
-A P1 issue may be worked on during normal development, but blocks a tag,
-submission, or "ready" claim.
+- Go vet、race 和合同测试。
+- TypeScript check、build 和 Gateway 单测。
+- MoonBit CLI 失败在网络连接前终止的负向测试。
+- 状态字段、幂等规则、MVCC 处理和回执一致性测试。
 
-P1 includes:
+Chaincode、Gateway SDK、连接 profile、背书假设或提交处理变化时，发布前重跑双组织协议，并保存提交、双查询、重复和正负摘要回传记录。
 
-- Public CLI/API behavior and error-code contracts.
-- Cross-backend parity for `wasm-gc`, `js`, and native in CI.
-- Golden fixture rot or reference-tool drift.
-- Documentation numbers or claims that are checked by tooling.
-- CLI black-box parity between Windows and Unix scripts.
-- Security documentation that is true but incomplete for the current release.
+### 4.4 文档和展示
 
-P1 exit criteria:
+合并前应具备：
 
-- Contract tests or black-box tests cover the change.
-- Docs that state numbers or security claims are updated.
-- CI gates pass on the canonical workflow.
+- 本地链接和章节锚点有效。
+- 精确数字通过 metrics 门禁或指向带时间记录。
+- 命令在当前目录结构中可执行。
+- 安全声明与 `SECURITY.md`、架构和测试证据一致。
+- Showcase 通过 TypeScript 检查和生产构建。
+- 可见 UI 变化经过桌面和移动端浏览器检查。
 
-### P2 Backlog
+文档修改了命令、夹具、安全声明或交付路径时，运行对应功能门禁。
 
-P2 work improves confidence but does not block a release when the risk is
-explicitly recorded.
+### 4.5 依赖和工具链
 
-P2 includes:
+合并前应具备：
 
-- Broader fuzz volume after the core invariants are already pinned.
-- Performance benchmarks and noisy timing checks.
-- More mutation operators after the current touched security primitive is
-  covered.
-- UI polish, demo ergonomics, and non-contract documentation cleanup.
+- 依赖锁文件更新可解释且可复现。
+- `moon info` 生成接口无意外漂移。
+- 全后端构建和测试。
+- 密码学后端或编译器变化触发独立差分；高价值部署同时触发原生 timing 复核。
+- Fabric SDK 变化触发适配器 required job 和协议复跑评估。
 
-P2 is still real work. It must have a reason, a target, and a trigger for when
-it becomes P1 or P0.
+## 5. 门禁归属
 
-## Definition Of Done
+| 工作流 | 性质 | 职责 |
+| --- | --- | --- |
+| `.github/workflows/ci.yml` / `check-test-build` | required | MoonBit 检查、生成接口、四后端、CLI、浏览器 API、随机差分和 mutation |
+| `.github/workflows/ci.yml` / `fabric-adapters` | required | Chaincode vet/race/coverage 和 Gateway check/test |
+| `.github/workflows/ci.yml` / `bench` | 信息性 | 共享 runner 上的性能趋势 |
+| `.github/workflows/showcase-pages.yml` | 交付 | 构建真实 MoonBit API 和 Showcase，发布 Pages |
+| `.github/workflows/release.yml` | 发布 | 检查、打包和 Mooncakes 发布 |
 
-### Security-Critical Core Change
+`.github/workflows/ci.yml` 是合并门禁的可执行来源。Release 工作流使用已经通过 canonical CI 的提交，标签指向与 CI 通过提交保持一致。
 
-Applies to crypto, digest, canonjson, merkle, verify, incremental, store,
-audit, manifest parsing, and path handling.
+## 6. 变更门禁
 
-Required before merge:
+| 路径或合同 | 必跑检查 |
+| --- | --- |
+| `src/crypto/**` | crypto 单测、Wycheproof 清点、Ed25519 差分、mutation、分支图、四后端 |
+| `src/digest/**` | digest/HMAC 单测、Node.js 差分、mutation、四后端 |
+| `src/canonjson/**`、`src/merkle/**` | 包测试、夹具、cross-verify、mutation、四后端 |
+| `src/model/**`、`src/create/**`、`src/verify/**`、`src/store/**`、`src/audit/**` | 包测试、分支图、相关 golden oracle、CLI/API 回归 |
+| `src/api/**` | API wbtest、release JS 构建、smoke、malformed、semantic、相关差分 |
+| `src/cmd/**`、CLI 契约 | native/js 构建，PowerShell/bash 四组黑盒，README/GUIDE 命令 |
+| `integrations/fabric/**` | Fabric required job；协议语义变化追加双组织实跑 |
+| `showcase/**`、`demo/**` | 构建、浏览器控制台、关键交互、桌面/移动布局 |
+| `docs/**`、README | 链接、metrics、命令复现、声明一致性 |
+| `moon.mod`、`.github/**`、发布元数据 | 完整 canonical CI、包内容、干净消费者或发布 dry-run |
 
-- Risk class is written in the change notes or PR description.
-- Failure modes are enumerated from inputs and branches, not from the happy
-  path.
-- At least one independent oracle or hand-derived boundary case exists for the
-  changed invariant.
-- Existing self-oracle tests are not the only proof for the security claim.
-- Relevant mutation target is added or an equivalent falsification check is
-  recorded.
-- `moon check`, `moon fmt --check`, and relevant `moon test` targets pass.
-- `node tools/check-metrics.mjs`, `node tools/cross-verify.mjs`,
-  `node tools/check-wycheproof-ed25519.mjs`, and
-  `node tools/mutation-check.mjs` pass when their scope is affected.
+安全相关源码出现在 [BRANCH_COVERAGE.md](BRANCH_COVERAGE.md) 的审计范围内时，源码和分支图在同一变更中复核。`tools/check-branch-coverage-stale.mjs` 执行这一约束。
 
-### Normal Feature, CLI, Or API Change
+## 7. 收口规则
 
-Required before merge:
+测试工作在以下条件全部满足时完成：
 
-- Unit or package tests cover normal, boundary, and error behavior.
-- CLI/API contract tests cover user-visible behavior and exit/error codes.
-- Fixtures are regenerated only through the canonical tool and checked for
-  byte-identical output when expected.
-- Public docs mention new behavior if users can observe it.
+1. 受影响边界已分级，最高风险等级明确。
+2. P0 失败模式均有直接证据并关闭。
+3. 发布或提交相关的 P1 门禁全部通过。
+4. 最强公开声明能够追溯到当前结果。
+5. 安全关键不变量具备独立答案和反向证明中的至少各一项。
+6. 剩余 P2 项写明触发条件、验收结果和证据入口。
 
-### Docs, Demo, Or Materials-Only Change
+新增测试须覆盖新的输入等价类、信任边界、oracle 来源、平台后端或历史逃逸类型。已有证据能够识别同一故障时，优先维护现有用例。
 
-Required before merge:
+## 8. 结果记录
 
-- Links and file paths are still valid.
-- Quantified claims are either generated by `check-metrics` or avoid exact
-  numbers.
-- Demo instructions are executable in the current repository layout.
-- Full MoonBit tests are optional unless the docs change commands, fixtures, or
-  security claims.
+支持公开结论的运行结果追加到 [RESULTS_LOG.md](records/RESULTS_LOG.md)，至少包含：
 
-## Release Gate
+| 字段 | 内容 |
+| --- | --- |
+| 范围 | 受影响模块、合同和风险等级 |
+| 来源 | 提交、数据集版本、参考实现和许可证 |
+| 环境 | 日期、时区、操作系统、工具链和目标后端 |
+| 方法 | 命令、轮次、随机种子和输入规模 |
+| 结果 | 通过数量、拒绝信号、统计量或交易回执 |
+| 结论 | 当前证据支持的声明和下一次触发条件 |
 
-Local Windows pre-release gate:
+性能、计时和真实网络记录保留原始环境。后续机器或工具链结果追加新条目，历史结果继续作为对应环境的证据。
 
-```powershell
-node tools/check-metrics.mjs
-node tools/cross-verify.mjs
-node tools/check-wycheproof-ed25519.mjs
-node tools/check-package-contents.mjs
-moon check
-moon fmt --check
-moon test --target wasm-gc
-moon test --target js
-moon build --target wasm-gc
-moon build --target js
-moon build --target js --release src/api
-./tools/cli-test.ps1 -Target js
-./tools/cli-test.sh js
-node tools/smoke-api.mjs
-node tools/randomized-hardening.mjs --profile release --skip-build
-node tools/mutation-check.mjs
-npm run fabric:check
-npm run fabric:test
-Push-Location integrations/fabric/chaincode-go
-go vet ./...
-go test ./... -cover
-Pop-Location
-```
+## 9. 评审拒绝项
 
-Native test note:
+| 拒绝项 | 合格替代 |
+| --- | --- |
+| 只用测试总数说明质量 | 展示风险、oracle、反向证明和系统边界 |
+| 只用 `sign -> verify` 证明 Ed25519 | 加入 RFC、Wycheproof 和独立差分 |
+| 只用 `create -> verify` 证明证据包 | 加入独立固定摘要、篡改包和外部摘要 |
+| `put()` 与 `verify_integrity()` 互相生成预期值 | 直接写入对象 Map 并使用外部摘要 |
+| 只断言非空、无 panic 或返回 true | 断言业务值、错误码、路径和副作用 |
+| 工具脚本未进入 CI，却称为门禁 | 接入工作流或标记为手动审计 |
+| 大型端到端测试重复包级逻辑 | 包级测试负责定位，端到端测试负责边界 |
+| 随机失败无法复现 | 固定种子并记录最小输入 |
+| 精确数字没有时间和来源 | 绑定 `RESULTS_LOG.md` 或自动 metrics |
 
-- Native tests pass locally with the installed MSVC toolchain and remain a
-  required Ubuntu/gcc CI gate.
-- The Go race detector is required in Ubuntu CI; a Windows run with
-  `CGO_ENABLED=0` runs normal coverage locally and does not substitute for that
-  CI result.
-- Rerun the real Fabric two-organization protocol when chaincode, Gateway SDK,
-  profile semantics, endorsement assumptions, or commit handling changes.
+## 10. 参考
 
-Canonical CI gate:
-
-- `.github/workflows/ci.yml` is the source of truth.
-- The CI gate must include metric drift, fixture rot, cross-verification,
-  Wycheproof vector inventory, type check, format check, `wasm-gc/js/native`
-  tests, native/js CLI black-box tests (PowerShell and bash), browser adapter
-  smoke, API malformed fuzz, API semantic property checks, Ed25519/digest
-  differential checks, mutation testing, and the required Fabric
-  chaincode/Gateway adapter job.
-- The benchmark job is informational unless a release explicitly declares a
-  performance SLO.
-- `.github/workflows/release.yml` packages and publishes tagged artifacts, but
-  it does not rerun the full CI gate. A release tag is valid only when it points
-  to a commit that already passed the canonical CI gate.
-
-## Stop Rule
-
-Testing is enough for now when all of the following are true:
-
-1. Every touched trust boundary has a risk class.
-2. All P0 items for the touched trust boundary are closed or marked
-   non-applicable with a concrete reason.
-3. All P1 release gates are green for release work, or the change is clearly
-   not a release/submission.
-4. The strongest claim in the docs has matching evidence in tests, CI, or a
-   recorded audit.
-5. At least one test-quality check exists for the changed security invariant:
-   mutation, independent oracle, differential reference, or failing-first
-   regression.
-6. Remaining work is written as P2 backlog with a trigger, not left as vague
-   anxiety.
-
-Do not add another test just because a module still feels scary. Add a test
-only if it covers a new equivalence class, trust boundary, oracle source,
-platform/backend, or previously escaped bug class.
-
-## Workflow For Future Changes
-
-1. Classify the change: P0, P1, or P2.
-2. Name the trust boundary: data input, canonical bytes, hash, Merkle root,
-   signature, cache, store, CLI/API, or docs claim.
-3. Pick the oracle: standard vector, independent implementation, golden
-   fixture, hand-derived boundary, property, fuzz invariant, or mutation.
-4. Write or update the smallest test that would fail for the bug class.
-5. Run the narrow gate first, then the release gate if the change is release
-   relevant.
-6. Record the result in `RESULTS_LOG` when it supports a public claim.
-
-## Anti-Patterns
-
-Reject these during review:
-
-- Test count as the main quality argument.
-- `sign -> verify` as the only proof for Ed25519 correctness.
-- `create -> verify` as the only proof for manifest or incremental behavior.
-- Testing `put()` and `verify_integrity()` together when the claim is store
-  integrity.
-- Assertions that only check "not empty", "not None", or "no panic" for a
-  security claim.
-- Disabled tests, commented-out tests, or TODO-only security coverage.
-- CI tools that exist in `tools/` but are not wired into CI while docs call
-  them gates.
-- Adding large end-to-end tests when a focused package or integration test
-  would catch the same bug faster.
-
-## Current Baseline
-
-As of 2026-07-11:
-
-- `moon test` baseline is 347 executable tests on native, wasm, wasm-gc, and
-  js where applicable.
-- `check-metrics` counts 351 test declarations because 4 benchmark wrappers
-  use `test "bench: ..."` declarations.
-- PowerShell and bash CLI black-box suites both pass 62/62, including eight
-  machine-contract and external-anchor cases.
-- CI includes the important gates: metrics, fixture rot, cross-verify,
-  Wycheproof inventory, type/format checks, multi-backend tests, CLI tests,
-  smoke API, API malformed fuzz, API semantic property checks, Ed25519/digest
-  differential checks, and mutation testing.
-- Fabric has layered evidence: Go contract coverage at 82.1%, Gateway 19/19
-  unit tests, a required CI job, and a real two-organization v3.1.4 record with
-  first commit, equal queries, idempotent duplicate, and E2003/E2004 backfeed.
-- Independent oracles exist for Ed25519 Wycheproof vectors, store integrity,
-  and incremental golden-manifest behavior.
-- Ed25519 exact branch tests now cover length guards, invalid point decoding,
-  `x=0 && sign=1`, sqrt(-1) correction, and invalid pk/R decode paths.
-- Constant-time static audit and native timing evidence exist in
-  `docs/CONST_TIME_AUDIT.md`. CT-001 in `reduce_scalar_512` has been fixed at
-  source level with arithmetic masks and borrow selection; backend review and
-  formal/professional dudect-style analysis are tracked as the production
-  certification tier.
-- `create_manifest` abort/error paths are covered by 5 `panic` wbtests in
-  `src/create/create_wbtest.mbt`.
-- Remaining Phase 1 risk is no longer "missing tests"; constant-time work has
-  reached the source-review + local native timing release gate, with
-  formal/backend assurance reserved for production certification.
-- Current release-governance caveats are P1 unless the affected release depends
-  on them: release tags rely on prior CI success, and fixture drift coverage
-  should stay aligned with every generated fixture family.
-
-This means the baseline is substantially better than a superficial green test
-count, and Phase 1 is closed at the source/test-governance level. Further work
-should be governed by the stop rule above instead of anxiety-driven patching.
-
-## References
-
-- NIST SP 800-218, Secure Software Development Framework v1.1, February 2022:
-  https://csrc.nist.gov/pubs/sp/800/218/final
-- NIST SP 800-218 PDF, especially PO.4, PW.8, and RV.1:
-  https://nvlpubs.nist.gov/nistpubs/specialpublications/nist.sp.800-218.pdf
-- OWASP Application Security Verification Standard, latest stable 5.0.0:
-  https://owasp.org/www-project-application-security-verification-standard/
-- Google Engineering Practices, "What to look for in a code review":
-  https://google.github.io/eng-practices/review/reviewer/looking-for.html
-- Martin Fowler, "Test Pyramid", 2012:
-  https://martinfowler.com/bliki/TestPyramid.html
-- Google Testing Blog, "Test Sizes", 2010:
-  https://testing.googleblog.com/2010/12/test-sizes.html
-- Software Engineering at Google, chapter 14, "Larger Testing":
-  https://abseil.io/resources/swe-book/html/ch14.html
-- Google Testing Blog, "Mutation Testing", 2021:
-  https://testing.googleblog.com/2021/04/mutation-testing.html
-- Google Research, "State of Mutation Testing at Google":
-  https://research.google/pubs/state-of-mutation-testing-at-google/
-- Stryker Mutator, "What is mutation testing?":
-  https://stryker-mutator.io/docs/
-- Stryker Mutator, "Equivalent mutants":
-  https://stryker-mutator.io/docs/mutation-testing-elements/equivalent-mutants/
+- [NIST SP 800-218, Secure Software Development Framework v1.1](https://csrc.nist.gov/pubs/sp/800/218/final)
+- [OWASP Application Security Verification Standard](https://owasp.org/www-project-application-security-verification-standard/)
+- [Google Engineering Practices: What to look for in a code review](https://google.github.io/eng-practices/review/reviewer/looking-for.html)
+- [Martin Fowler: Test Pyramid](https://martinfowler.com/bliki/TestPyramid.html)
+- [Software Engineering at Google: Larger Testing](https://abseil.io/resources/swe-book/html/ch14.html)
+- [Google Research: State of Mutation Testing at Google](https://research.google/pubs/state-of-mutation-testing-at-google/)

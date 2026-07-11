@@ -1,578 +1,254 @@
 # MoonEvidence 测试计划
 
-> **治理口径**：`docs/TEST_GOVERNANCE.md` 是质量门禁和停手规则；本文档是详细测试 backlog 与执行计划。
-
-> **核心结论**：是的，必须先把测试计划完善并做好，再谈改进。具体而言——阶段1（P0高风险盲点）必须在任何密码学/安全路径改进之前完成，阶段2（P1安全网）在任何功能改进之前完成。
+> 基线版本：v0.5.0
 >
-> **文档版本**：v1.0
-> **最后更新**：2026-07-11
-> **关联文档**：`docs/KNOWLEDGE_BASE.md` §8-§15；`docs/BRANCH_COVERAGE.md` 记录逐分支审计清单
-
-> **2026-07-11 进度记录**：Phase 1-3 已收口，并新增可脚本化 CLI 外部锚点合同与真实 Fabric L1 集成层。当前基线为 351 个测试声明（347 个可执行测试 + 4 个基准 wrapper），native/js/wasm-gc 各 347/347；PowerShell 与 bash CLI 各 62/62；浏览器 API smoke 36 断言；Go Chaincode 覆盖率 82.1%；TypeScript Gateway 19/19。双组织 Fabric v3.1.4 实验已完成首笔 `VALID` 提交、Org1/Org2 一致查询、重复提交幂等，以及链上摘要回灌后的 `E2003`/`E2004` 拒绝。随机差分、mutation 16/16、分支 stale-check 与 native timing assurance 层继续作为发布门禁。
-
----
-
-## 0. 快速导航
-
-| 想了解 | 跳转 |
-|---|---|
-| 为什么必须先测试后改进 | [§1 策略决策](#1-策略决策) |
-| 测试体系有哪些系统性问题 | [§2 系统性缺陷诊断](#2-系统性缺陷诊断) |
-| 测试分几层、每层做什么 | [§3 九层测试模型](#3-九层测试模型) |
-| 分几个阶段、每阶段做什么 | [§4 分阶段实施计划](#4-分阶段实施计划) |
-| 具体要写哪些测试用例 | [§5 测试用例清单](#5-测试用例清单) |
-| 怎么度量覆盖率 | [§6 覆盖率度量方案](#6-覆盖率度量方案) |
-| 改进前要过什么检查 | [§7 改进安全检查清单](#7-改进安全检查清单) |
-| 测试用例怎么设计 | [§8 测试用例设计规范](#8-测试用例设计规范) |
-
----
-
-## 1. 策略决策
-
-### 1.1 结论：分阶段"先测试后改进"
-
-| 改进类型 | 前置条件 | 理由 |
-|---|---|---|
-| **crypto/digest/merkle 包的任何改进** | 阶段1全部完成 | 当前4个高风险盲点全在密码学核心，无安全网 |
-| **verify/create/store 包的功能改进** | 阶段1 + 阶段2完成 | 需要错误路径测试和增量验证对称性测试 |
-| **diag/model 等非安全包改进** | 阶段1完成即可 | 不涉及安全语义，有基本安全网即可 |
-| **CLI/CI 治理改进** | 可与阶段2并行 | 不影响核心验证逻辑 |
-
-### 1.2 为什么不能"边测边改"
-
-| 风险 | 说明 |
-|---|---|
-| **回归不可归因** | 改了 verify 又改了 incremental，某个测试红了，无法判断是哪边引入的（因为两边都缺错误路径测试） |
-| **确认偏差** | 改完代码再写测试，测试者会下意识选能通过的输入，弱化了测试的证伪能力。这正是 H1/H2 产生的心理根源 |
-| **改进被测试债务绑架** | 想优化 `reduce_scalar_512`，但发现没有常量时间测试，改完无法验证是否破坏了时序安全性，只好不敢改 |
-| **密码学安全回归不可检测** | `ed25519_verify` 的输入长度检查（L245）和低阶点拒绝（L280）完全未测。若改进时意外移除这些 guard，无测试会变红，可能导致伪造签名被接受 |
-
-### 1.3 为什么不能"全部补完再改"
-
-| 限制 | 说明 |
-|---|---|
-| **H4 常量时间计时测试成本高** | 已补本机 native dudect-style harness；正式 dudect/后端机器码审计定位为生产化升级路线 |
-| **Wycheproof 级别消极向量集** | 需要上千用例的移植，一次性投入大 |
-| **某些盲点需要改进代码才能测** | 如 L4/L5 的 Fe 内部分支，若函数不可观察中间状态，需先重构出可测试接口 |
-| **纯补测试不改代码可能补出脆弱测试** | over-fitting 到当前实现，后续改进时大量测试红 |
-
----
-
-## 2. 系统性缺陷诊断
-
-### 2.1 五大根因
-
-| 根因 | 涉及盲点 | 本质 |
-|---|---|---|
-| **A: Happy-path bias** | H1, H3, M1, L1, L7 | 测试用例从"功能说明书"正向生成（能做什么），而非从"输入空间划分"逆向生成（每种输入该返回什么） |
-| **B: 无分支覆盖率模型** | H2, H3, L2-L6 | MoonBit 缺乏成熟 coverage 工具，只能靠"351个测试声明"粗粒度指标，无法看到哪些分支从没被触达 |
-| **C: 密码学测试未对标行业标准** | H2, H3, H4 | RFC 8032 §7.1 KAT + Wycheproof Ed25519 150 向量已覆盖签名 oracle；native dudect-style timing 已补，正式 dudect/后端产物级审计进入生产化升级路线 |
-| **D: 安全函数测试优先级被低估** | M2, M3 | 功能路径先测，防篡改/防绕过的安全函数后测甚至不测 |
-| **E: 测试资产双轨漂移** | 6项治理缺口 | cli-test.ps1 与 cli-test.sh 已对齐到 62 例；后续仍需防止人工移植漂移 |
-
-### 2.2 结构性失衡
-
-| 指标 | 数据 | 含义 |
-|---|---|---|
-| 鲁棒性缺失占比 | 13/17 = **76%** | 76%的盲点都是"没测异常路径"，不是个别遗漏而是默认取向 |
-| 密码学测试三支柱 | KAT + Wycheproof/攻击向量 + native timing 经验性证据均已建立 | 当前已达课程/竞赛交付级 assurance；生产级侧信道认证可继续接入正式 dudect/后端产物审计 |
-| 测试用例生成方式 | KAT + 手工攻击 + 属性测试 + 随机差分 + malformed fuzz + mutation | 仍是有界抽样，不是全输入证明 |
-| 覆盖率度量 | "351个测试声明" + `docs/BRANCH_COVERAGE.md` 首批分支图 | 数量指标只能说明测试规模；分支图回答 verify/incremental/merkle 的关键分支是否有证据覆盖 |
-
----
-
-## 3. 九层测试模型
-
-### 层次总览
-
-| 层次 | 名称 | 现状 | 目标 | 优先级 |
-|---|---|---|---|---|
-| L0 | 单元测试（白盒） | 351个声明（347可执行+4基准wrapper）+ verify/incremental/merkle/digest/crypto/create/store/audit/api 分支图 + stale-check gate + API malformed fuzz gate + API semantic property gate + CLI_VERSION gate | 继续按高风险变更补 oracle/mutation；侧信道已形成工程化 assurance 层，正式 dudect/后端产物级审计进入生产化升级路线 | P0/P1 |
-| L1 | 集成测试 | MoonBit 跨包闭环 + CLI 机器合同 + 双组织 Fabric E2E | 保持真实协议记录可复跑；生产拓扑另设环境验收 | P1 |
-| L2 | 属性测试 | 3个 | +8（Ed25519/Fe/canonjson扩展） | P1 |
-| L3 | 差分测试 | 固定夹具 | +随机差分harness（Ed25519/SHA/HMAC） | P1 |
-| L4 | CLI黑盒 | ps1=62, sh=62 | 后续改 CLI 时双脚本同步 | P1 |
-| L5 | 变异测试 | 16点 | 继续按高风险改动补点 | P1 |
-| L6 | 模糊测试 | malformed API fuzz 已入 CI，stress 10000 轮通过 | 保持有界 CI + 发布长跑分层 | P2 |
-| L7 | 性能/基准 | 仅js | +native/wasm-gc + Ed25519基准 | P2 |
-| L8 | 安全测试（侧信道） | 源码级常量时间审计 + JS verify timing sampler + native verify/sign dudect-style sampler | 当前作为工程化 assurance 层；专业 dudect/后端机器码审计列入生产化升级 | P1 |
-
-### 各层详细定义
-
-#### L0 单元测试
-
-- **目标**：每个函数/方法在隔离环境下的正确性，包括正常路径、边界值、错误路径
-- **方法**：MoonBit 白盒测试（`*_wbtest.mbt`），可访问私有成员
-- **验收标准**：每个公开函数至少1个正常路径+1个错误路径；每个 `return None`/`return false`/`abort` 分支至少1个触发测试；`moon test --target wasm-gc,js,native` 全绿
-
-#### L1 集成测试
-
-- **目标**：跨包协作正确性，特别是 create→verify 往返闭环
-- **覆盖**：create→verify_manifest、create→incremental→verify、create→store→reconstruct→verify、chain 链式验证，以及 pack→inspect→verify→Fabric submit→双组织 query→expected-digest backfeed
-- **验收标准**：每条核心管线至少1个完整闭环；跨系统路径必须保存提交状态、负向篡改证据和脱敏复跑记录
-
-#### L2 属性测试
-
-- **目标**：通过随机化输入验证不变式，覆盖人工难以枚举的边界
-- **方法**：手写 PRNG（splitmix64），零依赖、确定性种子、可复现
-- **验收标准**：每个属性测试至少60轮随机化；失败消息携带轮次号
-
-#### L3 差分测试
-
-- **目标**：用独立实现（Node.js crypto）交叉验证，捕获"自我验证自我"的盲区
-- **现状**：`cross-verify.mjs` 只对固定金色夹具做对拍
-- **目标**：升级为随机输入差分，覆盖 SHA-256/SHA-512/Ed25519/HMAC
-- **验收标准**：CI 固定轮次差分全绿；发布候选 1000 组随机向量字节级一致
-
-#### L4 CLI黑盒
-
-- **目标**：从CLI边界验证端到端行为
-- **验收标准**：PowerShell和bash两套用例数完全一致；每个错误码至少1个触发用例
-
-#### L5 变异测试
-
-- **目标**：通过注入人工变异验证测试套件的"牙齿"
-- **现状**：16个变异点，全部被捕获
-- **目标**：已扩展到16个，保持100%捕获率；后续随高风险改动继续补点
-- **验收标准**：0个变异逃逸
-
-#### L6 模糊测试
-
-- **目标**：大规模随机输入发现崩溃/panic/未处理边界
-- **方法**：MoonBit 无原生fuzzing框架，用属性测试扩展（轮次10000+）或 Node.js fuzz harness 调用JS构建产物
-- **验收标准**：10000轮随机输入无崩溃
-
-#### L7 性能/基准
-
-- **目标**：跟踪性能回归
-- **现状**：仅js目标，2个基准
-- **目标**：+native/wasm-gc + Ed25519签名/验证基准 + 大规模Merkle基准
-- **验收标准**：三目标覆盖；结果记录在 RESULTS_LOG
-
-#### L8 安全测试（侧信道）
-
-- **目标**：验证密码学实现不在秘密依赖的数据上分支
-- **方法**：静态审计（分支清单）+ JS `performance.now` 信息性采样 + native release dudect-style sampler（随机交错、warmup、checksum、Welch t）
-- **验收标准**：静态审计清单完成；native verify/sign-message/sign-secret 长跑 `|t| < 4.5` 才可写“未观察到明显 timing difference”；不得写成形式化证明
-
----
-
-## 4. 分阶段实施计划
-
-### 阶段1（P0：必须先做，阻断性）
-
-> **原则**：这些测试保护的是密码学安全核心。在此阶段完成前，禁止修改 `src/crypto/` 下的任何文件。
-
-| 序号 | 盲点 | 层次 | 目标文件 | 测试用例 | 依赖 |
-|---|---|---|---|---|---|
-| 1.1 | Ed25519错误长度输入 | L0 | `ed25519_wbtest.mbt` | pk=31/33字节、sig=63/65字节，均 assert_false | 无 |
-| 1.2 | point_decode无效点 | L0 | `ed25519_wbtest.mbt` | 非曲线y值、x²≠x2路径、data长度≠32 | 无 |
-| 1.3 | x=0+sign=1 | L0 | `ed25519_wbtest.mbt` | 构造使x=0且sign=1的输入，assert None | 需计算满足条件的y值 |
-| 1.4 | 常量时间静态审计 | L8 | `docs/CONST_TIME_AUDIT.md` | 分支清单：scalar_mul/fe_cmov/Fe::eq/Fe::to_bytes/reduce_scalar_512 中所有涉及秘密数据的分支；CT-001 已源码级修复 | 无 |
-| 1.5 | create abort分支 | L0 | `create_wbtest.mbt` | 空subject.id、空subject.kind、空version_id、空version_parent、无效路径 | 已用 `panic` 测试覆盖 |
-| 1.6 | store安全函数 | L0 | `object_store_wbtest.mbt` | verify_integrity内容篡改→false、reconstruct_strict缺失→Err、remove不存在→false | 无 |
-| 1.7 | 增量验证缓存篡改 | L1 | `incremental_wbtest.mbt` | 篡改缓存使坏文件跳过哈希、缓存指向不存在文件 | 无 |
-
-**已完成（2026-07-06）**：
-- `src/crypto/ed25519_wycheproof_wbtest.mbt`：150 条 Wycheproof Ed25519 向量（88 valid + 62 invalid），并补 `tools/check-wycheproof-ed25519.mjs` 清点门禁。
-- `src/crypto/ed25519_wbtest.mbt`：8 个精确分支测试，覆盖 pk/sig 长度 guard、`point_decode` 长度 guard、非曲线 y、`x=0 && sign=1`、sqrt(-1) 修正路径、verify 的 pk/R 解码失败分支。
-- `src/store/object_store_wbtest.mbt`：6 个 independent oracle，绕过 `put()`/`sha256_hex`，覆盖篡改、缺失、多缺失、严格重建成功/失败。
-- `src/verify/incremental_wbtest.mbt`：5 个 golden manifest independent oracle，覆盖全缓存、空缓存、E2004 正反例、Q3 恶意缓存信任边界。
-- `docs/CONST_TIME_AUDIT.md`：Ed25519 静态常量时间审计，区分 secret path 与 public-input rejection path；CT-001 已修复为 arithmetic mask/borrow selection。
-- `src/create/create_wbtest.mbt`：5 个 `panic` 测试覆盖 `create_manifest` 的空 subject.id、空 subject.kind、空 version_id、空 version_parent、非法路径 abort 分支。
-
-**当前收口状态**：Phase 1 测试项与 CT-001 源码级修复已收口；native timing 经验性证据已补。侧信道验证从“源码审计”升级为“源码审计 + native timing evidence”的交付级 assurance 层，正式 dudect/后端产物审计作为生产化升级路线保留。
-
-**工作量**：约15-20个测试用例，2-3天专注工作
-
-**验收门禁**：
-- 三目标全绿
-- 变异测试保持16/16捕获率
-- 新增变异点（1.2/1.3对应）也被捕获
-
-### 阶段2（P1：建立安全网，应在改进前完成）
-
-> **原则**：阶段1完成后进行，提升测试覆盖完整性和CI防护力。
-
-| 序号 | 内容 | 层次 | 依赖 |
-|---|---|---|---|
-| 2.1 | 大规模Merkle树（10000叶闭环） | L1/L7 | Done: boundary shapes 2^k-1/2^k/2^k+1 plus 10000-leaf SHA-256/SHA-512 roots and representative inclusion proofs |
-| 2.2 | SHA-512路径（merkle/verify/incremental） | L0/L3 | 阶段1 |
-| 2.3 | 增量验证错误路径（E1004/E2003/E2004/E3001/E3003/W1001） | L0 | Done: incremental_wbtest covers E1004, E2003, E2004, E3001 (missing root and empty tree), E3003, and W1001 |
-| 2.4 | bash cli-test与PowerShell对等 | L4 | Done: 两套脚本先对齐原 54 例，再同步增加 8 个机器接口/外部锚点用例，当前均为 62/62；CI 对 native/js 双跑 |
-| 2.5 | CLI_VERSION CI门禁 | L4/治理 | Done: `tools/check-metrics.mjs` now asserts `CLI_VERSION` in `src/cmd/main/main.mbt` equals `moon.mod` version; CI already runs the gate |
-| 2.6 | Ed25519属性测试（sign→verify往返60轮 + 篡改检测120轮） | L2 | 阶段1 |
-| 2.7 | Fe域运算属性（分配律/交换律/可逆性60轮） | L2 | 无 |
-| 2.8 | 变异测试扩展（已扩展到16个变异点） | L5 | 阶段1 |
-| 2.9 | 基准测试扩展（native/wasm-gc + Ed25519基准） | L7 | 无 |
-| 2.10 | point_decode边界（y=p/p+1/2p-1 + sign=0/1组合） | L0 | 阶段1 |
-| 2.11 | Ed25519差分测试（Node.js crypto 随机向量；CI 64组，发布候选1000组） | L3 | Done: `tools/differential-crypto.mjs` compares key derivation, signatures, cross-verification, and tamper rejection against Node.js crypto |
-| 2.12 | SHA/HMAC差分测试（随机长度0-65536字节） | L3 | Done: `tools/differential-digest.mjs` compares SHA-256/SHA-512/HMAC-SHA256 against Node.js crypto; CI runs 64 rounds, release candidates can run 1000 |
-| 2.13 | 分支清单审计（verify/incremental/merkle/digest/crypto/create/store/audit/api） | L0/L8 | Done: `docs/BRANCH_COVERAGE.md` maps 194 audited branches with 0 open gaps for the first pass |
-| 2.14 | 分支清单 stale-check gate | L0/L8/治理 | Done: `tools/check-branch-coverage-stale.mjs` and CI step require audited source edits to review `docs/BRANCH_COVERAGE.md` |
-| 2.15 | 公共 JS API malformed-request fuzz | L6/治理 | Done: `tools/fuzz-api-malformed.mjs` calls all 12 exported string adapters with invalid JSON, non-object JSON, wrong field types, invalid hex, malformed proof/audit/signature/key shapes; CI runs 64 deterministic random rounds |
-| 2.16 | 公共 JS API semantic property | L1/L2/L6/治理 | Done: `tools/property-api-semantic.mjs` runs deterministic valid-request closed loops for create→verify→Merkle proof→verify_proof, audit append→verify→tamper→sign→signature verify, and Ed25519 sign→verify→tamper rejection; CI runs 16 bounded rounds, manual hardening uses 64+ |
-| 2.17 | 随机化测试 profile 固化 | L6/治理 | Done: `tools/randomized-hardening.mjs` defines `ci` / `release` / `stress` profiles for API fuzz, API semantic property, Ed25519 differential, and digest differential; supports dry-run and per-suite round overrides |
-| 2.18 | Fabric 摘要锚定真实协议闭环 | L1/L4 | Done: Go Chaincode 单测、Gateway 单测、CI 独立 job，以及 Fabric v3.1.4 双组织提交/查询/重复/篡改回灌记录 |
-
-**工作量**：约30-40个测试用例 + 12个CLI用例 + 已完成的变异点扩展，4-6天
-
-**验收门禁**：
-- 变异测试捕获率 16/16 = 100%
-- bash 和 PowerShell CLI 用例数一致（62/62）
-- CI 已通过 `check-metrics.mjs` 覆盖 CLI_VERSION 门禁
-- Ed25519 差分测试 CI 64 组全通过；发布候选手动 `--rounds 1000` 全通过
-
-### 阶段3（P2：技术债务，择机补）
-
-> **原则**：不阻塞改进工作，在每次相关功能改进时顺带补。
-
-| 序号 | 内容 | 层次 | 状态 |
-|---|---|---|---|
-| 3.1 | diag单复数分支 | L0 | Done: `diag_wbtest` 覆盖 0/1/2 个 error/warning 的 summary 文案 |
-| 3.2 | parse_digest失败分支（无冒号/未知算法/非hex） | L0 | Done: `digest_wbtest` 覆盖 no-colon、extra-colon、unknown algorithm、empty hex、non-hex |
-| 3.3 | Fe::from_small / Fe::to_bytes条件减p 直接测试 | L0 | Done: `field25519_wbtest` 直接覆盖 UInt64 limb 序列化、p->0、p+1->1、p-1 不变 |
-| 3.4 | 模糊测试harness（10000轮随机输入不崩溃） | L6 | Done: API malformed fuzz + API semantic property 已入 CI；`randomized-hardening --profile stress` 已分段实跑通过：10000 malformed、1000 semantic、5000 Ed25519 differential、5000 digest differential |
-| 3.5 | 动态时序测量（Ed25519验证/签名采样+统计） | L8 | Done: JS `tools/timing-ed25519-verify.mjs --samples 10000` 记录 Welch t=-0.118306；native `tools/timing-ed25519-native.ps1 -Target both -Samples 50000 -Warmup 1024 -Config release` 覆盖 verify/sign-message/sign-secret，Welch t 分别为 -0.147045 / 0.090476 / -0.040215。定位为当前工具链下的工程化 assurance 信号 |
-| 3.6 | E3002覆盖（实现proof CLI 或记录为保留码） | L4 | Done as policy: E3002 继续作为 proof-format 保留码，CLI/API 当前无 proof 文件消费者；`tests/fixtures/packs/README.md` 与 incremental 测试明确 E3002 不应误触发 |
-| 3.7 | 符号链接缓解验证 | L8 | Done with runtime probe: `tools/symlink-junction-probe.ps1` 在 Windows junction 自循环上实测 native/js；create 触碰 depth cap 后 E5002 失败且不写 manifest，verify 有界终止并报告 W1001。仍无法做 lstat 级 symlink 目标证明 |
-| 3.8 | Wycheproof EdDSA测试向量移植 | L0 | Done: Ed25519 150 条 Wycheproof 向量已提前完成；后续只保留来源生成/差分复核为 P2 |
-
-**工作量**：约15-20个测试用例 + fuzzing/timing harness，3-5天
-
----
-
-## 5. 测试用例清单
-
-### 5.1 阶段1详细用例
-
-#### 1.1 Ed25519错误长度输入（4例）
-
-```moonbit
-test "ed25519_verify rejects 31-byte public key" {
-  let short_pk = Bytes::make(31, b'\x00')
-  let msg = Bytes::empty()
-  let sig = Bytes::make(64, b'\x00')
-  assert_false(ed25519_verify(short_pk, msg, sig))
-}
-
-test "ed25519_verify rejects 33-byte public key" { ... }
-test "ed25519_verify rejects 63-byte signature" { ... }
-test "ed25519_verify rejects 65-byte signature" { ... }
+> 最近复核：2026-07-11 Asia/Shanghai
+>
+> 治理规则：[TEST_GOVERNANCE.md](TEST_GOVERNANCE.md)
+>
+> 实测记录：[RESULTS_LOG.md](records/RESULTS_LOG.md)
+
+MoonEvidence 的测试围绕证据结论建立。每一层证据对应一个明确风险，能够指出什么被验证、由谁给出预期结果、实现出错时哪一道门禁会失败。
+
+## 1. 质量目标
+
+| 目标 | 需要守住的结论 | 失败信号 |
+| --- | --- | --- |
+| 文件完整性 | 当前文件字节与 manifest 记录一致 | `E2003`、缺失文件或摘要不一致 |
+| 清单稳定性 | 相同语义生成相同规范字节和摘要 | 独立摘要不同、`E2004` |
+| Merkle 一致性 | 文件集合、顺序和证明路径可复核 | 根摘要或包含证明不一致 |
+| 签名正确性 | 有效 Ed25519 签名通过，异常编码和攻击输入被拒绝 | 标准向量、攻击向量或差分结果失败 |
+| 审计连续性 | 条目顺序、前驱摘要和签名保持完整 | 链断裂、条目签名失败 |
+| 缓存和对象存储 | 信任范围清楚，内容篡改和缺失对象可定位 | 完整性检查误报通过、严格重建未拒绝 |
+| 机器接口 | CLI 和浏览器返回稳定结构、错误码和退出码 | 黑盒结果或 JSON 合同漂移 |
+| 外部锚点 | 账本记录与本地规范摘要一致 | 提交前检查失败、回灌出现 `E2004` |
+
+测试证据按以下路径逐层增强：
+
+```mermaid
+flowchart LR
+    A["标准样例"] --> B["独立参考"]
+    B --> C["单元与分支"]
+    C --> D["属性与随机差分"]
+    D --> E["故障注入"]
+    E --> F["CLI 与浏览器"]
+    F --> G["多后端 CI"]
+    G --> H["Fabric 实链"]
 ```
 
-**覆盖分支**：`ed25519.mbt:245` — `sig.length() != 64 || pk.length() != 32`
+标准样例固定已知答案，独立参考打破实现自证，随机化扩大输入空间，故障注入确认测试确实会失败，进程和实链实验覆盖系统边界。
 
-#### 1.2 point_decode无效点（3例）
+## 2. 风险矩阵
 
-```moonbit
-test "point_decode rejects data not on curve" {
-  // 构造 y 值使 -x^2 + y^2 != 1 + d*x^2*y^2
-  // 乘以 sqrt(-1) 后仍不匹配 → return None
-}
+| 信任边界 | 主要风险 | 核心证据 | 阻断门禁 |
+| --- | --- | --- | --- |
+| Canonical JSON | 字段顺序、转义或数字语义漂移 | RFC 8785 样例、性质测试、固定夹具 | 包测试、夹具重生成 |
+| SHA-2 / HMAC | 填充边界、多块输入或算法分派错误 | NIST/RFC 样例、Node.js 随机差分 | digest 测试、差分门禁 |
+| Merkle | 叶子域分隔、奇数提升或路径方向错误 | 独立金色根、规模边界、包含证明性质 | merkle 测试、cross-verify、mutation |
+| Ed25519 | 非规范编码、可塑性、低阶点或标量边界被接受 | RFC 8032、Wycheproof、Node.js 差分、精确分支测试 | crypto 测试、向量清点、mutation |
+| Manifest | 非法路径、字段约束或版本关系被接受 | 结构矩阵、路径矩阵、创建异常测试 | model/create 测试、CLI 黑盒 |
+| 完整验证 | 文件、Merkle 根或外部摘要漏检 | 独立夹具、异常包、完整错误集合 | verify 测试、CLI 黑盒、mutation |
+| 增量验证 | 缓存越过内容检查，或与完整验证语义分叉 | golden manifest、恶意缓存边界、差分结果 | incremental 测试、mutation |
+| 对象存储 | 自生成摘要掩盖篡改，缺失对象未拒绝 | 硬编码独立摘要、直接篡改对象 Map | store 测试、mutation |
+| 审计链 | 条目重排、前驱断裂或签名覆盖不完整 | 规范条目、签名篡改、JSON 往返 | audit/API 测试、property |
+| CLI / API | 参数、JSON、退出码或错误码漂移 | 双 shell 黑盒、malformed fuzz、浏览器 smoke | required CI |
+| 文件系统 | 路径逃逸、链接循环或遍历失控 | 路径拒绝矩阵、Windows junction probe | create/CLI 测试、手动安全探针 |
+| Fabric | 本地失败仍提交、重复记录改变、回执不一致 | Gateway 单测、Chaincode race 测试、双组织实验 | Fabric required job、协议复跑 |
 
-test "point_decode triggers sqrt(-1) multiplication path" {
-  // 构造 y 使 (y^2-1)/(d*y^2+1) 的平方根需要乘以 sqrt(-1)
-  // 但乘以后 x^2 == x2 → 正确解码
-}
+详细分支映射位于 [BRANCH_COVERAGE.md](BRANCH_COVERAGE.md)。该清单覆盖安全相关的接受、拒绝、跳过和警告路径，并由源码变更防漂移脚本维护。
 
-test "point_decode rejects wrong length (31 bytes)" {
-  let bad = Bytes::make(31, b'\x00')
-  assert_true(point_decode(bad) is None)
-}
+## 3. 证据分层
+
+### 3.1 已知答案
+
+这一层使用外部标准和手工边界值固定结果：
+
+- SHA-256、SHA-512 使用 NIST 样例和填充边界。
+- HMAC-SHA256 使用 RFC 2104 结果。
+- Ed25519 使用 RFC 8032 的 4 条样例。
+- Canonical JSON 使用 RFC 8785 语义。
+- Manifest、路径和错误码使用明确的输入分区表。
+
+### 3.2 独立参考
+
+Node.js `crypto` 和独立生成的固定夹具提供第二套实现：
+
+- `tools/cross-verify.mjs` 重算证据包摘要和 Merkle 根。
+- `tools/differential-crypto.mjs` 对比公钥、签名、交叉验签和篡改拒绝。
+- `tools/differential-digest.mjs` 对比 SHA-256、SHA-512 和 HMAC-SHA256。
+- store 和 incremental 测试直接使用外部固定摘要，绕开被测生成路径。
+- Google Wycheproof 提供 150 条 Ed25519 攻击与合法向量。
+
+### 3.3 行为性质
+
+确定性随机种子扩展人工样例，同时保留失败复现能力：
+
+- Canonical JSON、Merkle 和 Ed25519 检查代数或往返性质。
+- `tools/property-api-semantic.mjs` 覆盖创建、验证、证明、审计和签名闭环。
+- `tools/fuzz-api-malformed.mjs` 覆盖 12 个浏览器 API 的异常请求外壳。
+- `tools/randomized-hardening.mjs` 固定 `ci`、`release` 和 `stress` 三档轮次。
+
+性质测试承担输入扩展，预期结果仍来自不变量、独立参考或明确拒绝合同。
+
+### 3.4 反向证明
+
+`tools/mutation-check.mjs` 对安全不变量注入 16 个实现故障。当前测试全部捕获，覆盖摘要检查、Merkle、外部锚点、低阶公钥、审计签名、增量缓存和对象存储等关键路径。
+
+新增安全不变量时，应同时增加可观察的失败样例。可使用 mutation、独立参考或先失败后修复的回归用例，证明门禁能够识别目标故障。
+
+### 3.5 系统边界
+
+系统级证据覆盖实现内部单测无法观察的合同：
+
+- PowerShell 和 bash 从真实进程检查参数、退出码、JSON 和文件副作用。
+- 浏览器 smoke 调用发布版 MoonBit JS 产物。
+- native、wasm、wasm-gc、js 共用核心测试。
+- Fabric Chaincode、Gateway 和双组织网络覆盖提交、验证、查询、重复与摘要回传。
+- native timing runner 对发布构建执行随机交错采样，记录 Welch t 统计量。
+
+## 4. 当前基线
+
+| 证据面 | 2026-07-11 基线 | 权威记录 |
+| --- | --- | --- |
+| MoonBit | 351 个测试声明，347 个可执行测试，4 个基准包装 | native、wasm、wasm-gc、js 各 `347/347` |
+| CLI | PowerShell、bash 各覆盖 native 和 js | 每个 shell/target 组合 `62/62` |
+| 浏览器 API | 12 个字符串接口 | smoke `36/36`，malformed 与 semantic profile 进入 CI |
+| Ed25519 标准 | RFC 8032 4 条样例 | 逐字节已知答案 |
+| Ed25519 攻击输入 | Wycheproof 150 条 | 88 条合法、62 条非法、7 类攻击 |
+| 独立差分 | Ed25519、SHA-2、HMAC、证据包 | CI 每类 64 轮，发布候选 1000 轮记录通过 |
+| 故障注入 | 16 个定向变异 | `16/16` 捕获，源码恢复检查通过 |
+| 分支审计 | MoonBit 核心、CLI 和 Fabric 共 217 个审计不变量 | 当前清单无开放 gap，注册源码改动触发 stale-check |
+| Fabric Chaincode | Go vet、race 和覆盖率 | 核心语句覆盖率 82.1% |
+| Fabric Gateway | TypeScript check、build、test | `19/19` |
+| Fabric 实链 | Fabric v3.1.4，Org1/Org2 | 首笔 `VALID`、双组织查询、幂等重复、`E2003`/`E2004` 回传 |
+| 原生计时 | Windows/MSVC release | verify、sign-message、sign-secret 各 50,000 样本 |
+
+数字、环境和命令以 [RESULTS_LOG.md](records/RESULTS_LOG.md) 的时间戳记录为准。公开材料引用同一记录，指标漂移由 `tools/check-metrics.mjs` 阻断。
+
+## 5. 覆盖索引
+
+| 模块或合同 | 重点输入 | 主要测试资产 |
+| --- | --- | --- |
+| `canonjson` | 键顺序、转义、Unicode、数字拒绝、幂等性 | `src/canonjson/*_wbtest.mbt` |
+| `digest` | 空输入、块边界、多块输入、算法标签、HMAC key | `src/digest/*_wbtest.mbt`、`differential-digest.mjs` |
+| `merkle` | 0/1/奇偶叶、`2^k±1`、10,000 叶、证明方向 | `src/merkle/*_wbtest.mbt`、`cross-verify.mjs` |
+| `crypto` | 长度、编码、标量、低阶点、可塑性、篡改 | `src/crypto/*_wbtest.mbt`、Wycheproof、`differential-crypto.mjs` |
+| `model` | schema、路径、版本链、错误码 | `src/model/*_wbtest.mbt`、CLI manifest 矩阵 |
+| `create` | 排序、SHA-512、空树、非法字段、深度上限 | `src/create/create_wbtest.mbt`、CLI 黑盒 |
+| `verify` | 文件缺失/变化、外部摘要、Merkle 根、完整诊断 | `src/verify/verify_wbtest.mbt`、golden packs、mutation |
+| `incremental` | 命中、失效、恶意缓存、外部摘要、完整验证对等 | `src/verify/incremental_wbtest.mbt`、mutation |
+| `store` | 去重、篡改、缺失对象、严格/宽松重建 | `src/store/object_store_wbtest.mbt`、mutation |
+| `audit` | 前驱摘要、重排、JSON、签名、未签名条目 | `src/audit/audit_log_wbtest.mbt`、API property |
+| 浏览器 API | 异常 JSON、类型、hex、闭环行为、稳定 envelope | `src/api/api_wbtest.mbt`、smoke、fuzz、property |
+| CLI | 命令、文件副作用、JSON schema、退出码、错误码 | `tools/cli-test.ps1`、`tools/cli-test.sh` |
+| Fabric | 状态不可变、并发、提交回执、身份和回传 | `integrations/fabric/**/test*`、`docs/records/fabric-e2e/` |
+
+## 6. 执行档位
+
+| 档位 | 触发条件 | 执行范围 |
+| --- | --- | --- |
+| 定向检查 | 开发中修改单个包或合同 | 对应包测试、相关独立参考、相关 mutation |
+| 合并检查 | Pull Request 或 main 推送 | `.github/workflows/ci.yml` 的两个 required job |
+| 发布候选 | 标签、比赛交付或公开 ready 声明 | 完整 CI、发布随机档、mutation、包内容、Showcase 构建 |
+| 协议复跑 | Chaincode、Gateway、Fabric SDK、profile、背书或提交处理变化 | 双组织部署、提交、双查询、重复、正负回传 |
+| 生产认证 | 高价值资产、目标工具链或 CPU 变化 | 独立密码学评审、最终机器码、目标机 timing、密钥和组织治理 |
+
+### 6.1 基础门禁
+
+```powershell
+moon check --deny-warn --target all
+moon fmt --check
+moon info
+git diff --exit-code -- 'src/**/*.mbti'
+moon test --deny-warn --target wasm,wasm-gc,js
+moon test --deny-warn --target native
+node tools/check-metrics.mjs
+node tools/check-package-contents.mjs
 ```
 
-**覆盖分支**：`ed25519.mbt:335`（长度）、`:362-364`（sqrt(-1)路径）、`:365-367`（不在曲线上）
+### 6.2 独立证据
 
-#### 1.3 x=0+sign=1（1例）
-
-```moonbit
-test "point_decode rejects x=0 with sign=1 (RFC 8032 §5.1.3)" {
-  // identity point (x=0, y=1) 的编码，但 sign bit 设为 1
-  // 编码: 0x81 + 31 个 0x00
-  let bad_enc : Array[Byte] = [b'\x81']
-  for _ in 0..<31 { bad_enc.push(b'\x00') }
-  let pk = Bytes::from_array(bad_enc)
-  assert_true(point_decode(pk) is None)
-}
+```powershell
+node tools/cross-verify.mjs
+node tools/check-wycheproof-ed25519.mjs
+node tools/check-branch-coverage-stale.mjs
+node tools/smoke-api.mjs
+node tools/randomized-hardening.mjs --profile release --skip-build
+node tools/mutation-check.mjs
 ```
 
-**覆盖分支**：`ed25519.mbt:375-377` — `x.eq(Fe::zero()) && sign == 1`
+### 6.3 适配器
 
-#### 1.4 常量时间静态审计
-
-产出文档 `docs/CONST_TIME_AUDIT.md`，包含分支清单：
-
-| 函数 | 行号 | 分支类型 | 涉及秘密 | branchless? | 备注 |
-|---|---|---|---|---|---|
-| `Fe::eq` | field25519.mbt:199-207 | XOR累积比较 | 两个Fe值 | ✅ | XOR累加，无分支 |
-| `fe_cmov` | field25519.mbt:214-227 | 条件拷贝 | Fe值+条件 | ✅ | OR掩码，无分支 |
-| `point_cmov` | point25519.mbt:129-136 | 条件拷贝 | Point值+条件 | ✅ | 逐limb cmov |
-| `scalar_mul` | point25519.mbt:144-161 | double-and-add | 标量 | ✅ | 每bit都执行add+double |
-| `reduce_scalar_512` | ed25519.mbt:81-153 | 算术 mask + 条件减法 | 512位标量 | ✅ | 比较用 `byte_gt_mask`/`byte_lt_mask`，borrow 用算术选择，无源码级 secret-dependent 分支 |
-| `Fe::to_bytes` | field25519.mbt:161-186 | 条件减p | Fe值 | ✅ | borrow计算无分支 |
-| `scalar_lt_l` | ed25519.mbt:223-239 | **逐字节比较** | verify 的公开 S 字段 | ⚠️ | 有 early return，但当前只用于公开签名输入 |
-| `point_decode` sign检查 | ed25519.mbt:371-375 | **sign bit分支** | 解码点 | ⚠️ | **有if分支** |
-
-**已知非常量时间/需保守声明路径**：
-- `scalar_lt_l` 的 `sv < lv` / `sv > lv` early return（当前仅用于 verify 的公开 S 字段，可接受；不可复用到 secret scalar）。
-- `point_decode` 的 `x_sign != sign` 和 `x.eq(Fe::zero()) && sign == 1` 分支（当前仅用于 verify 的公开 pk/R，可接受）。
-- `reduce_scalar_512` 的 CT-001 已在源码级修复；native 动态时序长跑未观察到明显 timing difference。后端产物/正式 dudect 审计被列为生产化认证路线，而不是当前测试体系缺口。
-
-#### 1.5 create abort分支（5例）
-
-```moonbit
-test "panic create_manifest rejects empty subject id" {
-  let options = CreateOptions::{ subject: SubjectInfo::{ id: "", kind: "test" }, ... }
-  ignore(create_manifest(options))
-}
-// 类似: 空 subject.kind、空 version_id、空 version_parent、非法路径
+```powershell
+./tools/cli-test.ps1 -Target native
+./tools/cli-test.ps1 -Target js
+bash ./tools/cli-test.sh native
+bash ./tools/cli-test.sh js
+npm run fabric:check
+npm run fabric:test
+npm --prefix showcase run check
+npm --prefix showcase run build
 ```
 
-**实际实现**：MoonBit 测试名以 `panic` 开头时，测试只有在触发 panic/abort 时才通过。当前已在
-`src/create/create_wbtest.mbt` 中落地 5 个 `panic` 测试，覆盖空 `subject.id`、空 `subject.kind`、
-空 `version_id`、空 `version_parent`、非法路径 5 条 abort/error-path 分支。此处没有改
-`create_manifest` API，也没有把 `abort` 临时重构成 `Result`，避免为了测试引入行为变更。
+Go Chaincode 的 `go test -race -cover ./...` 由 Ubuntu required CI 执行。Windows 本地覆盖运行保留为快速检查，不能替代 race 结果。
 
-#### 1.6 store安全函数（3例）
+## 7. 用例设计
 
-```moonbit
-test "verify_integrity returns false when content is tampered" {
-  let result = deduplicate(files)
-  // 篡改 store 中的某个对象
-  result.store.objects[hash] = Bytes::of_string("tampered")
-  assert_false(result.verify_integrity())
-}
+每个新增或修改的安全结论按以下顺序落地：
 
-test "reconstruct_strict returns Err when content is missing" {
-  let result = deduplicate(files)
-  // 删除 store 中的某个对象
-  result.store.remove(hash)
-  assert_true(result.reconstruct_strict() is Err(_))
-}
+1. 标出信任边界和失败影响。
+2. 划分正常、边界、异常和对抗输入。
+3. 选择标准、独立实现、固定夹具、手工推导或性质不变量作为 oracle。
+4. 选择能够最短定位故障的测试层。
+5. 保存随机种子、轮次和最小失败输入。
+6. 为安全关键不变量增加反向证明。
+7. 将公开结论的运行结果追加到 `RESULTS_LOG.md`。
 
-test "remove returns false for non-existent hash" {
-  let store = ObjectStore::new()
-  assert_false(store.remove("sha256:nonexistent"))
-}
-```
+合格用例应满足：
 
-#### 1.7 增量验证缓存篡改（2例）
+- 断言业务值、错误码、退出码或文件副作用。
+- 失败信息能够定位轮次、路径或输入分区。
+- 随机测试使用确定性种子。
+- 异常输入精确触发目标分支。
+- 自生成闭环同时配有独立答案或攻击样例。
+- 大型端到端测试只承担跨进程、跨后端或跨协议合同。
 
-```moonbit
-test "incremental verify with tampered cache skips rehashing of bad file" {
-  // 构造 manifest + files，验证通过
-  // 篡改 cache.json 中的某个 digest 为正确值
-  // 修改对应文件内容
-  // 增量验证应该跳过该文件（因为缓存匹配）
-  // 但 Merkle 根仍会检测到不匹配 → E3003
-  // 验证：文档化的信任模型边界
-}
+## 8. 维护触发器
 
-test "incremental verify with cache pointing to missing file" {
-  // cache 中有路径但 files 中没有
-  // 预期: E2003
-}
-```
+| 变化 | 必须同步的证据 |
+| --- | --- |
+| 修改已审计源码 | 更新或复核 `BRANCH_COVERAGE.md`，通过 stale-check |
+| 修改摘要、Merkle 或 Ed25519 | 标准样例、独立差分、相关 mutation、全部后端 |
+| 修改 manifest 或路径处理 | schema/path 矩阵、创建和验证黑盒、异常文件系统探针 |
+| 修改 CLI 或 API | 双 shell 黑盒、smoke、malformed、semantic、机器合同文档 |
+| 修改 Chaincode 或 Gateway | Go/TypeScript 门禁和真实 Fabric 协议复跑 |
+| 修改依赖或编译后端 | 全后端回归、差分检查、必要时 native timing |
+| 修改公开数字或安全声明 | metrics、链接、对应命令和 `RESULTS_LOG.md` |
+| 新增发布文件 | Mooncakes 包内容门禁和干净消费者检查 |
 
-### 5.2 阶段2关键用例
+当前 v0.5.0 没有开放的 P0 或 P1 测试缺口。流式摘要、目标机器码复核、专门 dudect 活动和生产 Fabric 治理由部署等级触发，验收条件已经写入 [SECURITY.md](../SECURITY.md) 和 [CONST_TIME_AUDIT.md](CONST_TIME_AUDIT.md)。
 
-#### 2.6 Ed25519属性测试
+## 9. 完成条件
 
-```moonbit
-test "ed25519 sign→verify round-trip property (60 rounds)" {
-  let rng = PropRng::make(0xED25519)
-  for round in 0..<60 {
-    let sk = random_bytes(rng, 32)
-    let msg = random_bytes(rng, rng.below(256))
-    let pk = ed25519_public_key(sk)
-    let sig = ed25519_sign(sk, msg)
-    assert_true(ed25519_verify(pk, msg, sig))
-  }
-}
+一轮测试工作在以下条件同时成立时收口：
 
-test "ed25519 tamper detection property (120 rounds)" {
-  let rng = PropRng::make(0xTAMPER)
-  for round in 0..<120 {
-    let sk = random_bytes(rng, 32)
-    let msg = random_bytes(rng, rng.below(256))
-    let pk = ed25519_public_key(sk)
-    let sig = ed25519_sign(sk, msg)
-    // 翻转 msg/sig/pk 的随机1字节
-    let tampered = flip_random_byte(rng, msg)  // 或 sig 或 pk
-    assert_false(ed25519_verify(pk, tampered, sig))
-  }
-}
-```
+1. 触及的信任边界已完成风险分级。
+2. 对应 P0 项全部关闭。
+3. 发布相关 P1 门禁全部通过。
+4. 最强公开声明能够指向测试、独立参考、审计或实链记录。
+5. 安全关键结论具备反向证明。
+6. 后续增强项带有明确触发条件和验收结果。
 
-#### 2.11 Ed25519差分测试
+满足这些条件后，新增测试只服务新的输入分区、信任边界、参考来源、平台差异或历史逃逸类型。完整分级和停手规则见 [TEST_GOVERNANCE.md](TEST_GOVERNANCE.md)。
 
-```javascript
-// tools/differential-crypto.mjs
-// CI: node tools/differential-crypto.mjs --rounds 64
-// Release candidate: node tools/differential-crypto.mjs --rounds 1000
-//
-// Uses deterministic SplitMix64 seeds/messages and Node.js crypto Ed25519
-// as the independent oracle for the compiled MoonBit JS API.
-```
+## 10. 证据入口
 
-**实际检查**：公钥推导一致、确定性签名逐字节一致、Node 接受 MoonBit 签名、MoonBit 接受
-Node 签名、篡改消息被 MoonBit 拒绝。该脚本不把向量固化进仓库，避免 fixture 腐化；随机源是
-固定种子 PRNG，所以失败可复现。
-
----
-
-## 6. 覆盖率度量方案
-
-### 6.1 多维度度量
-
-| 维度 | 方法 | 目标 | 当前 |
-|---|---|---|---|
-| **MoonBit覆盖率** | `moon test --enable-coverage` | 行覆盖 >90% | 未测量 |
-| **变异测试得分** | `mutation-check.mjs` | 100%捕获 | 16/16 (100%) |
-| **分支清单审计** | `docs/BRANCH_COVERAGE.md` 人工逐包建立分支清单 | 100%关键分支有触发测试或明确 accepted-risk | verify/incremental/merkle/digest/crypto/create/store/audit 145 个分支，0 个 open gap |
-| **分支清单防漂移** | `check-branch-coverage-stale.mjs` | 已审计源码变更必须同步 review 分支图 | CI gate 已接入 |
-| **错误码触发覆盖** | CLI黑盒断言 | 100%（除E3002保留） | ~95% |
-| **指标漂移守卫** | `check-metrics.mjs` | 0 mismatch | 0 |
-
-### 6.2 分支清单审计方法
-
-对每个包执行：
-1. Grep 搜索 `return None`、`return false`、`abort(`、`return Err`、`catch`
-2. 建立分支清单表格（文件、行号、触发条件、是否被测试覆盖）
-3. 逐个编写触发测试
-
-**示例：ed25519.mbt 分支清单**
-
-| 行号 | 分支条件 | 触发输入 | 覆盖状态 | 测试ID |
-|---|---|---|---|---|
-| 245 | `sig.length() != 64` | sig=63字节 | ❌ TODO | 1.1 |
-| 245 | `pk.length() != 32` | pk=31字节 | ❌ TODO | 1.1 |
-| 260 | `!scalar_lt_l(s_enc)` | S=l | ✅ 已测 | ed25519_wbtest #12 |
-| 264 | `point_decode(pk) = None` | 非规范y=pk | ❌ TODO | 1.2 |
-| 271 | `a_point.is_identity()` | identity点pk | ✅ 已测 | ed25519_wbtest #14 |
-| 280 | `a_doubled.is_identity()` | 低阶点(0,-1) | ✅ 已测 | ed25519_wbtest #15 |
-| 284 | `point_decode(r_enc) = None` | 非规范R | ❌ TODO | 1.2 |
-| 335 | `data.length() != 32` | data=31字节 | ❌ TODO | 1.2 |
-| 350 | `y_original != y.to_bytes()` | y=p | ✅ 已测 | ed25519_wbtest #13 |
-| 362 | `x.square().eq(x2) == false` (第一次) | 特定y值 | ❌ TODO | 1.2 |
-| 365 | `x.square().eq(x2) == false` (第二次) | 非曲线点 | ❌ TODO | 1.2 |
-| 375 | `x.eq(Fe::zero()) && sign == 1` | x=0+sign=1 | ❌ TODO | 1.3 |
-
----
-
-## 7. 改进安全检查清单
-
-> 在任何代码改进合并前，必须通过以下检查。
-
-```
-[ ] 该改进涉及的包是否有未覆盖的盲点？（查本文档 §5）
-    [ ] 若有高风险盲点 → 改进 BLOCKED，先补测试（阶段1）
-    [ ] 若有中低风险盲点 → 改进 ALLOWED，但须在同PR中补测试
-
-[ ] 该改进是否涉及 crypto/digest/merkle 包？
-    [ ] 是 → 变异测试是否新增了对应变异点且被捕获？
-    [ ] 是 → 常量时间审计清单是否复查通过？（查 §5.1.4）
-
-[ ] 该改进是否涉及 CLI 行为？
-    [ ] 是 → bash 和 PowerShell CLI 测试是否都更新？
-    [ ] 是 → 三目标（wasm-gc/js/native）是否都验证？
-
-[ ] 该改进是否改变错误码行为？
-    [ ] 是 → 分支清单是否更新？
-    [ ] 是 → CLI测试的错误码多集断言是否更新？
-
-[ ] 指标漂移守卫是否通过？（node tools/check-metrics.mjs）
-[ ] 分支清单防漂移是否通过？（node tools/check-branch-coverage-stale.mjs）
-[ ] 变异测试是否全绿？（node tools/mutation-check.mjs）
-[ ] 交叉对拍是否全绿？（node tools/cross-verify.mjs）
-```
-
----
-
-## 8. 测试用例设计规范
-
-### 8.1 密码学测试：标准向量对照
-
-| 算法 | 标准来源 | 现有 | 需补充 |
-|---|---|---|---|
-| SHA-256 | NIST FIPS 180-4 + CAVP | 4个NIST向量 | 块边界（55/56/64字节） |
-| SHA-512 | NIST FIPS 180-4 | 3个NIST向量 | 多块（>128字节）+ 百万'a' |
-| Ed25519 | RFC 8032 §7.1 | 4组KAT | Wycheproof消极向量 + orlp/ed25519 1024组 |
-| Merkle | RFC 6962 | golden向量 | SHA-512变体 + 大规模树 |
-
-### 8.2 边界值枚举
-
-| 模块 | 边界值 | 确定依据 |
-|---|---|---|
-| Fe (GF(2^255-19)) | 0, 1, p-1, p, p+1, 2p-1, 2^256-1 | 素数域规范表示边界 |
-| Ed25519 S字段 | 0, l-1, l, l+1, 2^256-1 | RFC 8032 §8.4 S<l 检查边界 |
-| Ed25519 公钥点 | identity(0,1), (0,-1), base, y=p, y=p+1 | RFC 8032 §5.1.3 规范编码边界 |
-| SHA-256 输入 | 0, 55, 56, 64, 111, 112字节 | 填充块边界 |
-| Merkle叶子数 | 0, 1, 2, 3, 2^k-1, 2^k, 2^k+1, 10000 | 树高度变化 + 奇偶提升 + 规模 |
-
-### 8.3 错误路径系统化覆盖
-
-对每个包：
-1. Grep 搜索所有错误出口（`return None`/`return false`/`abort`/`return Err`/`catch`）
-2. 建立分支清单表格
-3. 对每个未覆盖的错误出口，构造能精确触发该分支的输入
-4. 在测试计划中记录映射关系
-
----
-
-## 9. 风险登记册
-
-| 风险ID | 描述 | 概率 | 影响 | 缓解措施 |
-|---|---|---|---|---|
-| RISK-001 | 密码学改进引入安全回归但未被检测 | 高 | 严重 | 阶段1先补测试；禁止在阶段1前改 crypto/ |
-| RISK-002 | abort分支无法在测试中捕获 | 中 | 中 | 改为Result类型（测试驱动的改进） |
-| RISK-003 | 改进后变异测试逃逸率上升 | 中 | 高 | 变异点与源码行号绑定；扩展优先于改进 |
-| RISK-004 | 常量时间属性被破坏 | 中 | 严重 | 静态审计前置；审计清单纳入代码审查 |
-| RISK-005 | bash CLI测试盲区导致CI通过但行为退化 | 低 | 高 | 已补齐到62例；CI native/js 同跑 bash 与 PowerShell |
-| RISK-006 | 性能优化引入native/wasm-gc特有bug | 低 | 严重 | 三目标基准；基准非阻塞但记录 |
-| RISK-007 | Fabric mock 全绿但真实背书/提交/查询失败 | 中 | 高 | Go/TS 单测进入 CI；双组织真实 E2E 保存 tx/block/status、双查询和 E2003/E2004 负向证据 |
-
----
-
-## 9.5 发布候选总验收基线
-
-Phase 1-3 收口后，测试体系的阶段性完成点不再用“还想补哪些单测”判断，而用一组可重复的发布候选门禁判断：
-
-| 门禁 | 命令 | 当前结果 | 使用时机 |
-|---|---|---|---|
-| 静态/指标治理 | `moon check`; `node tools/check-metrics.mjs`; `node tools/check-branch-coverage-stale.mjs --self-test`; `node tools/check-branch-coverage-stale.mjs --base HEAD~1`; `git diff --check` | PASS：`check-metrics` 44/44，stale self-test 3/3 | 每次 PR / 发布候选 |
-| 三后端单元回归 | `moon test --target native`; `moon test --target js`; `moon test --target wasm-gc` | PASS：347/347 + 347/347 + 347/347 | 每次 PR / 发布候选 |
-| CLI 黑盒合同 | `powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target native/js`; `bash ./tools/cli-test.sh native/js` | PASS：native 62/62 + js 62/62（PowerShell 与 bash） | 每次 PR / 发布候选 |
-| Fabric adapter | `go vet ./...`; `go test -race -cover ./...`; Gateway `npm ci && npm run check && npm test` | Chaincode 82.1%；Gateway 19/19；CI required job | 每次 PR / 发布候选 |
-| Fabric 真实协议 | `anchor-pack`→Org1/Org2 query→duplicate→`verify-anchor` 正负例 | 首笔 block 6 `VALID`；E2003/E2004 精确拒绝 | 协议/依赖升级与最终交付前 |
-| 发布随机化加固 | `node tools/randomized-hardening.mjs --profile stress` | PASS：10000 malformed fuzz、1000 semantic property、5000 Ed25519 differential、5000 digest differential | 发布候选 / 最终验收 |
-| 变异反向证明 | `node tools/mutation-check.mjs` | PASS：16/16 caught，0 slipped，0 errored | 发布候选 / 安全关键变更 |
-| 动态时序探针 | `node tools/timing-ed25519-verify.mjs --samples 10000`; `powershell -ExecutionPolicy Bypass -File tools/timing-ed25519-native.ps1 -Target both -Samples 50000 -Warmup 1024 -Config release` | JS 10000 样本已记录；native 50000 长跑 verify/sign-message/sign-secret 均 `|t| < 4.5`；作为当前工具链下的工程化 assurance 信号 | 手动安全审计 |
-
-剩余边界已转化为主动工程取舍：Ed25519 侧信道已有本机 native timing 经验性证据，正式 dudect/后端产物级证明进入生产化认证路线；`@fs` 无 lstat/symlink API，因此符号链接语义采用 depth/file cap 与 create depth-cap abort 的可复现防护；随机测试是高强度抽样，未来可按发布等级提高轮次；CI 仍需在远端 ubuntu/gcc 环境确认 native gate。
-
----
-
-## 10. 变更历史
-
-| 日期 | 变更内容 | 变更人 |
-|---|---|---|
-| 2026-07-06 | 初始版本：基于3个子线程深度分析，确定"先测试后改进"策略，设计9层测试模型和3阶段实施计划 | TRAE AI |
-| 2026-07-06 | Phase 1 部分落地：Wycheproof Ed25519、store independent oracle、incremental golden oracle；记录 304/304 实跑与 308 声明口径差异 | Codex |
-| 2026-07-06 | Phase 1 Ed25519 精确分支收口：新增 8 个白盒测试，记录 312/312 实跑与 316 声明口径差异 | Codex |
-| 2026-07-06 | Phase 1 create abort 收口：新增 5 个 panic 测试，记录 317/317 实跑与 321 声明口径差异；CT-001 保持为实现风险 | Codex |
-| 2026-07-06 | CT-001 源码级修复：`reduce_scalar_512` 比较/borrow 改为 arithmetic mask/selection；Phase 1 源码与测试治理收口 | Codex |
-| 2026-07-06 | Phase 2 分支清单审计扩展：`docs/BRANCH_COVERAGE.md` 覆盖 verify/incremental/merkle/digest/crypto/create/store/audit 145 个关键分支，0 个 open gap | Codex |
-| 2026-07-06 | Phase 2 分支清单防漂移门禁：新增 `tools/check-branch-coverage-stale.mjs` 并接入 CI，已审计源码变更必须同步 review `docs/BRANCH_COVERAGE.md` | Codex |
-| 2026-07-06 | Phase 2 API fuzz 门禁：新增 `tools/fuzz-api-malformed.mjs`，覆盖 12 个 JS string adapter 的 malformed request 不崩溃/JSON envelope 契约，并接入 CI 64 轮 | Codex |
-| 2026-07-06 | Phase 2 API 分支审计：`docs/BRANCH_COVERAGE.md` 新增 `src/api/api.mbt` 49 个公共 adapter 分支，stale-check 纳入 `src/api/api.mbt` | Codex |
-| 2026-07-06 | Phase 2 API semantic property 门禁：新增 `tools/property-api-semantic.mjs`，覆盖公共 JS adapter 的 valid-request 闭环不变量与篡改拒绝，并接入 CI 16 轮 | Codex |
-| 2026-07-06 | Phase 2 CLI_VERSION 门禁：`check-metrics.mjs` 新增 `CLI_VERSION == moon.mod version` 断言，版本漂移会阻断 CI | Codex |
-| 2026-07-06 | Phase 2 随机化加固 profile：新增 `tools/randomized-hardening.mjs`，固化 `ci`/`release`/`stress` 三档 fuzz/property/differential 轮次 | Codex |
-| 2026-07-06 | Release 随机化加固实跑：`node tools/randomized-hardening.mjs --profile release` 通过，记录 1000 malformed fuzz / 256 semantic property / 1000 crypto differential / 1000 digest differential | Codex |
-| 2026-07-06 | Phase 3 收口：补 `diag` 单复数、`Fe::from_small`/`Fe::to_bytes` 边界测试，新增 Ed25519 verify 10000 次 timing sampler，并将 E3002/符号链接项记录为 policy/mitigation 完成 | Codex |
-| 2026-07-06 | 发布候选总验收：release 随机化、native/JS/wasm-gc 单测、PowerShell/bash CLI（native+js）、mutation、metrics、branch stale-check、diff check 全部通过；剩余风险固定为 dudect、symlink API 边界、CI 远端确认和 bounded fuzz | Codex |
-| 2026-07-06 | 最终加固闭环：stress 随机化四段实跑通过；新增 Windows junction probe；修复 create 深度上限静默截断，CLI 黑盒升至 54/54；重跑 timing 10000 样本并记录 50000 样本成本边界 | Codex |
-| 2026-07-11 | 新增 CLI 机器合同与外部摘要回灌，黑盒升至 62/62；Go Chaincode + TypeScript Gateway 纳入 CI；Fabric v3.1.4 双组织真实 E2E 完成并保存脱敏收据 | Codex |
-| 2026-07-07 | native timing evidence：新增 `src/timing` 与 `tools/timing-ed25519-native.ps1`，本机 MSVC native release 长跑 50000 样本覆盖 verify/sign-message/sign-secret，三项 `|t| < 4.5`；侧信道验证升级为工程化 assurance 层，正式 dudect/后端产物审计进入生产化认证路线 | Codex |
+| 资料 | 职责 |
+| --- | --- |
+| [TEST_GOVERNANCE.md](TEST_GOVERNANCE.md) | 风险分级、完成定义、门禁归属和停手规则 |
+| [BRANCH_COVERAGE.md](BRANCH_COVERAGE.md) | 安全相关分支到测试的映射 |
+| [CONST_TIME_AUDIT.md](CONST_TIME_AUDIT.md) | Ed25519 源码审计和原生计时记录 |
+| [RESULTS_LOG.md](records/RESULTS_LOG.md) | 带时间、环境、命令和结果的运行记录 |
+| [ACCEPTANCE_CHECKLIST.md](records/ACCEPTANCE_CHECKLIST.md) | 赛事九项要求到仓库证据的映射 |
+| [CI 工作流](../.github/workflows/ci.yml) | 合并门禁的可执行来源 |
+| [Fabric 记录](records/fabric-e2e/2026-07-11/) | 双组织部署、交易、查询和回传证据 |

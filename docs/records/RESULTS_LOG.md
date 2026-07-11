@@ -2166,6 +2166,37 @@ deployed protocol and revalidated the Gateway boundary around that record.
 | Links and reporting | PASS: changed local links resolve; GitHub private advisory endpoint returned HTTP 200 |
 | `git diff --check`; source restoration scan | PASS |
 
+## 2026-07-11 Asia/Shanghai (documentation rewrite round 5: quality evidence)
+
+### Scope
+
+| Item | Result |
+| --- | --- |
+| Repository baseline | `codex/documentation-restructure` at `a8273d8` before the quality-material rewrite |
+| Test plan | Replaced the completed historical backlog with the current quality goals, trust-boundary matrix, five evidence layers, verified baseline, coverage index, execution profiles, maintenance triggers, and completion rule |
+| Test governance | Rebuilt P0/P1/P2 classification, change-level Definition of Done, CI ownership, path-to-gate mapping, result-record contract, and stop rule in the Chinese primary documentation style |
+| Acceptance evidence | Compressed the competition checklist to the nine official requirements, with direct repository, workflow, package, release, license, example, and Fabric evidence links |
+| Project index | Reorganized navigation by reader task, document ownership, authoritative source, maintenance rule, and current delivery state |
+| Branch map | Corrected the public API inventory from 49 to 52, added CLI and Fabric summary rows, and verified 217 unique audited invariants with zero open gaps |
+| Stale guard | Expanded registered source coverage to the CLI machine adapter, Fabric Chaincode, and Fabric Gateway; added document-integrity checks for duplicate IDs, open gaps, and declared-count drift |
+| Migration status | Marked the quality-material round complete; clean-clone reproduction and context-free reader testing remain the final documentation rounds |
+
+### Verification
+
+| Command / flow | Result |
+| --- | --- |
+| Mermaid render | PASS: the test-evidence flow rendered through Kroki, HTTP 200 |
+| Local Markdown links | PASS: changed quality documents plus README, architecture, security, and development report; 9 files checked |
+| Public endpoints | PASS: GitHub, GitLink, Mooncakes, Showcase Pages, GitHub Release, and Actions returned HTTP 200 |
+| Language and structure scan | PASS: prohibited defensive/explanatory patterns, stale phase metrics, TODO markers, and obsolete backlog wording are absent from the four quality entry documents |
+| Branch guard | PASS: stale-check self-test 9/9; current map 217 unique invariants, zero open gaps |
+| `moon fmt --check`; `moon check --deny-warn --target all`; `moon info` interface diff | PASS |
+| Portable MoonBit tests | PASS: wasm, wasm-gc, and js each 347/347 |
+| Windows MSVC native tests | PASS: 347/347 |
+| Metrics and package guards | PASS: 44/44 assertions; 233 packaged files inspected |
+| Showcase | PASS: TypeScript project check and Vite production build |
+| `git diff --check` | PASS |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

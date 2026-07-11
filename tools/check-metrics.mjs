@@ -138,8 +138,8 @@ console.log(JSON.stringify(actual, null, 2));
 
 // ---------------------------------------------------------------------------
 // Assertion rules: (file, regex, expectedGroup, actualValue, description)
-// `minimum: true` means the doc value must be >= actual (for monotonically
-// increasing metrics like commit count, which drift +1 on every commit).
+// `minimum: true` means the repository value must meet or exceed the
+// documented floor (for monotonically increasing metrics like commit count).
 // ---------------------------------------------------------------------------
 const assertions = [
   // README.md
@@ -169,33 +169,23 @@ const assertions = [
     desc: "README.en.md line counts",
   },
   // DEVELOPMENT_REPORT.md
-  // Commit count uses `minimum` because it increases on every commit,
-  // including this check's own fix commit — exact match would endlessly drift.
   {
     file: "docs/report/DEVELOPMENT_REPORT.md",
-    pattern: /规模：(\d+)\s+行\s+MoonBit（实现\s+(\d+)\s+\+\s+测试\s+(\d+)）｜\s+提交：(\d+)\s+个\s+｜\s+包：(\d+)\s+个/,
-    expected: { 1: allMbtLines, 2: implOnly, 3: testLines, 4: commits, 5: pkgCount },
-    minimum: { 4: true },
-    desc: "DEVELOPMENT_REPORT.md header stats",
+    pattern: /MoonBit 源码\s*\|\s*\*{2}([\d,]+)\*{2}\s+行（实现\s+([\d,]+)\s+\+\s+测试\s+([\d,]+)）/,
+    expected: { 1: allMbtLines, 2: implOnly, 3: testLines },
+    desc: "DEVELOPMENT_REPORT.md line counts",
   },
   {
     file: "docs/report/DEVELOPMENT_REPORT.md",
-    pattern: /单元测试\s+\|\s+\*{2}(\d+)\s+个\*{2}/,
+    pattern: /测试声明\s*\|\s*\*{2}([\d,]+)\*{2}\s+个/,
     expected: testCount,
-    desc: "DEVELOPMENT_REPORT.md test count in table",
+    desc: "DEVELOPMENT_REPORT.md test declaration count",
   },
   {
     file: "docs/report/DEVELOPMENT_REPORT.md",
-    pattern: /提交数\s+\|\s+(\d+)/,
-    expected: commits,
-    minimum: true,
-    desc: "DEVELOPMENT_REPORT.md commit count",
-  },
-  {
-    file: "docs/report/DEVELOPMENT_REPORT.md",
-    pattern: /总行数\s+\|\s+\*{2}(\d+)\*{2}/,
-    expected: allMbtLines,
-    desc: "DEVELOPMENT_REPORT.md total lines",
+    pattern: /MoonBit 包\s*\|\s*\*{2}([\d,]+)\*{2}\s+个/,
+    expected: pkgCount,
+    desc: "DEVELOPMENT_REPORT.md package count",
   },
   // ACCEPTANCE_CHECKLIST.md
   {

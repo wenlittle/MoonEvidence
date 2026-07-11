@@ -29,8 +29,8 @@ anchors the verified manifest digest and feeds it back into verification.
 | `docs/GUIDE.md` | Task-based guide for create, verify, automation, browser review, Fabric anchoring, and version records |
 | `docs/DEMO_SCRIPT.md` | 5-minute presentation demo script |
 | `docs/ARCHITECTURE.md` | Layered package structure and frozen public API |
-| `docs/DEVELOPMENT_REPORT.md` | Redirect to the authoritative report (single line) |
-| `docs/report/DEVELOPMENT_REPORT.md` | Authoritative development report (merged: feature list + AI collaboration + engineering quality) |
+| `docs/DEVELOPMENT_REPORT.md` | Compatibility entry for the authoritative report |
+| `docs/report/DEVELOPMENT_REPORT.md` | Authoritative project argument: scenarios, goals, implementation, Fabric experiment, quality, ecosystem value, and design choices |
 | `docs/spec/EVIDENCE_PACK_SPEC.md` | Minimal evidence pack schema and verification semantics |
 | `docs/spec/CLI_MACHINE_CONTRACT.md` | Versioned CLI JSON and external-digest process contract |
 | `docs/spec/FABRIC_ANCHOR_SPEC.md` | Fabric state, transaction, privacy, idempotency, and error contract |

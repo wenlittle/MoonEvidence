@@ -1,280 +1,449 @@
 # MoonEvidence 开发报告
 
-> MoonBit OSC2026 开源生态挑战赛 · 项目验收材料
-> 仓库：https://github.com/wenlittle/MoonEvidence ｜ 规模：14571 行 MoonBit（实现 6453 + 测试 8118）｜ 提交：150 个 ｜ 包：13 个
-> 本报告为单一权威开发报告，合并了功能清单、AI 协作实践与工程质量三方面内容。
+> MoonBit OSC2026 开源生态挑战赛
+>
+> 发布版本：`starlittle/MoonEvidence` v0.5.0
+>
+> 记录日期：2026-07-11 Asia/Shanghai
 
-## 一、项目概述
+[项目首页](../../README.md) · [在线体验](https://wenlittle.github.io/MoonEvidence/) · [GitHub](https://github.com/wenlittle/MoonEvidence) · [GitLink](https://gitlink.org.cn/starlittle/MoonEvidence)
 
-**MoonEvidence 是一个链无关的可信证据包创建与验证库、CLI，并提供可选的 Hyperledger Fabric 摘要锚定适配器。** 它回答一个具体问题：一组文件、元数据、Merkle 证明和版本记录，与当初承诺的状态相比，是否完整、未被篡改；需要共享账本时，再把这份已验证状态的唯一规范摘要提交并回灌复核。
+## 执行摘要
 
-**核心定位**：MoonBit 负责唯一的证据语义，CLI 与浏览器复用同一纯核心；Fabric 适配器负责协议传输和不可变摘要记录，不把文件、路径、逐文件摘要或完整 manifest 放上链。项目提供的是可嵌入验证基础设施与一条经实链验证的锚定路径，不扩张为通用区块链平台。
+MoonEvidence 面向需要长期保存、跨团队交付或进入共享账本的文件。它把原始目录转换成可复核证据包，为文件、规范清单（manifest）和版本生成稳定记录；复核时，它重新计算当前状态，定位变化文件，并输出适合人工审查和自动化流程消费的结果。
 
-**选题动机**来自一个生态空白观察：上链存证、数据集归档、AI 产物审计的共同前置需求是"可复核的完整性验证"，而 Mooncakes 生态中没有同类项目（申报期与发布前两次碰撞检查均为零命中，`merkle` 关键词仅命中通用库 `zploc/loci`，证据见 `docs/research/MOONCAKES_COLLISION_CHECK.md` 与 RESULTS_LOG step 10）。MoonEvidence 把与链解耦的验证核心做成 MoonBit 基础件，再以窄接口连接 Fabric，证明这套核心可以进入真实存证流程，对应赛题推荐方向中的「工程基础设施 / 面向特定格式的验证工具」。
+项目交付了 MoonBit 库、命令行工具、浏览器工作台和可选的 Hyperledger Fabric 摘要锚定适配器。文件完整性语义集中在 MoonBit 核心中。CLI、浏览器和 Fabric Gateway 共享同一份规范清单、摘要和诊断结果。
 
-项目为**原创实现**，遵循的外部参考是两份公开标准：RFC 8785（JSON Canonicalization Scheme）与 RFC 6962 风格的 Merkle 树域分离构造。
+当前版本已经跑通完整交付闭环：
 
-**技术亮点**：
+1. 从原始文件创建自包含证据包。
+2. 生成稳定的 manifest 摘要和 Merkle 根。
+3. 在 CLI、脚本或浏览器中验证文件。
+4. 将已验证摘要提交到双组织 Fabric 网络。
+5. 查询原始账本记录并回传本地验证。
+6. 分别识别文件变化和清单重建。
 
-- 纯 MoonBit 实现，零外部依赖
-- 三后端支持（native / wasm-gc / js），同一代码逐字节一致
-- 核心库零 IO 依赖，适配器注入字节
-- 含完整 Ed25519 数字签名（纯 MoonBit 椭圆曲线密码学，约 800 行）
-- Fabric v3.1.4 双组织真实提交、查询、幂等重复与摘要回灌闭环
+| 指标 | 当前基线 |
+| --- | --- |
+| 发布版本 | Mooncakes、Git 标签、GitHub Release 均为 `v0.5.0` |
+| MoonBit 源码 | **14,571** 行（实现 6,453 + 测试 8,118） |
+| MoonBit 包 | **13** 个（12 个产品包 + 1 个原生计时工具包） |
+| 测试声明 | **351** 个（347 个可执行测试 + 4 个基准包装） |
+| CLI 黑盒 | PowerShell、bash 各 `62/62`，覆盖 JS 和 native |
+| Fabric | Chaincode 82.1% 语句覆盖，Gateway `19/19`，双组织实链记录完整 |
+| 开源许可 | Apache-2.0 |
 
-## 二、架构设计
+## 场景挑战
 
-```text
-适配层（唯一允许 IO 的地方）     纯验证核心（零 IO，三后端可移植）
-┌─────────────────────┐        ┌──────────────────────────────────┐
-│ src/cmd/main  CLI   │───────▶│ verify ── model ── digest        │
-│ src/api  浏览器 esm  │───────▶│    │        │                    │
-└─────────────────────┘        │  diag ── canonjson    merkle ────┘
-                               │  create  store  audit  crypto    │
-                               └──────────────────────────────────┘
+文件在生成完成后仍会经历复制、压缩、同步、换行转换、工具重写和人工编辑。普通文件夹缺少稳定承诺，接收方很难区分原始交付、传输损坏和后续修改。
 
-MoonBit CLI ─▶ TypeScript Gateway ─▶ Go Chaincode ─▶ Fabric ledger
-            ◀──── expected manifest digest + tx/block/status ────┘
+| 场景 | 核心挑战 | 需要的结果 |
+| --- | --- | --- |
+| 数据集归档 | 文件多、保存周期长，单个损坏难以定位 | 固定文件清单，复核时指出具体路径 |
+| AI 产物交付 | 输出、提示词、参数和评估结果分散 | 将产物和元数据纳入同一份可复核记录 |
+| 研发成果发布 | JSON 键序、空格和平台换行可能变化 | 使用确定性格式形成跨机器稳定摘要 |
+| 上链存证 | 直接保存文件带来隐私、容量和治理成本 | 本地验证完整内容，链上只记录最小摘要 |
+| 历史复核 | 修改文件后可以重新生成一份自洽清单 | 使用独立保存的旧摘要识别历史变化 |
+| 自动化审计 | 人类文本难以稳定接入 CI 和网关 | 固定数据结构、错误码和退出码 |
+
+这些挑战形成两层检查需求。当前证据包负责证明“文件和清单是否一致”，外部锚点负责证明“当前清单和历史记录是否一致”。
+
+## 交付目标
+
+| 目标 | 可检查结果 | 状态 |
+| --- | --- | --- |
+| 创建证据包 | 一条命令生成 `manifest.json + files/`，失败时清理不完整目录 | 已完成 |
+| 发现内容变化 | 文件缺失或字节变化返回 `E2003`，报告包含路径和摘要差异 | 已完成 |
+| 固定历史状态 | 规范 manifest 摘要可以写入归档系统或共享账本 | 已完成 |
+| 识别清单重建 | 当前 manifest 对照旧摘要时返回 `E2004` | 已完成 |
+| 服务多种入口 | MoonBit API、CLI、浏览器使用同一验证核心 | 已完成 |
+| 进入真实账本 | Fabric 完成提交、排序、验证、查询和摘要回传 | 已完成 |
+| 支持自动化 | 版本化 JSON、固定退出码、PowerShell/bash 对等流程 | 已完成 |
+| 建立质量证据 | 标准向量、独立参考、差分检查、故障注入、多后端 CI | 已完成 |
+| 完成生态发布 | Mooncakes v0.5.0、公开双仓、Apache-2.0 | 已完成 |
+
+## 方案总览
+
+MoonEvidence 使用证据包承载当前状态，使用规范摘要连接外部历史。文件内容留在本地或业务存储中，外部系统只需要保存一条稳定摘要。
+
+### 验证闭环
+
+```mermaid
+%%{init: {"theme": "neutral"}}%%
+flowchart TB
+    A["原始文件"] --> B["创建证据包"]
+    B --> C["规范清单"]
+    C --> D["文件摘要和 Merkle 根"]
+    C --> E["manifest 摘要"]
+    E -.-> F["归档系统或 Fabric"]
+    C --> G["重新验证"]
+    A --> G
+    F -.-> G
+    G --> H["通过或定位变化"]
 ```
 
-### 包分层（12 个产品包 + 1 个 native timing 工具包）
+规范清单记录路径、字节长度、文件摘要、Merkle 根、对象信息和版本关系。验证器重新计算这些值。外部摘要在复核阶段回传，补上历史一致性检查。
 
-```text
-src/canonjson  -> 确定性 JSON 序列化 (RFC 8785)
-src/digest     -> 摘要类型、算法枚举、hex/base64 辅助、SHA-256/SHA-512/HMAC
-src/merkle     -> Merkle 根计算、包含性证明验证与完整树物化 (RFC 6962 风格)；compute_tree 返回每层所有哈希，leaf_path 从叶子到根脊线，为可视化提供遍历能力
-src/model      -> manifest、文件条目、证明、版本节点模型
-src/verify     -> 包/文件/manifest/版本验证编排（七步流水线）
-src/diag       -> 结构化诊断与 explain 输出
-src/create     -> 从原始文件构建证据包
-src/store      -> 内存去重 Map（SHA-256 键）
-src/audit      -> 哈希链追加式审计日志
-src/crypto     -> Ed25519 数字签名（纯 MoonBit）
-src/cmd/main   -> native CLI 适配器
-src/api        -> 浏览器 ESM 适配器（string-in/string-out）
-src/timing     -> native-only Ed25519 dudect-style timing 实验入口
-integrations/fabric/gateway      -> Gateway TLS、提交状态、查询与 MoonBit 进程编排
-integrations/fabric/chaincode-go -> 仅保存规范 manifest 摘要的不可变 Chaincode
-examples/      -> valid 与 tampered 证据包
-tests/         -> 夹具与黑盒回归测试
+### 证据层次
+
+| 层次 | 记录内容 | 发现的变化 |
+| --- | --- | --- |
+| 文件摘要 | 单个文件的字节状态 | 文件缺失、内容改变 |
+| Merkle 根 | 文件条目组成的整体结构 | 条目增删、摘要字段改变、顺序改变 |
+| manifest 摘要 | 完整规范清单 | 元数据、版本、文件条目或 Merkle 根改变 |
+| 外部锚点 | 历史 manifest 摘要 | 清单被重新生成后的历史冲突 |
+| 版本链 | 多次发布的父子关系 | 断链、环、分叉、多根 |
+
+## 系统架构
+
+### 分层结构
+
+```mermaid
+%%{init: {"theme": "neutral"}}%%
+flowchart TB
+    FILES["文件系统"]
+    RECORDS["归档系统 · Hyperledger Fabric"]
+    subgraph M["MoonEvidence"]
+        ENTRY["使用入口<br/>命令行 · 浏览器工作台 · MoonBit API"]
+        APP["应用能力<br/>创建 · 验证 · 去重<br/>审计 · 签名"]
+        CORE["验证核心<br/>证据模型 · 规范清单<br/>结构化诊断"]
+        BASE["基础能力<br/>规范 JSON · 摘要算法 · Merkle 树"]
+        ENTRY --> APP --> CORE --> BASE
+    end
+    FILES --> ENTRY
+    ENTRY <-. "规范摘要" .-> RECORDS
 ```
 
-### 六个关键架构决策（完整记录见 docs/records/DECISION_LOG.md）
+| 层次 | 主要包 | 职责 |
+| --- | --- | --- |
+| 基础能力 | `canonjson`、`digest`、`merkle` | 提供确定性字节和密码学构造 |
+| 验证核心 | `model`、`verify`、`diag` | 解析证据、检查约束、生成报告 |
+| 应用能力 | `create`、`store`、`audit`、`crypto` | 创建、去重、审计和签名扩展 |
+| 使用入口 | `cmd/main`、`api` | 处理文件 IO、进程合同和浏览器接口 |
+| 实验工具 | `timing` | 运行 native Ed25519 计时采样 |
+| 账本适配 | `integrations/fabric` | 连接 Gateway 和 Chaincode，记录规范摘要 |
 
-| 决策 | 内容与理由 |
+验证核心只接收文本和字节。文件读取、目录遍历、浏览器事件和账本连接停留在入口层。这个依赖方向让同一套证据语义进入 native、wasm、wasm-gc 和 js 后端。
+
+## 核心实现
+
+### 证据包模型
+
+```text
+evidence-pack/
+├── manifest.json
+├── files/
+│   └── ...
+└── versions/
+    └── version_chain.json
+```
+
+manifest 使用冻结的数据格式版本 `moon-evidence/v0`。每个文件条目记录包内相对路径、字节长度和规范摘要。对象信息、摘要算法、Merkle 根和当前版本共同形成完整清单。
+
+模型在解析阶段拒绝绝对路径、盘符、反斜杠、空段、`.`、`..` 和 NTFS alternate stream 形式。恶意路径在进入文件适配层前已经变成结构化错误。
+
+完整字段、路径规则和错误码定义见[证据包规范](../spec/EVIDENCE_PACK_SPEC.md)。
+
+### 规范摘要
+
+`canonjson` 实现 RFC 8785 JSON 规范化方案（JCS）。对象键按照 UTF-16 码元排序，字符串使用确定性转义，有限浮点数使用 ECMAScript 最短往返形式。RFC 附录 B 的数字样例固定了边界行为。
+
+`digest` 提供纯 MoonBit SHA-256、SHA-512 和 HMAC-SHA256。文件条目先形成规范 JSON 字节，再进入 RFC 6962 风格 Merkle 构造：
+
+```text
+leaf = HASH(0x00 || canonical_file_entry)
+node = HASH(0x01 || left || right)
+```
+
+叶节点和内部节点使用不同前缀。奇数节点直接提升，单叶树保留叶哈希，空文件集合不生成虚构根。
+
+完整 manifest 再次规范化并生成 `manifest_digest`。这条摘要是归档系统、数据库和 Fabric 共用的外部接口。
+
+### 完整性验证
+
+| 步骤 | 检查 | 结果 |
+| --- | --- | --- |
+| 1 | 解析 manifest 并检查字段 | `E1001`–`E2002` |
+| 2 | 生成规范 manifest 字节 | `E1004` |
+| 3 | 对照外部 manifest 摘要 | `E2004` |
+| 4 | 逐文件重算摘要 | `E2003` |
+| 5 | 查找未登记文件 | `W1001` |
+| 6 | 重算 Merkle 根 | `E3001`、`E3003` |
+| 7 | 汇总全部发现 | `VerifyReport` |
+
+验证采用完备式报告。单个文件失败后，流程继续检查剩余文件，让接收方在一轮报告中看到全部变化。
+
+CLI 还会读取可选的 `versions/version_chain.json`，并把版本错误合并到同一份报告中。退出码固定为 `0` 通过、`1` 验证拒绝、`2` 运行错误。
+
+### 版本锚点
+
+版本链使用 `{ id, parent }` 节点描述发布顺序。验证器检查唯一根节点、父引用可达、无环和无分叉。线性历史为归档和连续发布提供清楚、可预测的语义。
+
+外部锚点接受 `sha256:` 或 `sha512:` 规范摘要。`verify --expected-manifest-digest` 将归档记录或账本查询值接入步骤 3。当前文件和 manifest 自洽时，旧锚点仍能识别历史变化。
+
+### 可复用扩展
+
+| 能力 | 实现 | 使用结果 |
+| --- | --- | --- |
+| 证据包创建 | `create_manifest`、CLI `pack` | 从原始目录生成完整证据包和规范摘要 |
+| 增量验证 | 受信任摘要缓存 | 重复检查跳过未变化文件；正式交付使用完整验证 |
+| 内容去重 | SHA-256 键控内存存储 | 相同内容只保存一次，并支持重建和完整性检查 |
+| 审计记录 | 追加式哈希链 | 操作顺序和条目变化可复核 |
+| 数字签名 | 纯 MoonBit Ed25519 | 为审计条目提供签名和验签 |
+| Merkle 证明 | 根、证明、完整树和路径 | 支持包含性验证和浏览器可视化 |
+
+Ed25519 从 GF(2^255-19) 有限域、扩展坐标点运算、标量运算到 RFC 8032 签名流程均由 MoonBit 实现。RFC 8032 样例、Google Wycheproof 150 条向量和 Node.js 差分检查共同固定正确性边界。
+
+### 多入口适配
+
+- **CLI**：`pack`、`inspect`、`verify`、`explain`、`create`，提供版本化 JSON 和固定退出码。
+- **MoonBit API**：应用直接传入 manifest 文本和 `Map[String, Bytes]`。
+- **浏览器 API**：12 个接口统一接收和返回 JSON 字符串。发布版 JavaScript 产物在浏览器后台线程中运行。
+- **网页工作台**：验证、创建、证明、审计、签名和篡改实验共用同一个后台线程。
+- **Fabric 网关**：调用 CLI 机器合同，提交和查询规范摘要。
+
+机器接口定义见 [CLI 契约](../spec/CLI_MACHINE_CONTRACT.md)。
+
+## 账本实验
+
+### 实验环境
+
+| 项目 | 配置 |
 | --- | --- |
-| 纯核心 / 适配器分层 | 验证管线只接受 `Map[String, Bytes]`，文件读取全部留在适配层。这使同一套语义可在 native CLI、浏览器、CI 三后端矩阵中逐字节一致地复核（DECISION_LOG「MVP Boundary」） |
-| 错误码冻结为公共契约 | `E1xxx`–`E5xxx`、`W1xxx` 在 spec 中冻结，测试与 CLI 都对码断言；报告完备式输出（非 fail-fast），用户一轮修完所有问题 |
-| 数字序列化分级交付 | RFC 8785 最难的数字最短形式拆为 L1 安全子集 → L2 完整 ECMAScript shortest form 两级，L2 作为独立步骤交付并以 RFC 8785 Appendix B 向量钉死（DECISION_LOG step 8） |
-| 路径穿越在解析期拒绝 | `files[].path` 拒绝 `..` 段、绝对路径、盘符、反斜杠、`.` 与空段别名——恶意 manifest 无法诱导 CLI 读包外文件。该缺口由开发中的安全自审发现，按 TDD 先红后绿修复（DECISION_LOG step 7） |
-| 版本链形状与语义分离 | model 层只管形状（id 非空、parent 可空），verify 层管图语义（唯一根/可达/无环/无分叉），各自的错误码不互相越界 |
-| Fabric 只锚定规范摘要 | Go/TypeScript 不重算证据语义；交易参数和世界状态均不含文件、路径或完整 manifest。提交证据采用 tx ID、block number 与 validation status，查询值回灌 MoonBit 触发 E2004 边界 |
+| Fabric 版本 | v3.1.4 节点和排序服务 |
+| 网络 | Org1MSP、Org2MSP 双组织测试网络 |
+| 通道 | `evidencechannel` |
+| 链码 | `moonevidence` 1.0，定义序号 1 |
+| 背书策略 | 通道默认 MAJORITY，Org1/Org2 均批准 |
+| 网关 | TypeScript、Fabric Gateway SDK、TLS 连接配置 |
+| 链码环境 | Go 1.23 构建，首写不可变摘要记录 |
+| 本地验证 | MoonBit CLI v0.5.0 |
 
-### 冻结 API v2（2026-07-04）
+### 提交流程
 
-公共 API 已冻结至 v2（见 `docs/ARCHITECTURE.md`）。v1 冻结覆盖六个核心包（canonjson/digest/merkle/model/verify/diag）；v2 扩展冻结纳入 `create`/`store`/`audit`/`crypto`/`api` 五个新增包的公共签名。改变签名需记 `DECISION_LOG.md` 条目。
+```mermaid
+%%{init: {"theme": "neutral"}}%%
+sequenceDiagram
+    participant U as 使用者
+    participant M as MoonEvidence CLI
+    participant G as Fabric 网关
+    participant F as Fabric 网络
+    U->>M: pack / inspect / verify
+    M-->>U: manifest_digest
+    U->>G: anchor-pack
+    G->>M: 完整本地验证
+    M-->>G: 通过 + 规范摘要
+    G->>F: CreateAnchor 摘要
+    F-->>G: 交易 ID + 区块 + 状态
+    U->>G: verify-anchor
+    G->>F: ReadAnchor
+    F-->>G: 原始摘要
+    G->>M: expected manifest digest
+    M-->>U: 验证报告
+```
 
-## 三、功能清单
+Fabric 网关在提交前执行 `inspect` 和完整 `verify`。链码接收规范摘要，记录首笔交易 ID 和提交组织。顺序重复提交返回原始记录。并发首写冲突只有在 Fabric 返回 MVCC code 11 且查询到相同记录时才归一化。
 
-### 第一阶段：MVP（已完成）
+### 实验结果
 
-| 功能 | 说明 |
+| 检查项 | 结果 |
 | --- | --- |
-| Canonical JSON | RFC 8785 规范化序列化 |
-| SHA-256 | 纯 MoonBit 实现，NIST 向量验证 |
-| Merkle 树 | RFC 6962 风格，根计算+证明验证；`compute_tree` 物化每层所有哈希，`leaf_path` 返回叶子到根的脊线，供可视化层零成本遍历 |
-| 证据清单模型 | 带验证的 manifest 解析 |
-| 版本链验证 | 时间线性+哈希链完整性 |
-| 7 步验证流水线 | 解析到诊断的完整管线 |
-| CLI 工具 | pack / inspect / verify / explain / create 命令与版本化 JSON |
-| 浏览器端验证 | ESM 模块，纯客户端验证 |
+| 首次提交 | 交易 `ca3dc781…a28393` 在 block `6` 以 `VALID` 提交 |
+| 双组织查询 | Org1、Org2 返回相同摘要、交易 ID 和提交组织 |
+| 重复提交 | Org2 返回 `already_anchored`，保留原始交易 ID |
+| 账本状态 | 重复提交后高度 8，Org1/Org2 账本末端一致 |
+| 原始证据包 | 账本摘要回传后 2/2 文件通过 |
+| 文件变化 | 精确返回 `E2003` |
+| 清单重建 | 对照原始锚点精确返回 `E2004` |
 
-### 第二阶段：功能扩展（已完成）
+交易、部署和验证结果保存在 [Fabric E2E 记录](../records/fabric-e2e/2026-07-11/)。记录包含链码源码哈希、链码包 ID、交易 ID、区块号、提交状态和双组织查询结果。
 
-| 功能 | 说明 |
+### 篡改路径
+
+```mermaid
+%%{init: {"theme": "neutral"}}%%
+flowchart TB
+    A["block 6 原始 manifest 摘要"]
+    B["当前证据包"]
+    B --> C["只修改文件"]
+    C --> D["manifest 仍是原值"]
+    D --> E["文件摘要检查返回 E2003"]
+    B --> F["修改文件并重建 manifest"]
+    F --> G["当前文件和新 manifest 自洽"]
+    A -.历史对照.-> G
+    G --> H["外部摘要检查返回 E2004"]
+```
+
+这次实验跨越了 Gateway、背书、排序、提交验证、世界状态和跨组织查询边界。交易 ID、区块号和验证状态构成提交证据。完整文件、文件名、逐文件摘要、Merkle 叶子和本地凭据始终留在链下。
+
+## 工程验证
+
+### 风险模型
+
+| 风险 | 验证手段 | 失败信号 |
+| --- | --- | --- |
+| 规范格式在不同实现中产生不同字节 | RFC/NIST 样例、独立 Node.js 结果、差分检查 | 字节或摘要不一致 |
+| 创建和验证使用同一实现形成自证 | 外部向量、独立夹具生成器、跨实现对拍 | 独立结果不匹配 |
+| 恶意编码、边界值或路径被接受 | Wycheproof、负向 manifest、路径矩阵 | 预期拒绝未发生 |
+| 测试断言恒真或缺少敏感分支 | 故障注入验证 | 植入错误后测试仍然通过 |
+| CLI、浏览器和核心语义漂移 | 黑盒流程、浏览器接口冒烟测试、机器合同 | 数据结构、退出码或结果不同 |
+| 编译后端产生行为差异 | native、wasm、wasm-gc、js 测试 | 任一后端结果不同 |
+| Fabric 适配层改变摘要语义 | Gateway 合同测试、真实双组织实验 | 本地结果和账本记录冲突 |
+
+### 测试分层
+
+```mermaid
+%%{init: {"theme": "neutral"}}%%
+flowchart TB
+    A["标准样例和独立参考"] --> B["单元测试和行为性质"]
+    B --> C["随机差分和异常输入"]
+    C --> D["故障注入验证"]
+    D --> E["CLI 和浏览器黑盒"]
+    E --> F["多后端 CI"]
+    F --> G["Fabric 实链实验"]
+```
+
+底层样例固定算法边界，中层检查实现和适配合同，顶层验证真实交付流程。新增能力必须进入对应风险层，并通过故障注入证明测试能够对错误变红。
+
+### 当前基线
+
+| 验证面 | 结果 |
 | --- | --- |
-| 证据包创建 | create_manifest API + CLI `pack` 完整目录创建 + legacy `create` |
-| HMAC-SHA256 | RFC 2104 消息认证码 |
-| SHA-512 | 多算法支持 |
-| 增量验证 | 摘要缓存，跳过未改动文件 |
-| 批量 CLI | 一次验证多个包 |
-| 内存去重 Map | SHA-256 键去重，支持完整性验证 |
+| MoonBit 测试 | 347/347，native、wasm、wasm-gc、js 全部通过 |
+| CLI | PowerShell/bash 各 62/62，JS/native 对等 |
+| 标准样例 | RFC 8785、RFC 2104、RFC 8032、NIST SHA-256/SHA-512 |
+| Ed25519 攻击向量 | Google Wycheproof 150/150，覆盖 7 类攻击 |
+| 跨实现检查 | Ed25519、SHA-256、SHA-512、HMAC、Merkle 和夹具摘要 |
+| 故障注入 | 16/16 个实现故障被现有测试捕获 |
+| 浏览器 | 12 个公开 API，Node.js 接口冒烟测试 36/36，完整工作台生产构建通过 |
+| Fabric Chaincode | `go vet`、race CI、82.1% 语句覆盖 |
+| Fabric Gateway | TypeScript check/build，19/19 测试 |
+| Fabric E2E | 提交、双查询、重复、`E2003`、`E2004` 全部留档 |
 
-### 第三阶段：进阶探索（已完成核心）
+Ed25519 还提供原生发布构建的计时采样。Windows/MSVC 为 `verify`、`sign-message` 和 `sign-secret` 分别记录 50,000 个样本。三组 Welch t 分别为 `-0.147045`、`0.090476`、`-0.040215`。这些结果构成当前工具链的可复跑工程信号。独立密码学审计和最终机器码复核被设为高价值生产发布的认证门禁。
 
-| 功能 | 说明 |
+### 性能基线
+
+以下结果来自 Windows、MoonBit `0.1.20260529`、Node.js v22.22.0、JS 后端，每项 10 个批次：
+
+| 任务 | 均值 | 推导速率 |
+| --- | ---: | ---: |
+| SHA-256，1 MiB | 17.10 ms | 约 58 MiB/s |
+| SHA-256，64 KiB | 1.12 ms | 约 56 MiB/s |
+| 完整验证，1,000 个 64 B 文件 | 25.65 ms | 约 26 µs/文件 |
+| 完整验证，10,000 个 64 B 文件 | 283.52 ms | 约 28 µs/文件 |
+
+完整验证包含解析、规范化、逐文件摘要和 Merkle 重算。1,000 到 10,000 个文件的耗时增长为 11.05 倍，保持接近线性。
+
+### 发布门禁
+
+| 门禁 | 内容 |
 | --- | --- |
-| 审计日志 | 哈希链串联的追加式操作记录 |
-| GF(2^255-19) | 16-limb TweetNaCl 风格有限域 |
-| Curve25519 点运算 | HWCD08 扩展坐标加法/倍点 |
-| Ed25519 签名 | RFC 8032 sign/verify API |
-| 审计日志签名集成 | 可选 Ed25519 签名验证 |
+| 代码质量 | `moon check --deny-warn --target all`、`moon fmt --check` |
+| 接口稳定 | `moon info` 后生成接口必须无差异 |
+| 多后端 | wasm、wasm-gc、js、native 测试和构建 |
+| 夹具可信 | 重新生成夹具必须字节一致，Node.js 独立重算摘要 |
+| 安全回归 | Wycheproof、异常输入、随机差分、故障注入 |
+| 用户合同 | PowerShell/bash CLI、浏览器接口冒烟测试、固定数据结构和退出码 |
+| Fabric | Go vet/race/coverage、Gateway check/build/test |
+| 发布卫生 | Mooncakes 包内容门禁排除比赛记录和仓库级适配器 |
+| 数字一致 | 指标门禁从源码和测试声明重新计算公开数字 |
 
-### 第四阶段：真实账本锚定（已完成可复现闭环）
+CI 将 MoonBit 主体和 Fabric 适配器分成两个 required job。性能基准独立运行，避免共享 runner 的计时噪声阻塞功能发布。
 
-| 功能 | 说明 |
+## 生态价值
+
+| 交付 | 对 MoonBit 生态的作用 |
 | --- | --- |
-| CLI 机器接口 | `pack`/`inspect` JSON + `--expected-manifest-digest`，规范见 `CLI_MACHINE_CONTRACT.md` |
-| Fabric Chaincode | `CreateAnchor`/`ReadAnchor`/`AnchorExists`，首写不可变、重复幂等、稳定错误前缀 |
-| Gateway 适配器 | TLS 身份连接、`submitAsync` 提交状态、重复/MVCC 归一化、`anchor-pack`/`verify-anchor` |
-| 双组织 E2E | 首笔交易 block 6 `VALID`；Org1/Org2 查询一致；E2003/E2004 篡改回灌证据已脱敏留存 |
+| `canonjson` | 提供 RFC 8785 规范 JSON 和官方数字边界样例 |
+| 证据包模型 | 提供文件清单、Merkle、版本和诊断的组合范式 |
+| 多后端验证核心 | 展示同一安全语义跨 native、wasm、wasm-gc、js 运行 |
+| CLI 机器合同 | 提供稳定数据结构、错误码和退出码的工具集成样例 |
+| 浏览器工作台 | 展示 MoonBit 计算核心和 React/Three.js 交互层的协作方式 |
+| Fabric 适配器 | 展示 MoonBit 库通过窄进程合同进入真实跨系统流程 |
+| 测试门禁 | 提供独立参考、随机差分、故障注入和多后端 CI 样板 |
 
-### 逐包功能说明
+2026-07-11 的 Mooncakes 检查覆盖 1,559 个模块。`rfc 8785`、`rfc8785`、`8785` 和 `jcs` 没有出现非本项目命中，`evidence` 只有 MoonEvidence 自身。检索结果表明，MoonEvidence 是当时生态内唯一公开声明 RFC 8785/JCS 支持的专用实现。证据包验证方向也未发现功能重合项目。
 
-**6 核心包（纯库，零 IO）：**
+Mooncakes 已发布 `starlittle/MoonEvidence` v0.5.0。仓库级 Go/TypeScript Fabric 适配器保持在发布包外，MoonBit 使用者可以单独复用 12 个产品包，不需要引入账本依赖。
 
-| 包 | 功能 |
+## 设计取舍
+
+| 选择 | 工程结果 | 适用方式 |
+| --- | --- | --- |
+| 纯核心接收文本和字节 | 文件权限、浏览器事件和账本连接留在适配层 | 同一核心进入多后端和多入口 |
+| RFC 8785 规范 manifest | JSON 表达差异收敛成稳定字节 | 摘要、签名和外部锚点共用同一输入 |
+| Fabric 只记录 manifest 摘要 | 降低链上披露和状态规模 | 文件继续由业务系统保存和授权 |
+| 线性版本链 | 根、父关系、环和分叉语义清楚 | 适合连续发布和归档历史 |
+| 完整验证作为交付门禁 | 每次重新读取全部文件 | 外部交付、上链、正式验收 |
+| 增量验证使用受信任缓存 | 重复检查可以跳过已确认文件 | 本机持续工作流和性能优化 |
+| 纯 MoonBit 密码学实现 | 保持可移植性和源码可审阅性 | 当前证据由标准向量、差分、源码审计和计时采样组成 |
+| 交易 ID、区块号、状态作为提交证据 | 账本承诺保持可复核 | 法律时间语义由部署治理和外部时钟策略定义 |
+
+当前版本适合可复现归档、数据交付、AI 产物审计、教学研究和受控业务原型。保护高价值资产的生产部署需要增加独立密码学审计、托管密钥、操作系统文件保护、Fabric 组织治理和持续运行监控。
+
+这些部署控制位于适配层和运行环境中，可以在保持证据包格式和验证接口稳定的前提下独立演进。
+
+## 演进路线
+
+| 方向 | 下一项交付 | 完成证据 |
+| --- | --- | --- |
+| 大文件处理 | 将流式 SHA-256 接入 CLI 文件读取 | 峰值内存从全部文件总和降到单文件上限 |
+| Fabric 生产身份 | CA 动态 enrollment、外部密钥管理、长期 Gateway 服务 | 多组织部署手册和轮换演练通过 |
+| 多账本适配 | 沿用仅摘要合同接入其他锚点系统 | 新适配器不复制 manifest 语义 |
+| 供应链兼容 | 映射 in-toto/SLSA provenance 字段 | 公开转换规范和跨工具样例 |
+| 复杂版本历史 | 在新的数据格式版本中支持分支历史 | 兼容线性链，补齐分支和合并验证 |
+| API 文档 | 补齐所有公开接口的 MoonBit 文档注释 | 生成文档覆盖全部 `pub` 接口 |
+| 生产认证 | 独立密码学审查和最终产物侧信道复核 | 审查报告、工具链矩阵和发布门禁 |
+
+路线图按可检查交付物推进。当前 v0.5.0 的创建、验证、浏览器、自动化和 Fabric 闭环保持冻结基线。
+
+## 附录
+
+### 复现命令
+
+```powershell
+moon check --deny-warn --target all
+moon test --deny-warn --target wasm,wasm-gc,js
+moon build --target js
+
+$cli = "_build/js/debug/build/src/cmd/main/main.js"
+node $cli verify examples/valid-pack
+node $cli explain examples/tampered-pack
+
+powershell -ExecutionPolicy Bypass -File tools/cli-test.ps1 -Target js
+bash ./tools/cli-test.sh js
+moon build --target js --release src/api
+node tools/smoke-api.mjs
+
+npm run fabric:check
+npm run fabric:test
+npm run fabric:build
+```
+
+Windows native 测试在加载 MSVC 环境后运行 `moon test --deny-warn --target native`。完整任务流程见[用户指南](../GUIDE.md)。
+
+### 指标来源
+
+| 事实 | 来源 |
 | --- | --- |
-| `canonjson` | RFC 8785 规范化 JSON——生态首个实现；键按 UTF-16 code unit 排序，数字最短形式分两级交付，转义规则按规范实现 |
-| `digest` | 纯 MoonBit SHA-256/SHA-512/HMAC 含流式 API；NIST FIPS 180-4 向量钉死；统一 `hex_to_bytes` 单一实现 |
-| `merkle` | RFC 6962 风格域分离树（`0x00`/`0x01` 前缀）+ 包含性证明；golden 数据由独立 Node 参考实现交叉生成 |
-| `model` | manifest / 版本链模型，路径穿越在解析期拒绝（`..`/绝对路径/盘符/反斜杠/空段/null 字节） |
-| `verify` | 七步验证流水线（解析→规范化→摘要→文件→Merkle→版本链→报告）；含增量验证路径 |
-| `diag` | 结构化诊断 + explain；`to_json` 输出 RFC 8785 规范 JSON——验证报告自己也可被摘要、被存证 |
+| 版本、测试数、代码行、包数 | `moon.mod`、`tools/check-metrics.mjs` |
+| 测试和性能结果 | [RESULTS_LOG.md](../records/RESULTS_LOG.md) |
+| 架构决策 | [DECISION_LOG.md](../records/DECISION_LOG.md) |
+| Fabric 交易 | [fabric-e2e/2026-07-11](../records/fabric-e2e/2026-07-11/) |
+| 生态检索 | [MOONCAKES_COLLISION_CHECK.md](../research/MOONCAKES_COLLISION_CHECK.md) |
+| 侧信道工程证据 | [CONST_TIME_AUDIT.md](../CONST_TIME_AUDIT.md) |
+| 验收映射 | [ACCEPTANCE_CHECKLIST.md](../records/ACCEPTANCE_CHECKLIST.md) |
 
-**4 扩展包：**
+### 文档入口
 
-| 包 | 功能 |
-| --- | --- |
-| `create` | `create_manifest` API + CLI pack/create；从原始文件字节构建证据包，文件按 code-point 序排序保证跨工具 Merkle root 一致 |
-| `store` | 内存去重 Map（SHA-256 键）；`put`/`get`/`has`/`deduplicate`/`reconstruct` + 完整性校验；Int64 字节数防溢出 |
-| `audit` | 哈希链追加式审计日志；`append`/`verify_chain`/`to_json`，可选 Ed25519 签名（`sign_last`/`verify_signatures`）；`verify_chain` 校验 hash 字段防篡改 |
-| `crypto` | 纯 MoonBit Ed25519（RFC 8032）；从 `field25519` → `point25519` → `ed25519` 自底向上实现，约 800 行，零外部密码学依赖 |
+- [项目首页](../../README.md)
+- [用户指南](../GUIDE.md)
+- [架构文档](../ARCHITECTURE.md)
+- [证据包规范](../spec/EVIDENCE_PACK_SPEC.md)
+- [CLI 契约](../spec/CLI_MACHINE_CONTRACT.md)
+- [Fabric 规范](../spec/FABRIC_ANCHOR_SPEC.md)
+- [测试计划](../TEST_PLAN.md)
+- [安全说明](../../SECURITY.md)
 
-**2 适配层（唯一允许 IO）：**
-
-| 包 | 功能 |
-| --- | --- |
-| `cmd/main` | CLI 适配器；`pack`/`inspect`/`verify`/`explain`/`create`，冻结退出码 0/1/2；机器结果使用版本化 JSON；目录遍历以 depth/file 上限约束 symlink/junction |
-| `api` | 浏览器 ESM 适配器；`verify_evidence` 支持外部 manifest 摘要，唯一跨边界类型是 String |
-
-**可选跨系统适配器：** `integrations/fabric/gateway` 只消费 MoonBit 机器合同，`integrations/fabric/chaincode-go` 只保存规范摘要；二者被 Mooncakes 包内容门禁排除，不改变 MoonBit 包依赖面。
-
-## 四、密码学实现
-
-本项目含**自实现的密码学原语**，未依赖任何外部经审计的密码学库。
-
-### 标准合规性证据
-
-- **RFC 8785**：官方 Appendix B 数字向量全过；键按 UTF-16 code unit 排序；转义规则按规范实现。fixtures 在 `tests/fixtures/jcs/`
-- **SHA-256 / SHA-512**（`src/digest`）：纯 MoonBit 实现，对照 NIST FIPS 180-4 标准测试向量验证
-- **HMAC-SHA256**（`src/digest`）：RFC 2104 消息认证码
-- **RFC 6962 风格 Merkle 树**：叶/内节点域分离（`0x00`/`0x01` 前缀），golden 数据由独立 Node 参考实现交叉生成（`tools/gen-merkle-fixtures.mjs`），两套实现逐字节对账
-- **报告本身规范化**：`to_json` 输出 RFC 8785 规范 JSON——验证报告自己也可以被摘要、被存证
-
-### Ed25519（RFC 8032）
-
-从零实现的椭圆曲线数字签名，不依赖任何外部密码学库：
-
-1. **GF(2^255-19) 有限域**：16 × 16-bit limbs（TweetNaCl 方法），所有中间值安全在 UInt64 内
-2. **扩展坐标点运算**：HWCD08 统一加法 + 专用倍点，避免分支
-3. **标量乘法**：MSB-first double-and-add，constant-time conditional select（cmov）替代分支，降低侧信道风险
-4. **签名流程**：SHA-512 → 私钥 clamp → 确定性 nonce → R=rB → S=(r+kA)mod l
-5. **验证流程**：解码点 → SHA-512 → S·B == R + k·A；含 `S < l` 范围检查（RFC 8032 §8.4 反可塑性）
-
-### 第二轮根因修复（crypto 加固）
-
-经 2026-07-04 健康体检后的第二轮根因修复进一步加固了密码学实现（详见 `SECURITY.md` 与 `CHANGELOG.md` 0.3.1）：
-
-- **Binary quotient decomposition** 替换 `reduce_scalar_512` 的逐次减法，签名路径性能从 ~500K 次操作降至 ~50 次乘法
-- **CT-001 源码级修复**：`reduce_scalar_512` 的比较与 borrow 传播改为 arithmetic mask/selection，去掉该路径显式 secret-derived 分支
-- **point_decode 拒绝低阶点与非规范编码**，补 cofactor 相关的小群攻击防护
-- **审计签名覆盖 canonical JSON**：audit 日志签名基于 RFC 8785 规范化序列化，确保签名输入字节稳定无歧义
-
-> **安全保证定位**：本项目面向课程/竞赛场景中的本地 Evidence Pack 可信校验核心，采用分层 assurance 策略：RFC 8032 KAT、Wycheproof 向量、交叉对拍、源码级常量时间审计与本机 native dudect-style timing 长跑共同构成当前交付级证据包；正式 dudect 工具审计和后端产物侧信道审计被定位为面向生产级高价值资产的后续认证路线。
-> 2026-07-07 已新增本机 native dudect-style timing 实验，覆盖 verify、固定私钥 sign-message、双私钥 sign-secret 三类目标；50k 长跑未观察到明显 timing difference，形成当前工具链下可复跑的工程化侧信道 assurance 信号。
-
-## 五、测试与验证体系
-
-| 层 | 数量与内容 |
-| --- | --- |
-| 单元测试 | **351 个**测试声明（347 个可执行测试 + 4 个基准 wrapper），native / wasm-gc / js 三后端全绿；含 NIST/RFC/Wycheproof 向量、JCS fixtures、版本链图语义、Merkle 树物化、外部摘要回灌 |
-| CLI 黑盒 | **62 用例**（`tools/cli-test.ps1` + `tools/cli-test.sh` 1:1 对等）：原 54 个命令/篡改/manifest/create/incremental 合同 + 8 个 pack/inspect/外部锚点机器合同，精确断言退出码、schema 和错误码集合 |
-| 篡改矩阵 | `tests/fixtures/packs/` 10 个 pack 由独立 Node 参考实现生成，覆盖每个错误码族；CI 设防腐化校验（重新生成后 `git diff` 必须为空） |
-| manifest 错误码矩阵 | `tests/fixtures/manifest/` 19 个夹具，覆盖 E1001/E1002/E1003/E2001/E2002 在 CLI 黑盒层的触发 |
-| 独立交叉验证 | `tools/cross-verify.mjs` 独立 Node 实现对 create/store/audit 产出重算对比，避免本库自验证盲区 |
-| Ed25519 差分验证 | `tools/differential-crypto.mjs` 将编译后的 MoonBit JS API 与 Node.js `crypto` 对拍：公钥、确定性签名、双向验签、篡改拒绝 |
-| Digest 差分验证 | `tools/differential-digest.mjs` 将编译后的 MoonBit JS API 与 Node.js `crypto` 对拍：SHA-256、SHA-512、HMAC-SHA256，覆盖 padding 边界与随机长度 |
-| Native timing | `tools/timing-ed25519-native.ps1` 构建 `src/timing` native release 并运行 Ed25519 dudect-style sampler；50k 长跑覆盖 verify/sign-message/sign-secret，全部 `|t| < 4.5`，记录为经验性侧信道证据 |
-| Property 测试 | 规范化幂等、Merkle 证明可靠性——并经**变异验证**（`tools/mutation-check.mjs` 故意破坏实现确认测试会红，16/16 捕获，覆盖 Merkle SHA-256/SHA-512 域分隔符、奇数节点提升、Ed25519 canonical S/low-order/non-canonical-y、HMAC ipad/opad、SHA-256/SHA-512 初始值/轮常数、incremental E2004，证明断言非恒真） |
-| Fuzz | parser fuzz 400 轮随机字节不 panic |
-| 长链压测 | 1000 节点版本链性能数据 |
-| 浏览器适配器 | 42 个 wbtest + Node 烟测（`tools/smoke-api.mjs`，36 断言覆盖 12 个 pub API）+ Playwright 实浏览器会话验证 |
-| Fabric Chaincode | `go vet` + 单元测试，核心合约语句覆盖率 82.1%；CI 在 Ubuntu 使用 race detector |
-| Fabric Gateway | strict TypeScript + 12/12 Node 测试，覆盖 profile、规范摘要、提交收据、顺序重复和 MVCC loser 归一化 |
-| Fabric E2E | v3.1.4 双组织真实网络：部署、首笔 `VALID`、双查询、重复提交、E2003/E2004 回灌；收据见 `docs/records/fabric-e2e/2026-07-11/` |
-| 基准 | `moon bench`：SHA-256 ~58 MiB/s（js 后端），全量验证 ~26-28 µs/文件，10 倍文件量 → 11.05 倍耗时（近线性） |
-
-### 测试覆盖分布
-
-| 包 | 测试数 |
-| --- | --- |
-| crypto (field + point + ed25519) | ~26 |
-| audit (含签名集成) | ~10 |
-| store (对象存储) | ~10 |
-| digest (SHA-256/512 + HMAC) | ~40 |
-| canonjson | ~30 |
-| merkle | ~20 |
-| model + verify + diag | ~50 |
-| create/store/diag | ~37 |
-| 其他 | ~19 |
-
-## 六、CI 与工程治理
-
-- **CI 三后端矩阵**：native / wasm / wasm-gc / js 构建与测试，native（本地 Windows/MSVC + CI ubuntu/gcc）+ js 黑盒，js 适配器烟测；fixtures 防腐化校验
-- **Fabric required job**：Go vet/race/coverage + Gateway npm ci/check/build/test，与 Mooncakes 纯库 job 隔离
-- **fmt 门禁**：CI 运行 `moon fmt --check` 作为必需门禁，防止格式漂移复发
-- **基准**：bench 设为单独 job，结果落基线 JSON，性能回归可发现
-- **release 流程**：tag 触发 release 工作流（`moon package` 产物 + SHA256 签名）
-- **冻结退出码**：CLI 退出码 0/1/2 不变，便于 CI 集成
-- **冻结错误码**：E1xxx-E5xxx / W1xxx 诊断码，机器可读
-- **三后端兼容**：同一代码编译到 native / wasm-gc / js
-- **Git 工作流**：有意义的 commit message，feature 粒度提交
-- **双仓库同步**：GitHub + Gitlink
-- **文档齐全**：README（中英双语）/ 架构文档 / 用户指南 / 证据包规范 / 环境搭建 / 代码规范 / 路线图 / SECURITY / CONTRIBUTING / CHANGELOG
-
-## 七、AI 协作实践
-
-本项目按"AI 执行 + 过程记录留痕"的模式开发，全程证据链在 `docs/records/RESULTS_LOG.md`（时间线）与 `docs/records/DECISION_LOG.md`（决策）中可复核。实践中沉淀出四条有效经验：
-
-1. **探针优先于硬刚**：`moon prove` 本地无 Why3 环境、`moon doc` 与新版 `moon.mod` 格式不兼容——两次都是先做最小探针、记录失败根因与决策依据，再走 property 测试 / 人工核对的 fallback，探针记录本身成为交付物（RESULTS_LOG step 8/10）
-2. **独立参考实现对账**：所有 golden 数据（摘要、Merkle 根、篡改矩阵）由 Node 独立实现生成，MoonBit 实现必须与之逐字节一致——任何一方出错都会被另一方抓住
-3. **事故即叙事**：开发期 `examples/valid-pack` 被编辑器 CRLF 重写、基线变红——工具自己抓住了自家示例被篡改（E2003），处置后将整个 fixtures 子树标记 `-text` 固化教训（RESULTS_LOG step 7），这正是项目要解决的问题的现场版
-4. **验证先于声称**：每步交付前全量重跑并把命令与结果记入 RESULTS_LOG；文档中的每条命令（含 GUIDE 的篡改演示）都在写入前实际执行过
-
-### 健康体检迭代
-
-项目在 2026-07-04 完成了一轮五阶段健康体检与改进（`docs/plans/2026-07-04-health-check-and-improvement-plan.md`），随后又进行了第二轮根因修复：把上一轮"归档加注释"式的两份开发报告合并为单一权威、把"核心矩阵移植"式的 bash CLI 测试补全为 1:1 对等，并对 crypto（binary quotient decomposition、cofactor 检查、canonical JSON 签名）与 verify/create（排序、symlink、valid.json、E3002 决定）做了根本性修复。这种"体检 → 根因 → 再体检"的迭代本身是 AI 协作工程治理的实践样本。
-
-## 八、量化指标（本机实测）
-
-| 指标 | 实测值 |
-| --- | --- |
-| 提交数 | 150（下限，后续文档提交会继续递增） |
-| 实现行数 | 6453 |
-| 测试行数 | 8118 |
-| 总行数 | **14571** |
-| 测试声明 | 351（347 测试 + 4 基准调用） |
-| 单元测试通过 | **347/347**（native + wasm-gc + js 三后端） |
-| CLI 黑盒通过 | **62/62**（native + js，PowerShell/bash 对等） |
-| Fabric adapter | Chaincode 82.1% 覆盖；Gateway 12/12；真实双组织 E2E 通过 |
-| 包数 | **13**（12 个产品包 + 1 个 native timing 工具包） |
-| moon check warnings | 0 |
-| moon fmt --check | exit 0（无漂移） |
-
-> 以上数字为 2026-07-11 Asia/Shanghai 本机实测基线；提交数按下限记录，后续文档提交只会递增；native 后端已在 Windows/MSVC 验证，Fabric 记录来自真实双组织网络而非 mock。
-
-## 九、创新点与竞争力
-
-MoonBit 生态当前缺少数据完整性验证基础设施。MoonEvidence 填补了这一空白：
-
-1. **RFC 8785 生态首个实现**：`canonjson` 是 Mooncakes 生态中第一个 JSON Canonicalization Scheme 实现，含官方 Appendix B 数字向量全过
-2. **纯 MoonBit 密码学**：完整的纯 MoonBit Ed25519 实现（从有限域到签名/验签），约 800 行，零外部密码学依赖——生态内已有 hustcer/ed25519 等同类实现
-3. **可解释诊断**：报告完备式输出（非 fail-fast），结构化错误码 + explain 命令，用户一轮修完所有问题；验证报告自身规范化可被存证
-4. **已发布的 Mooncakes 包**：`starlittle/MoonEvidence` v0.4.1 已同步到 Mooncakes；12 个产品包均可独立复用；仓库级 Fabric 适配器不污染库包依赖面
-5. **跨平台与跨系统交付**：同一 MoonBit 语义在 CLI、CI、浏览器运行，并通过真实 Fabric 提交/查询/回灌进入共享账本流程
-6. **安全设计**：路径遍历防护、null 字节拒绝、symlink/junction 有界遍历、create 深度截断拒绝、冻结错误码、确定性输出、Ed25519 反可塑性检查、链上最小披露
-
-## 附录：验收自查
-
-见 `docs/records/ACCEPTANCE_CHECKLIST.md`（逐条对照打勾 + 证据指引）；最终冻结快照（命令、结果、commit hash）见 RESULTS_LOG step 11 条目。
+项目采用 Apache-2.0 许可证。维护者为陈俊文，GitHub 使用 `wenlittle`，GitLink 和 Mooncakes 使用 `starlittle` 命名空间。

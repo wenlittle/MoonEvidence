@@ -2083,6 +2083,34 @@ block-6 transaction, two-organization query, duplicate submission, and
 ledger-backfed `E2003`/`E2004` results. This documentation round preserved the
 deployed protocol and revalidated the Gateway boundary around that record.
 
+## 2026-07-11 Asia/Shanghai (documentation rewrite round 3)
+
+### Scope
+
+| Item | Result |
+| --- | --- |
+| Repository baseline | `codex/documentation-restructure` at `d43e9ac` before the development-report rewrite |
+| Project argument | Rebuilt the report around scenario, goals, design, implementation, Fabric experiment, quality evidence, ecosystem value, engineering choices, and delivery roadmap |
+| Evidence boundary | Quantified claims link to the results log, Fabric transaction record, ecosystem search record, timing audit, and acceptance mapping |
+| Diagram system | Five neutral Mermaid diagrams cover the verification loop, layered architecture, Fabric sequence, tamper paths, and test layers |
+| Compatibility | Repaired `docs/DEVELOPMENT_REPORT.md` as a valid Markdown entry to the authoritative report and updated the project index |
+| Metric guard | Rebound report assertions to the new visible baseline table; removed three redundant assertions tied to deleted duplicate statistics |
+
+### Verification
+
+| Command / flow | Result |
+| --- | --- |
+| Source cross-check | PASS: version, package and test counts, Fabric transaction, timing samples, performance data, and Mooncakes search count trace to repository records |
+| Public delivery endpoints | PASS: GitHub v0.5.0 Release API, GitHub Pages, Mooncakes documentation, and GitLink each returned HTTP 200 |
+| Mermaid parse and visual review | PASS: all five diagrams rendered through Kroki; the architecture diagram was simplified to one dependency direction with a separate external-record boundary |
+| Local Markdown links and language scan | PASS: report paths resolve; prohibited defensive and explanatory phrases are absent |
+| `moon fmt --check`; `moon check --deny-warn --target all`; `moon info` interface diff | PASS |
+| Portable MoonBit tests | PASS: wasm, wasm-gc, and js each 347/347 |
+| Windows MSVC native tests | PASS: 347/347 after loading `vcvars64.bat` |
+| `node tools/check-metrics.mjs` | PASS: 44/44 assertions; 351 test declarations; 14,571 MoonBit lines |
+| `node tools/check-package-contents.mjs` | PASS: 233 packaged files inspected |
+| `git diff --check` | PASS |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

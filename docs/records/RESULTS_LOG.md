@@ -2265,6 +2265,37 @@ deployed protocol and revalidated the Gateway boundary around that record.
 | Public baseline scan | PASS: current README, test plan, report, checklist, and knowledge-base claims use `18/18`; dated historical records remain unchanged |
 | `git diff --check` | PASS |
 
+## 2026-07-12 Asia/Shanghai (release-candidate validation)
+
+### Scope
+
+| Item | Result |
+| --- | --- |
+| Candidate | Remote branch `codex/documentation-restructure` at `bd40972` |
+| MoonBit core | Type, format, generated interfaces, four runtime backends, independent fixtures, standard vectors, and mutation gates revalidated |
+| User entry points | Four CLI shell/target combinations, the release JS API, and the integrated Showcase revalidated |
+| Fabric adapters | Chaincode vet plus Linux race/coverage, and Gateway TypeScript check/build/test revalidated |
+| Reproducibility | Cloned the pushed branch into a new temporary directory and reran the README create/verify/tamper path without workspace artifacts |
+
+### Verification
+
+| Command / flow | Result |
+| --- | --- |
+| `moon fmt --check`; `moon check --deny-warn --target all`; `moon info` | PASS: no format, warning, type, or generated-interface drift |
+| MoonBit tests | PASS: native, wasm, wasm-gc, and js each `353/353` |
+| CLI process tests | PASS: PowerShell and bash, JS and native, each `68/68` |
+| Independent assets | PASS: fixture regeneration clean; pack cross-verify `11/11`; Wycheproof inventory 150 vectors |
+| Browser API | PASS: smoke `41/41`; CI malformed profile 286 cases; semantic profile 48 checks |
+| Release randomized profile | PASS: 1,222 malformed cases, 768 semantic checks, Ed25519 `1000/1000`, digest/HMAC `1000/1000` |
+| Mutation quality gate | PASS: `18/18` production-source mutations caught; 0 slipped, 0 errored; source restoration clean |
+| Showcase | PASS: TypeScript check and Vite production build |
+| Fabric Chaincode | PASS: `go vet`; WSL/Linux `go test -race -cover ./...`; core statement coverage 82.1% |
+| Fabric Gateway | PASS: TypeScript check/build and `19/19` tests |
+| Governance | PASS: metrics `44/44`; package guard 238 files; branch map 221 invariants with zero gaps |
+| Links and endpoints | PASS: 270 local targets across 59 tracked Markdown files; GitHub, GitLink, Mooncakes, Showcase, Release, and Actions returned HTTP 200 |
+| Clean clone | PASS at `bd40972`: JS build, README valid/create/tamper flow with expected `E2003` and exit 1, JS tests `353/353`, metrics, package guard, and fixture guard; clone remained clean |
+| `git diff --check` | PASS |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

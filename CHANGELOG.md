@@ -41,7 +41,7 @@ Fabric 摘要锚定流程，同时保持 MoonBit 为唯一证据语义来源。
 
 - **Mooncakes 包卫生同步**：发布 `starlittle/MoonEvidence` v0.4.1，使 Mooncakes 安装包与当前仓库的 `moon.mod` exclude 规则、许可证、README 和源码交付面一致。
 - **浏览器 demo 复现命令统一**：`docs/GUIDE.md` 明确浏览器端需要 `moon build --target js --release src/api`，与 demo 页面和 smoke 脚本消费的 release API 产物一致。
-- **公开 API 文档补齐**：`docs/ARCHITECTURE.md` 与 `docs/KNOWLEDGE_BASE.md` 同步列出 `src/api` 的 12 个 ESM 导出，包括 `digest_compute`。
+- **公开 API 文档补齐**：`src/api/pkg.generated.mbti` 固定 `src/api` 的 12 个 ESM 导出，包括 `digest_compute`；架构文档将生成接口作为当前权威来源。
 
 ## [0.4.0] - 2026-07-04
 
@@ -99,7 +99,7 @@ Fabric 摘要锚定流程，同时保持 MoonBit 为唯一证据语义来源。
 ### Changed
 
 - 仓库由 `wenlittle` 改名为 `starlittle`，所有材料统一归属。
-- 公共 API 冻结至 v2（见 `docs/ARCHITECTURE.md`）。
+- 公共 API 在该版本冻结至 v2；历史签名决策见 `docs/records/DECISION_LOG.md`，当前接口以生成的 `pkg.generated.mbti` 为准。
 
 ## [0.2.0] - 2026-06-18
 

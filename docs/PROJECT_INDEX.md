@@ -28,7 +28,7 @@ anchors the verified manifest digest and feeds it back into verification.
 | `demo/README.md` | Lightweight static browser pages, local launch path, and data boundary |
 | `docs/GUIDE.md` | Task-based guide for create, verify, automation, browser review, Fabric anchoring, and version records |
 | `docs/DEMO_SCRIPT.md` | 5-minute presentation demo script |
-| `docs/ARCHITECTURE.md` | Layered package structure and frozen public API |
+| `docs/ARCHITECTURE.md` | Current layers, data and validation flows, trust boundaries, contracts, extension points, and runtime forms |
 | `docs/DEVELOPMENT_REPORT.md` | Compatibility entry for the authoritative report |
 | `docs/report/DEVELOPMENT_REPORT.md` | Authoritative project argument: scenarios, goals, implementation, Fabric experiment, quality, ecosystem value, and design choices |
 | `docs/spec/EVIDENCE_PACK_SPEC.md` | Minimal evidence pack schema and verification semantics |

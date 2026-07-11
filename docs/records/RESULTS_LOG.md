@@ -2111,6 +2111,30 @@ deployed protocol and revalidated the Gateway boundary around that record.
 | `node tools/check-package-contents.mjs` | PASS: 233 packaged files inspected |
 | `git diff --check` | PASS |
 
+## 2026-07-11 Asia/Shanghai (documentation rewrite round 4a: current architecture)
+
+### Scope
+
+| Item | Result |
+| --- | --- |
+| Repository baseline | `codex/documentation-restructure` at `6de0308` before the architecture rewrite |
+| Current system | Replaced milestone history with the v0.5.0 layers, component ownership, data flow, verification order, Fabric anchor flow, trust boundaries, contracts, extension points, and runtime forms |
+| Interface authority | Current package APIs now point to generated `pkg.generated.mbti` files; historical v1/v2 freezes remain in the decision log and changelog |
+| Security boundary | Documented full versus incremental verification, external-digest ownership, filesystem-link handling, key responsibility, Fabric identity, and toolchain control |
+| Navigation | Updated the project index, knowledge-base map, and documentation migration status |
+
+### Verification
+
+| Command / flow | Result |
+| --- | --- |
+| Source and dependency review | PASS: package ownership and dependency directions match all 13 `moon.pkg` files and current generated interfaces |
+| Mermaid parse and visual review | PASS: architecture, verification, Fabric sequence, and trust-boundary diagrams rendered through Kroki |
+| Local Markdown links and language scan | PASS |
+| `moon check --deny-warn --target all`; `moon info` interface diff | PASS |
+| `node tools/check-metrics.mjs` | PASS: 44/44 assertions |
+| `node tools/check-package-contents.mjs` | PASS: 233 packaged files inspected |
+| `git diff --check` | PASS |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

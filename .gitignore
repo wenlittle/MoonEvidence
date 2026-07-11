@@ -8,7 +8,7 @@ _build/
 *.log
 *.tmp
 *.bak
-report/
+/report/
 
 # OS/editor
 .DS_Store

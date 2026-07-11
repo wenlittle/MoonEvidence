@@ -81,9 +81,13 @@ two WebGL render loops active at the same time.
 ```powershell
 npm run check
 npm run build
+npx playwright install chromium
+npm run e2e
 ```
 
 The experience is designed for desktop, short-wide, and mobile viewports. The
 homepage keeps technical detail subordinate to the user-facing conclusion;
 the Workbench presents the conclusion first and keeps the complete MoonBit
-result available in an accessible disclosure.
+result available in an accessible disclosure. Four Playwright evaluator-path
+tests protect homepage loading, the primary workbench entry, valid-pack
+acceptance, tampered-pack rejection, and mobile overflow.

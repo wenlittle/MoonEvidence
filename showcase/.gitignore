@@ -1,6 +1,8 @@
 node_modules/
 dist/
 artifacts/
+playwright-report/
+test-results/
 *.tsbuildinfo
 public/moon-api.js
 public/packs/

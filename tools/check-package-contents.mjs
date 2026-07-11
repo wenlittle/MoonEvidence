@@ -40,6 +40,8 @@ const requiredFiles = [
   "src/cmd/main/main.mbt",
   "docs/spec/CLI_MACHINE_CONTRACT.md",
   "docs/spec/FABRIC_ANCHOR_SPEC.md",
+  "examples/quickstart/main.mbt",
+  "examples/quickstart/moon.pkg",
   "examples/valid-pack/manifest.json",
   "tests/fixtures/packs/valid/manifest.json",
 ];

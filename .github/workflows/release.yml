@@ -21,6 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install MoonBit CLI
         run: |
@@ -33,8 +35,19 @@ jobs:
       - name: Update MoonBit registry
         run: moon update
 
+      - name: Match tag and module version
+        run: |
+          version="$(sed -n 's/^version = "\([^"]*\)"/\1/p' moon.mod)"
+          test "v$version" = "${GITHUB_REF_NAME}" || {
+            echo "::error::tag ${GITHUB_REF_NAME} does not match moon.mod version $version"
+            exit 1
+          }
+
+      - name: Metric drift guard
+        run: node tools/check-metrics.mjs
+
       - name: Type check
-        run: moon check --deny-warn
+        run: moon check --deny-warn --target all
 
       - name: Public interface drift check
         run: |
@@ -44,10 +57,18 @@ jobs:
       - name: Package content guard
         run: node tools/check-package-contents.mjs
 
+      - name: Portable tests
+        run: moon test --deny-warn --target wasm-gc,js
+
       - name: Package module
         run: moon package
 
-      - name: Locate artifact and compute SHA256
+      - name: Build and test release CLI
+        run: |
+          moon build --target js --release src/cmd/main
+          ./tools/cli-test.sh js
+
+      - name: Assemble release artifacts and compute SHA256
         id: artifact
         run: |
           zip_path="$(find _build/publish -type f -name '*.zip' | head -n 1)"
@@ -56,29 +77,49 @@ jobs:
             ls -la _build/publish || true
             exit 1
           fi
-          echo "Found artifact: $zip_path"
+          cli_dir="$(node tools/package-cli.mjs | tail -n 1)"
+          chmod +x "$cli_dir/moon-evidence"
+          cmp _build/js/release/build/src/cmd/main/main.js "$cli_dir/moon-evidence.mjs"
+          "$cli_dir/moon-evidence" --version
+          "$cli_dir/moon-evidence" verify "$cli_dir/examples/valid-pack"
+          cli_zip="$(dirname "$cli_dir")/$(basename "$cli_dir").zip"
+          (
+            cd "$(dirname "$cli_dir")"
+            zip -qr "$(basename "$cli_zip")" "$(basename "$cli_dir")"
+          )
+
           sha256sum "$zip_path" > "$zip_path.sha256"
+          sha256sum "$cli_zip" > "$cli_zip.sha256"
+          node tools/changelog-section.mjs > _build/release-notes.md
+
           echo "zip_path=$zip_path" >> "$GITHUB_OUTPUT"
           echo "sha256_path=$zip_path.sha256" >> "$GITHUB_OUTPUT"
+          echo "cli_zip_path=$cli_zip" >> "$GITHUB_OUTPUT"
+          echo "cli_sha256_path=$cli_zip.sha256" >> "$GITHUB_OUTPUT"
+          echo "notes_path=_build/release-notes.md" >> "$GITHUB_OUTPUT"
 
           {
-            echo "## Packaged artifact"
+            echo "## Release artifacts"
             echo ""
-            echo "File: \`$(basename "$zip_path")\`"
+            echo "- Mooncakes package: \`$(basename "$zip_path")\`"
+            echo "- Ready-to-run JS CLI: \`$(basename "$cli_zip")\`"
             echo ""
             echo "### SHA256"
             echo ""
             echo '```'
             cat "$zip_path.sha256"
+            cat "$cli_zip.sha256"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Create GitHub Release with artifact + SHA256
+      - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create "${{ github.ref_name }}" \
             "${{ steps.artifact.outputs.zip_path }}" \
             "${{ steps.artifact.outputs.sha256_path }}" \
+            "${{ steps.artifact.outputs.cli_zip_path }}" \
+            "${{ steps.artifact.outputs.cli_sha256_path }}" \
             --title "${{ github.ref_name }}" \
-            --generate-notes
+            --notes-file "${{ steps.artifact.outputs.notes_path }}"

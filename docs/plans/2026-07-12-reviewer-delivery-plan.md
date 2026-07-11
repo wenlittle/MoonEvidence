@@ -37,11 +37,11 @@
 
 ## 第二阶段：首次使用
 
-- [ ] 新增可直接运行的 `examples/quickstart` MoonBit 示例。
-- [ ] 示例覆盖创建、验证和篡改拒绝三个观察点。
+- [x] 新增可直接运行的 `examples/quickstart` MoonBit 示例。
+- [x] 示例覆盖创建、验证和篡改拒绝三个观察点。
 - [ ] 为 Release 生成可直接运行的 Windows/Linux x64 CLI，或经过黑盒验证的完整 JS CLI 发行物。
 - [ ] 为 CLI 发行物生成 SHA-256 校验文件。
-- [ ] 增加不超过 5 条的 Playwright 评审路径测试。
+- [x] 增加不超过 5 条的 Playwright 评审路径测试。
 - [ ] 将评审路径测试接入 CI，并在失败时保留截图或 trace。
 
 验收条件：

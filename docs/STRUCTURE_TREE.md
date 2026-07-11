@@ -60,6 +60,10 @@ moon-evidence/
       tamper-lab.html
       README.md
   examples/
+    quickstart/                  # runnable MoonBit create -> verify -> reject flow
+      README.md
+      main.mbt
+      moon.pkg
     tampered-pack/
       files/
         a.txt
@@ -75,6 +79,8 @@ moon-evidence/
       README.md
       manifest.json
   showcase/                   # 沉浸式产品首页 + 原生证据工作台
+    e2e/
+      reviewer-path.spec.ts    # four evaluator-path Playwright checks
     public/
       favicon.svg
     src/
@@ -101,6 +107,7 @@ moon-evidence/
       prepare-api.mjs
     README.md
     package.json
+    playwright.config.ts
     vite.config.ts
   integrations/
     fabric/
@@ -237,6 +244,7 @@ moon-evidence/
         valid-sha512/
       version-chain/           # 版本链篡改夹具
   tools/
+    changelog-section.mjs      # extract curated notes for the current release
     cli-test.ps1               # 68 用例黑盒 CLI 套件
     env-check.ps1              # 只读环境检查
     gen-fixtures.mjs           # 篡改矩阵生成（独立 Node 参考实现）
@@ -253,6 +261,7 @@ moon-evidence/
     timing-ed25519-verify.mjs  # Ed25519 verify 动态时序采样探针
     timing-ed25519-native.ps1  # Ed25519 native verify/sign dudect-style timing runner
     mutation-check.mjs         # 变异验证（故意破坏实现确认测试会红）
+    package-cli.mjs            # assemble the ready-to-run JS CLI release directory
     check-fixtures.mjs         # fixtures 防腐化校验
     check-metrics.mjs          # CI 数字对齐门禁（提交/行/测试/包/版本一致性断言）
     check-package-contents.mjs # Mooncakes 包内容卫生门禁

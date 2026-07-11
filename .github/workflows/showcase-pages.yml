@@ -44,6 +44,25 @@ jobs:
           npm run check
           npm run build
 
+      - name: Install Playwright Chromium
+        working-directory: showcase
+        run: npx playwright install --with-deps chromium
+
+      - name: Reviewer-path browser tests
+        working-directory: showcase
+        run: npm run e2e
+
+      - name: Upload browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: showcase-playwright-evidence
+          path: |
+            showcase/test-results
+            showcase/playwright-report
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 

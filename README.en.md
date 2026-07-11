@@ -147,6 +147,13 @@ fn main {
 
 The MoonBit field `SubjectInfo.kind` is serialized as manifest `subject.type`; `kind` avoids the MoonBit keyword.
 
+The complete repository example creates a manifest, verifies the original
+files, and confirms that changed bytes are rejected:
+
+```powershell
+moon run examples/quickstart
+```
+
 The [Evidence Pack Specification](docs/spec/EVIDENCE_PACK_SPEC.md) defines the format and field semantics.
 
 ## Verification Results

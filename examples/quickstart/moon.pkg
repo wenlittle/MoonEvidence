@@ -1,0 +1,10 @@
+import {
+  "starlittle/MoonEvidence/src/create",
+  "starlittle/MoonEvidence/src/diag",
+  "starlittle/MoonEvidence/src/digest",
+  "starlittle/MoonEvidence/src/verify",
+}
+
+options(
+  "is-main": true,
+)

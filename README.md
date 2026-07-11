@@ -147,6 +147,12 @@ fn main {
 
 MoonBit 结构体字段 `SubjectInfo.kind` 会写入 manifest 的 `subject.type`；`kind` 用于避开 MoonBit 关键字。
 
+仓库中的完整示例可以直接运行，它会依次创建清单、验证原始文件，再确认修改后的文件被拒绝：
+
+```powershell
+moon run examples/quickstart
+```
+
 证据包格式和字段语义见[证据包规范](docs/spec/EVIDENCE_PACK_SPEC.md)。
 
 ## 验证结果

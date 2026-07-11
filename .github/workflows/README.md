@@ -105,17 +105,23 @@ Triggered by pushing a version tag matching `v*` (e.g. `v0.3.0`). On tag:
 
 1. Install MoonBit CLI.
 2. `moon update` - refresh the MoonBit registry before resolving dependencies.
-3. `moon check --deny-warn` - ensure the tagged revision type-checks without
-   warnings.
-4. `moon info` + `git diff --exit-code -- 'src/**/*.mbti'` - ensure the
+3. Require the tag to match the version in `moon.mod`, then run the metric
+   drift guard.
+4. `moon check --deny-warn --target all` - ensure the tagged revision
+   type-checks without warnings.
+5. `moon info` + `git diff --exit-code -- 'src/**/*.mbti'` - ensure the
    generated public interface files are committed and stable.
-5. `node tools/check-package-contents.mjs` - ensure repository-only materials
+6. `node tools/check-package-contents.mjs` - ensure repository-only materials
    are excluded from the Mooncakes package.
-6. `moon package` - produce the publish zip under `_build/publish/`
+7. Run the portable MoonBit tests and the complete JS CLI black-box suite.
+8. `moon package` - produce the publish zip under `_build/publish/`
    (`<owner>-<Module>-<version>.zip`, e.g. `starlittle-MoonEvidence-0.3.0.zip`).
-7. Compute the SHA256 of the zip and write it alongside (`.sha256` sidecar).
-8. Create a GitHub Release (via `gh release create`) attaching both the zip
-   and the `.sha256` digest, with auto-generated release notes.
+9. Assemble a ready-to-run Node.js CLI zip containing launchers, the license,
+   and a valid evidence pack; verify that its program is byte-identical to the
+   release build and run a packaged smoke test.
+10. Compute SHA256 sidecars for both archives.
+11. Create a GitHub Release with the two archives, both digest files, and the
+    current curated CHANGELOG section as release notes.
 
 The SHA256 sidecar lets downstream consumers verify the published package was
 not tampered with in transit - mirroring the integrity contract the CLI

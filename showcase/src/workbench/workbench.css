@@ -779,7 +779,7 @@
 }
 
 .wb-pass-list > div,
-.wb-file-inventory > div {
+.wb-file-inventory > div:not(.wb-empty) {
   min-width: 0;
   min-height: 44px;
   display: grid;

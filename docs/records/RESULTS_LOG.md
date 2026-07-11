@@ -1889,6 +1889,37 @@ assurance with stale privacy and crypto wording.
 | In-app browser, 390x844 | PASS: current-tool selector, title, local-processing badge, input, action, and result remain readable with `scrollWidth == clientWidth == 390` |
 | `git diff --check` | PASS |
 
+## 2026-07-11 Asia/Shanghai (Playwright visual QA and demo capture)
+
+### Findings and fix
+
+| Area | Result |
+| --- | --- |
+| Create empty state | Playwright reproduced the reported vertical text: `.wb-file-inventory > div` applied the three-column file-row grid to the shared empty-state component |
+| CSS correction | Limited the file-row grid rule to `div:not(.wb-empty)`; the empty state now occupies the full 467 px inventory width and renders `尚未选择文件` on one line |
+
+### Verification
+
+| Command / flow | Result |
+| --- | --- |
+| Standalone Playwright + local Chrome, 1600x900 | PASS: all six Workbench routes have zero horizontal overflow, zero narrow vertical-text findings, and no application console errors or failed requests |
+| Standalone Playwright, 390x844 | PASS: all six routes keep `scrollWidth == clientWidth == 390`; long content remains reachable through the Workbench content scroller |
+| Video target, 1280x720 | PASS: homepage and Workbench fit without horizontal overflow before capture |
+| Six live interaction paths | PASS: valid/rejected verification, manifest creation, Merkle inclusion proof, Ed25519 sign/verify, audit-chain verification, and byte-tamper localization all reached their expected result-first conclusions |
+| Homepage canvas, 1600x900 | PASS: 1600x828 nonblank render; frames 700 ms apart changed 1.56% of color channels, confirming active motion |
+| Homepage canvas, 390x844 | PASS: 390x777 nonblank render; frames 700 ms apart changed 4.54% of color channels, confirming active mobile motion |
+| Console note | Zero application exceptions; only the previously recorded upstream React Three Fiber `THREE.Clock` deprecation warning remains |
+| `npm run check` / `npm run build` | PASS; production CSS rebuilt with the corrected selector |
+
+### Recorded artifact
+
+| Artifact | Result |
+| --- | --- |
+| Playwright source capture | `MoonEvidence-demo-2026-07-11.webm`; VP8, 1280x720, 25 fps, 42.56 s, 3,594,897 bytes |
+| Delivery encode | `MoonEvidence-demo-2026-07-11.mp4`; H.264/yuv420p, 1280x720, 25 fps, 42.56 s, 2,018,778 bytes |
+| Demo path | Homepage hero -> four scroll chapters -> valid verification -> byte-tamper rejection -> manifest creation |
+| Media integrity | PASS: FFmpeg decoded both complete files with zero errors; the final frame shows `证据清单已创建` |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

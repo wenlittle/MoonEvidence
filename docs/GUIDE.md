@@ -411,7 +411,7 @@ node $gateway verify-anchor examples/valid-pack `
 
 WSL 使用相同参数，将 PowerShell 续行符改为 `\`，并在 profile 中填写 Linux 证书路径。Windows Node.js 也可以通过 `\\wsl.localhost\<distribution>\...` 读取 WSL 中的 test-network 身份文件。
 
-2026-07-11 的双组织实验记录了 block 6 `VALID` 首笔交易、Org1/Org2 一致查询、重复提交和两类篡改回灌结果。完整产物位于 [Fabric E2E 记录](records/fabric-e2e/2026-07-11/)。
+2026-07-12 的双组织实验使用 `v0.5.1` 发布压缩包，记录了 block 8 `VALID` 首笔交易、Org1/Org2 一致查询、重复提交和两类篡改回灌结果。完整产物位于 [Fabric 发布 E2E 记录](records/fabric-e2e/2026-07-12-v0.5.1/)。
 
 ## 版本记录
 

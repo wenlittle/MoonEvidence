@@ -73,7 +73,8 @@ test("recorded Fabric run exposes its transaction evidence", async ({ page }) =>
   await expect(page).toHaveURL(/#ledger$/);
   await expect(page.getByRole("heading", { level: 1 })).toContainText("穿过两个组织");
   await expect(page.getByText("VALID", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText("ca3dc7810d375ddabd3ba7d0bbba6f3e95a48c1224c6dfbd892d50edf7a28393")).toBeVisible();
+  await expect(page.getByText("starlittle-MoonEvidence-0.5.1.zip")).toBeVisible();
+  await expect(page.getByText("a6d812ac78e8b933d78f85f743fa8e067dc388f0083afb22b775a6884f4529dc")).toBeVisible();
   await expectNoHorizontalOverflow(page);
   expect(errors).toEqual([]);
 });

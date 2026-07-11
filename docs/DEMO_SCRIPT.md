@@ -78,7 +78,7 @@ Remove-Item -LiteralPath $live -Recurse -Force
 
 ## 第 4 分钟 · 真实 Fabric 锚定 + 质量底座
 
-先打开 `docs/records/fabric-e2e/2026-07-11/transactions.json`，说明这是一份脱敏协议运行记录，并指出首笔交易：
+先打开 `docs/records/fabric-e2e/2026-07-12-v0.5.1/transactions.json`，说明这是一份绑定真实发布压缩包的脱敏协议运行记录，并指出首笔交易：
 
 - `VALID`，第 6 区块；
 - Org1/Org2 查询记录完全一致；
@@ -90,7 +90,7 @@ Remove-Item -LiteralPath $live -Recurse -Force
 ```powershell
 node integrations/fabric/gateway/dist/src/cli.js query `
   --profile integrations/fabric/gateway/.local/org1.json `
-  --manifest-digest sha256:16bbf1e91de3acfb8bd9091233926b454045c6d96c24327baec20272af583f1e `
+  --manifest-digest sha256:2435ee0178697fbde634615f85b7458667a5bd00d56ba5d7ecdd361dfb2d3cb6 `
   --json
 ```
 
@@ -122,7 +122,7 @@ npm run fabric:test              # Gateway 19/19
 - [ ] `showcase/` 已执行 `npm ci`、`npm run build`，`npm run preview` 正在运行
 - [ ] `moon build --target js` 已构建（`$cli` 路径存在）
 - [ ] `npm run fabric:build` 已执行；现场查询时本地 Fabric 网络和 `.local` profile 可用
-- [ ] `docs/records/fabric-e2e/2026-07-11/transactions.json` 已提前打开，网络不可用时仍可展示完整收据
+- [ ] `docs/records/fabric-e2e/2026-07-12-v0.5.1/transactions.json` 已提前打开，网络不可用时仍可展示完整收据
 - [ ] MoonEvidence 首页已在 `http://localhost:4173/` 打开过一次（MoonBit API 与场景资源已缓存）
 - [ ] 终端字体够大；`$cli` 变量已设
 - [ ] 临时目录 `$env:TEMP/moon-evidence-live-demo` 不存在残留

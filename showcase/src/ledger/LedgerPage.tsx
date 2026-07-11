@@ -20,7 +20,7 @@ import "./ledger.css";
 const timeline = [
   { icon: FileCheck2, step: "01", title: "本地复核", text: "证据包先通过完整性验证，规范摘要随后进入提交路径。" },
   { icon: Fingerprint, step: "02", title: "组织提交", text: "Org1 使用 Fabric Gateway 提交摘要，文件内容继续留在链下。" },
-  { icon: Blocks, step: "03", title: "区块确认", text: "交易进入区块 6，验证状态为 VALID，原始交易标识被固定。" },
+  { icon: Blocks, step: "03", title: "区块确认", text: "交易进入区块 8，验证状态为 VALID，原始交易标识被固定。" },
   { icon: Building2, step: "04", title: "跨组织查询", text: "Org1 与 Org2 查询到同一摘要、同一提交者和同一原始交易。" },
   { icon: GitCompare, step: "05", title: "摘要回灌", text: "账本摘要返回验证器，文件变化和清单重建分别触发明确拒绝。" },
 ];
@@ -45,7 +45,7 @@ export function LedgerPage({ onStart }: { onStart: () => void }) {
           <div className="ledger-route-line" aria-hidden="true"><span /></div>
           <div className="ledger-route-node node-local"><ShieldCheck /><span>本地验证</span><strong>通过</strong></div>
           <div className="ledger-route-node node-org1"><Building2 /><span>Org1</span><strong>提交</strong></div>
-          <div className="ledger-route-node node-block"><Blocks /><span>区块 6</span><strong>VALID</strong></div>
+          <div className="ledger-route-node node-block"><Blocks /><span>区块 8</span><strong>VALID</strong></div>
           <div className="ledger-route-node node-org2"><Building2 /><span>Org2</span><strong>同一记录</strong></div>
           <div className="ledger-route-caption"><Network size={16} />{ledgerRecord.runtime} · {ledgerRecord.channel}</div>
         </div>
@@ -82,6 +82,8 @@ export function LedgerPage({ onStart }: { onStart: () => void }) {
           <p>Org2 再次提交相同摘要时，合约返回已锚定，并继续保留 Org1 的首笔交易。</p>
         </div>
         <div className="ledger-receipt-data">
+          <div><span>发布文件</span><code>{ledgerRecord.artifactName}</code></div>
+          <div><span>文件 SHA-256</span><code>{ledgerRecord.artifactSha256}</code></div>
           <div><span>Manifest 摘要</span><code>{ledgerRecord.digest}</code></div>
           <div><span>交易标识</span><code>{ledgerRecord.transactionId}</code></div>
           <div className="receipt-inline">
@@ -98,7 +100,7 @@ export function LedgerPage({ onStart }: { onStart: () => void }) {
         </header>
         <div className="ledger-outcome-list">
           <div className="outcome-ok"><Check /><span>原始证据包</span><strong>2 / 2 文件通过</strong><small>账本摘要一致</small></div>
-          <div className="outcome-bad"><RotateCcw /><span>文件发生变化</span><strong>E2003</strong><small>定位到 files/a.txt</small></div>
+          <div className="outcome-bad"><RotateCcw /><span>文件发生变化</span><strong>E2003</strong><small>定位到 SHA-256 校验文件</small></div>
           <div className="outcome-bad"><Database /><span>重新生成清单</span><strong>E2004</strong><small>与原始账本摘要冲突</small></div>
         </div>
         <div className="ledger-evidence-links">

@@ -251,4 +251,4 @@ Go Chaincode 的 `go test -race -cover ./...` 由 Ubuntu required CI 执行。Wi
 | [RESULTS_LOG.md](records/RESULTS_LOG.md) | 带时间、环境、命令和结果的运行记录 |
 | [ACCEPTANCE_CHECKLIST.md](records/ACCEPTANCE_CHECKLIST.md) | 赛事九项要求到仓库证据的映射 |
 | [CI 工作流](../.github/workflows/ci.yml) | 合并门禁的可执行来源 |
-| [Fabric 记录](records/fabric-e2e/2026-07-11/) | 双组织部署、交易、查询和回传证据 |
+| [Fabric 发布记录](records/fabric-e2e/2026-07-12-v0.5.1/) | `v0.5.1` 发布制品、双组织交易、查询和回传证据 |

@@ -5,7 +5,7 @@ Fabric ledger anchor. The MoonBit CLI remains the authority for evidence-pack
 semantics; the TypeScript adapter transports its canonical manifest digest,
 and the Go chaincode stores that digest once.
 
-[Chinese task guide](../../docs/GUIDE.md#fabric-锚定) · [Anchor contract](../../docs/spec/FABRIC_ANCHOR_SPEC.md) · [Recorded experiment](../../docs/records/fabric-e2e/2026-07-11/)
+[Chinese task guide](../../docs/GUIDE.md#fabric-锚定) · [Anchor contract](../../docs/spec/FABRIC_ANCHOR_SPEC.md) · [Recorded release experiment](../../docs/records/fabric-e2e/2026-07-12-v0.5.1/)
 
 ```text
 source directory
@@ -29,7 +29,7 @@ credentials, and the full manifest stay off-chain.
 | `chaincode-go/` | Immutable `CreateAnchor`, `ReadAnchor`, and `AnchorExists` transactions |
 | `gateway/` | TLS Gateway connection, commit receipt handling, local pack verification, and CLI automation |
 | `../../docs/spec/FABRIC_ANCHOR_SPEC.md` | Frozen state, transaction, privacy, and error contract |
-| `../../docs/records/fabric-e2e/2026-07-11/` | Sanitized two-organization execution evidence |
+| `../../docs/records/fabric-e2e/2026-07-12-v0.5.1/` | Sanitized two-organization `v0.5.1` release-artifact evidence |
 
 ## Prerequisites
 
@@ -186,11 +186,11 @@ precondition.
 
 ## Verification Evidence
 
-The recorded two-organization experiment used Fabric v3.1.4 peers/orderer,
-deployed chaincode `moonevidence` 1.0 sequence 1 to `evidencechannel`, and
-observed:
+The recorded two-organization experiment used the deterministic `v0.5.1`
+module archive, Fabric v3.1.4 peers/orderer, and chaincode `moonevidence` 1.0
+sequence 1 on `evidencechannel`. It observed:
 
-- a first transaction committed `VALID` in block 6;
+- a first transaction committed `VALID` in block 8;
 - Org1 and Org2 returned the same immutable record;
 - an Org2 duplicate preserved the original transaction ID;
 - the original pack passed ledger-backfed verification;

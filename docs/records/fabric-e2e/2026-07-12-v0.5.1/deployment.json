@@ -1,0 +1,47 @@
+{
+  "schema": "moon-evidence-fabric-release-e2e-deployment/v1",
+  "observed_at": "2026-07-12T03:35:51+08:00",
+  "artifact": {
+    "name": "starlittle-MoonEvidence-0.5.1.zip",
+    "module_version": "0.5.1",
+    "source_commit": "fd5c7aa46a8e510497f6271a0c00c5812093d181",
+    "size_bytes": 740918,
+    "sha256": "7208a2518994b0092540527f6a35dcbb0143a8d90379e2d8ed4ab4476479a3ef",
+    "deterministic_rebuilds_matched": true
+  },
+  "evidence_pack": {
+    "subject_id": "moonevidence-release-v0.5.1",
+    "subject_type": "release-artifact",
+    "version_id": "v0.5.1",
+    "files_total": 2,
+    "manifest_digest": "sha256:2435ee0178697fbde634615f85b7458667a5bd00d56ba5d7ecdd361dfb2d3cb6",
+    "merkle_root": "sha256:93ad81040ee35c8ff414a8d897e5c6bbb26798dc6f25c8dd3f1352e8cd7cbb07"
+  },
+  "fabric": {
+    "runtime_images": "3.1.4",
+    "local_cli": "2.5.15",
+    "docker_engine": "27.4.0",
+    "channel": "evidencechannel",
+    "chaincode": "moonevidence",
+    "chaincode_version": "1.0",
+    "sequence": 1,
+    "package_id": "moonevidence_1.0:40f8ec7d43ff2d659825a9759cec1bea0a1f059e3149ddd08a0757ffd41bdafb",
+    "approvals": {
+      "Org1MSP": true,
+      "Org2MSP": true
+    },
+    "channel_tip": {
+      "height": 10,
+      "current_block_hash_base64": "Ja1h2rpgPYaSwyVDlnsiP2JEltqjQK2yC+8qCzPa/lc=",
+      "previous_block_hash_base64": "5qFfEgFgU8092ch0SQNFg5M9OZvvU+g50RWKjikp4xM=",
+      "org1_org2_equal": true
+    }
+  },
+  "chaincode_source_sha256": {
+    "main.go": "52a0eb05a8a684f701f0508993e4743964c1f1df2c5bc975afcb747692e10e20",
+    "chaincode/anchor_contract.go": "28345ba02550d6adf5a1e06688492bea175b93701c60de2621573e8981a5639f",
+    "go.mod": "f78528f1c2e763104d83488e72b44253726312424331e5664d3ab3620bf73145",
+    "go.sum": "cfbe6fdfad8582acbe4422ec4a8558330b4e80640a31594115c49d56edeabd0e"
+  },
+  "sanitized": true
+}

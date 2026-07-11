@@ -348,7 +348,7 @@ Files: `integrations/fabric/chaincode-go`, `integrations/fabric/gateway`
 | F-04 | Missing, read/write/event, empty identity, and empty tx ID paths fail with stable prefixes | Go failure tests | `covered` | |
 | F-05 | Corrupt existing state is rejected and never overwritten | Go corrupt-state table | `covered` | |
 | F-06 | Gateway profile rejects bad schema, missing files, invalid timeout values, and a malformed timeout section | Node profile tests | `covered` | Real credentials remain local/ignored. |
-| F-07 | Commit receipt preserves tx ID, block, status code, and success | Node submit tests + real block 6 receipt | `protocol-covered` | |
+| F-07 | Commit receipt preserves tx ID, block, status code, and success | Node submit tests + real `v0.5.1` block 8 receipt | `protocol-covered` | |
 | F-08 | Only validation code 11 (MVCC read conflict) can normalize after a matching ledger query; all other rejected commits remain errors | Node conflict positive/negative/non-MVCC tests | `covered` | Actual race outcome is nondeterministic, so branch is deterministic at adapter unit level. |
 | F-09 | Org1 and Org2 query the same immutable anchor | Real Fabric v3.1.4 record | `protocol-covered` | `transactions.json` records equality. |
 | F-10 | Ledger-backfed verification distinguishes payload tamper E2003 from regenerated-manifest E2004 | Real Fabric E2E `verification.json` | `protocol-covered` | Closes the actual user trust loop. |

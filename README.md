@@ -200,18 +200,19 @@ checked 2 files, 1 passed; merkle root verified; 1 error, 0 warnings
                   当前证据包 ← 账本查询 ← 原始摘要
 ```
 
-2026-07-11 的双组织实验留下了可复核记录：
+2026-07-12 的双组织实验直接使用 `v0.5.1` 发布压缩包，留下了可复核记录：
 
 | 检查项 | 结果 |
 | --- | --- |
 | 网络 | Fabric v3.1.4，Org1 和 Org2，`evidencechannel` |
 | 摘要算法 | 本次协议运行使用 SHA-256；合同同时接受规范 SHA-512 摘要 |
-| 首次提交 | block `6`，状态 `VALID`，交易 `ca3dc781…a28393` |
+| 发布文件 | `starlittle-MoonEvidence-0.5.1.zip`，SHA-256 `7208a251…479a3ef` |
+| 首次提交 | block `8`，状态 `VALID`，交易 `a6d812ac…4529dc` |
 | 跨组织查询 | Org1、Org2 返回同一条原始记录 |
 | 文件变化 | 本地复核返回 `E2003` |
 | 清单重建 | 对照原始账本摘要返回 `E2004` |
 
-[实链记录页](https://wenlittle.github.io/MoonEvidence/#ledger)提供可视化回放，[Fabric 集成指南](integrations/fabric/README.md)提供部署和调用命令，[实验记录](docs/records/fabric-e2e/2026-07-11/)保存交易、查询和回灌结果。
+[实链记录页](https://wenlittle.github.io/MoonEvidence/#ledger)提供可视化回放，[Fabric 集成指南](integrations/fabric/README.md)提供部署和调用命令，[发布实验记录](docs/records/fabric-e2e/2026-07-12-v0.5.1/)保存制品哈希、交易、查询和回灌结果。
 
 ## 系统架构
 
@@ -260,7 +261,7 @@ flowchart TB
 | 多后端 | native、wasm、wasm-gc、js 进入 CI 检查；CLI PowerShell/bash 各 68/68 | [CI](https://github.com/wenlittle/MoonEvidence/actions/workflows/ci.yml) |
 | 浏览器 | 12 个 MoonBit API 共用 Web Worker，并由 smoke、异常输入和语义属性检查覆盖 | [展示说明](showcase/README.md) |
 | Fabric 适配器 | Chaincode 82.1% 语句覆盖，Gateway 19/19，required CI 持续执行 | [结果记录](docs/records/RESULTS_LOG.md) · [CI](https://github.com/wenlittle/MoonEvidence/actions/workflows/ci.yml) |
-| Fabric 协议 | 双组织提交、跨组织查询、幂等重复和摘要回传已留存 | [实验记录](docs/records/fabric-e2e/2026-07-11/) |
+| Fabric 协议 | `v0.5.1` 发布包、双组织提交、跨组织查询、幂等重复和摘要回传已留存 | [发布实验记录](docs/records/fabric-e2e/2026-07-12-v0.5.1/) |
 | MoonBit 源码 | **14,977** 行（实现 6,547 + 测试 8,430），12 个产品包和 1 个原生计时工具包 | [结果记录](docs/records/RESULTS_LOG.md) |
 
 测试从标准样例、独立参考结果、随机差分、异常输入、故障注入一路覆盖到 CLI 黑盒和真实账本实验。门禁关注测试能否抓住错误，避免只统计通过数量。

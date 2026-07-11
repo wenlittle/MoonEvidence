@@ -201,18 +201,19 @@ local create and verify → canonical digest → Fabric Gateway → chaincode �
                          current pack ← ledger query ← original digest
 ```
 
-The two-organization experiment recorded on 2026-07-11 produced reviewable evidence:
+The two-organization experiment recorded on 2026-07-12 used the `v0.5.1` release archive and produced reviewable evidence:
 
 | Check | Result |
 | --- | --- |
 | Network | Fabric v3.1.4, Org1 and Org2, `evidencechannel` |
 | Digest algorithm | This protocol run used SHA-256; the contract also accepts canonical SHA-512 digests |
-| First commit | block `6`, status `VALID`, transaction `ca3dc781…a28393` |
+| Release asset | `starlittle-MoonEvidence-0.5.1.zip`, SHA-256 `7208a251…479a3ef` |
+| First commit | block `8`, status `VALID`, transaction `a6d812ac…4529dc` |
 | Cross-organization query | Org1 and Org2 returned the same original record |
 | File change | Local backfeed verification returned `E2003` |
 | Regenerated manifest | Comparison with the original ledger digest returned `E2004` |
 
-The [recorded ledger page](https://wenlittle.github.io/MoonEvidence/#ledger) presents a visual replay. The [Fabric Integration Guide](integrations/fabric/README.md) provides deployment and invocation commands, while the [experiment record](docs/records/fabric-e2e/2026-07-11/) stores transaction, query, and digest-backfeed results.
+The [recorded ledger page](https://wenlittle.github.io/MoonEvidence/#ledger) presents a visual replay. The [Fabric Integration Guide](integrations/fabric/README.md) provides deployment and invocation commands, while the [release experiment record](docs/records/fabric-e2e/2026-07-12-v0.5.1/) stores artifact hashes, transactions, queries, and digest-backfeed results.
 
 ## Architecture
 
@@ -261,7 +262,7 @@ See the [Architecture](docs/ARCHITECTURE.md) for the detailed design and the [Fa
 | Multiple backends | native, wasm, wasm-gc, and js enter CI; PowerShell and bash CLI suites each pass 68/68 | [CI](https://github.com/wenlittle/MoonEvidence/actions/workflows/ci.yml) |
 | Browser | 12 MoonBit APIs share one Web Worker and receive smoke, malformed-input, and semantic-property checks | [Showcase Guide](showcase/README.md) |
 | Fabric adapters | 82.1% chaincode statement coverage, Gateway 19/19, and a required CI job | [Results Log](docs/records/RESULTS_LOG.md) · [CI](https://github.com/wenlittle/MoonEvidence/actions/workflows/ci.yml) |
-| Fabric protocol | Recorded two-organization submission, cross-organization query, idempotent duplicate, and digest backfeed | [Experiment record](docs/records/fabric-e2e/2026-07-11/) |
+| Fabric protocol | Recorded `v0.5.1` release asset, two-organization submission, cross-organization query, idempotent duplicate, and digest backfeed | [Release experiment](docs/records/fabric-e2e/2026-07-12-v0.5.1/) |
 | MoonBit source | **14,977** lines: 6,547 implementation + 8,430 tests; 12 product packages and 1 native timing package | [Results Log](docs/records/RESULTS_LOG.md) |
 
 The test system moves from standard examples and independent references through randomized differential checks, malformed inputs, fault injection, CLI black-box tests, and a real ledger experiment. Gates measure whether tests catch faults, not only how many tests pass.

@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { FileWarning, FlaskConical, FolderOpen, RotateCcw, Zap } from "lucide-react";
 import { callMoon } from "../moon-rpc";
 import type { EvidenceScenario, VerifyResponse } from "../types";
+import { buildVerifyEvidenceRequest } from "../verify-request";
 import { CodeBlock, EmptyState, Pane, ResultHero, StatusLine, TechnicalDetails, ToolTitle } from "./shared";
 import type { ToolStatus, TreeApiResponse } from "./types";
 import { flipHexByte, inputDirectoryProps, readPackDirectory, shortValue } from "./utils";
@@ -9,6 +10,7 @@ import { flipHexByte, inputDirectoryProps, readPackDirectory, shortValue } from 
 export function TamperTool({ scenario }: { scenario: EvidenceScenario }) {
   const builtInFiles = Object.fromEntries(scenario.files.map((file) => [file.path, file.originalHex]));
   const [manifestText, setManifestText] = useState(scenario.manifestText);
+  const [versionChainText, setVersionChainText] = useState(scenario.versionChainText);
   const [originalFiles, setOriginalFiles] = useState<Record<string, string>>(builtInFiles);
   const [files, setFiles] = useState<Record<string, string>>(builtInFiles);
   const [selectedPath, setSelectedPath] = useState(scenario.tamperedPath);
@@ -25,6 +27,7 @@ export function TamperTool({ scenario }: { scenario: EvidenceScenario }) {
   const rebuild = async (
     nextManifest: string,
     nextFiles: Record<string, string>,
+    nextVersionChainText: string | null,
     message: string,
   ) => {
     setBusy(true);
@@ -50,10 +53,10 @@ export function TamperTool({ scenario }: { scenario: EvidenceScenario }) {
           manifest: JSON.stringify(materializedManifest),
           files: nextFiles,
         }),
-        callMoon<VerifyResponse>("verify_evidence", {
-          manifest: nextManifest,
-          files: nextFiles,
-        }),
+        callMoon<VerifyResponse>(
+          "verify_evidence",
+          buildVerifyEvidenceRequest(nextManifest, nextFiles, nextVersionChainText),
+        ),
       ]);
       if (!treeResponse.ok) throw new Error(treeResponse.error ?? "Merkle tree build failed");
       setTree(treeResponse.tree);
@@ -68,6 +71,7 @@ export function TamperTool({ scenario }: { scenario: EvidenceScenario }) {
 
   const loadBuiltIn = () => {
     setManifestText(scenario.manifestText);
+    setVersionChainText(scenario.versionChainText);
     setOriginalFiles(builtInFiles);
     setFiles(builtInFiles);
     setSelectedPath(scenario.tamperedPath);
@@ -85,10 +89,16 @@ export function TamperTool({ scenario }: { scenario: EvidenceScenario }) {
     }
     const firstPath = Object.keys(loaded.files)[0] ?? "";
     setManifestText(loaded.manifestText);
+    setVersionChainText(loaded.versionChainText);
     setOriginalFiles(loaded.files);
     setFiles(loaded.files);
     setSelectedPath(firstPath);
-    await rebuild(loaded.manifestText, loaded.files, `${loaded.directoryName} 验证完成`);
+    await rebuild(
+      loaded.manifestText,
+      loaded.files,
+      loaded.versionChainText,
+      `${loaded.directoryName} 验证完成`,
+    );
   };
 
   const tamper = async () => {
@@ -99,13 +109,18 @@ export function TamperTool({ scenario }: { scenario: EvidenceScenario }) {
       [selectedPath]: flipHexByte(current, Math.floor(current.length / 4)),
     };
     setFiles(nextFiles);
-    await rebuild(manifestText, nextFiles, `${selectedPath} 已改变一个字节，验证器拒绝该证据包`);
+    await rebuild(
+      manifestText,
+      nextFiles,
+      versionChainText,
+      `${selectedPath} 已改变一个字节，验证器拒绝该证据包`,
+    );
   };
 
   const reset = async () => {
     const restored = { ...originalFiles };
     setFiles(restored);
-    await rebuild(manifestText, restored, "全部文件已恢复，可信根重新匹配");
+    await rebuild(manifestText, restored, versionChainText, "全部文件已恢复，可信根重新匹配");
   };
 
   const highlightedNodes = useMemo(() => {

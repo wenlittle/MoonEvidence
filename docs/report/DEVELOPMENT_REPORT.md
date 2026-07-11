@@ -315,7 +315,7 @@ flowchart TB
 | Ed25519 攻击向量 | Google Wycheproof 150/150，覆盖 7 类攻击 |
 | 跨实现检查 | Ed25519、SHA-256、SHA-512、HMAC、Merkle 和夹具摘要 |
 | 故障注入 | 16/16 个实现故障被现有测试捕获 |
-| 浏览器 | 12 个公开 API，Node.js 接口冒烟测试 36/36，完整工作台生产构建通过 |
+| 浏览器 | 12 个公开 API，Node.js 接口冒烟测试 37/37，完整工作台生产构建通过 |
 | Fabric Chaincode | `go vet`、race CI、82.1% 语句覆盖 |
 | Fabric Gateway | TypeScript check/build，19/19 测试 |
 | Fabric E2E | 提交、双查询、重复、`E2003`、`E2004` 全部留档 |

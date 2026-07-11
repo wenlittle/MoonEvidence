@@ -66,6 +66,7 @@ export type ScenarioFile = {
 export type EvidenceScenario = {
   manifest: EvidenceManifest;
   manifestText: string;
+  versionChainText: string | null;
   files: ScenarioFile[];
   tamperedPath: string;
   originalTree: TreeData;

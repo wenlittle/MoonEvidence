@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { callMoon } from "../moon-rpc";
 import type { EvidenceScenario, VerifyResponse } from "../types";
+import { buildVerifyEvidenceRequest } from "../verify-request";
 import {
   EmptyState,
   NextActions,
@@ -25,11 +26,20 @@ import type { WorkbenchView } from "./Workbench";
 function findingSummary(code: string): string {
   switch (code) {
     case "E1001": return "证据清单格式无法解析";
-    case "E2001": return "清单记录的文件没有找到";
-    case "E2002": return "文件大小与清单记录不一致";
-    case "E2003": return "文件内容与清单记录不一致";
+    case "E1002": return "证据清单缺少必填项或字段格式无效";
+    case "E1003": return "证据清单版本暂不受支持";
+    case "E1004": return "证据清单无法转换为规范 JSON";
+    case "E2001": return "证据清单指定了不受支持的摘要算法";
+    case "E2002": return "证据清单中的摘要格式无效";
+    case "E2003": return "文件缺失或内容与证据清单不一致";
     case "E2004": return "证据清单本身发生了变化";
-    case "E3001": return "当前证据根与清单记录不一致";
+    case "E3001": return "证据根与文件清单的存在状态不一致";
+    case "E3003": return "当前证据根与清单记录不一致";
+    case "E4001": return "版本记录为空";
+    case "E4002": return "版本记录引用了不存在的上级版本";
+    case "E4003": return "版本记录中存在循环或断开的链路";
+    case "E4004": return "版本记录中存在分叉或重复版本";
+    case "W1001": return "证据包中存在未列入清单的文件";
     default: return code.startsWith("W") ? "发现一项需要复核的内容" : "该项目未通过一致性检查";
   }
 }
@@ -44,6 +54,7 @@ export function VerifyTool({
   const originalFiles = Object.fromEntries(scenario.files.map((file) => [file.path, file.originalHex]));
   const tamperedFiles = Object.fromEntries(scenario.files.map((file) => [file.path, file.tamperedHex]));
   const [manifestText, setManifestText] = useState(scenario.manifestText);
+  const [versionChainText, setVersionChainText] = useState(scenario.versionChainText);
   const [files, setFiles] = useState<Record<string, string>>(originalFiles);
   const [source, setSource] = useState("内置完好证据包");
   const [result, setResult] = useState<VerifyResponse | null>(null);
@@ -64,6 +75,7 @@ export function VerifyTool({
   const loadExample = (tampered: boolean) => {
     revision.current += 1;
     setManifestText(scenario.manifestText);
+    setVersionChainText(scenario.versionChainText);
     setFiles(tampered ? tamperedFiles : originalFiles);
     setSource(tampered ? "内置单字节篡改包" : "内置完好证据包");
     setResult(null);
@@ -82,6 +94,7 @@ export function VerifyTool({
     }
     revision.current += 1;
     setManifestText(loaded.manifestText);
+    setVersionChainText(loaded.versionChainText);
     setFiles(loaded.files);
     setSource(loaded.directoryName);
     setResult(null);
@@ -97,10 +110,10 @@ export function VerifyTool({
     setBusy(true);
     setStatus({ tone: "neutral", text: "正在核对文件摘要与证据根" });
     try {
-      const response = await callMoon<VerifyResponse>("verify_evidence", {
-        manifest: manifestText,
-        files,
-      });
+      const response = await callMoon<VerifyResponse>(
+        "verify_evidence",
+        buildVerifyEvidenceRequest(manifestText, files, versionChainText),
+      );
       if (activeRevision !== revision.current) return;
       setResult(response);
       setRunId((value) => value + 1);

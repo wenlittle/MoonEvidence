@@ -97,6 +97,7 @@ moon-evidence/
       store.ts
       styles.css
       types.ts
+      verify-request.ts       # manifest、payload 与可选版本链请求组装
     tools/
       prepare-api.mjs
     README.md
@@ -241,7 +242,7 @@ moon-evidence/
     gen-fixtures.mjs           # 篡改矩阵生成（独立 Node 参考实现）
     gen-merkle-fixtures.mjs    # Merkle golden 数据生成
     gen-pack-fixture.mjs       # 单个证据包夹具生成
-    smoke-api.mjs              # 浏览器适配器 36 断言烟测
+    smoke-api.mjs              # 浏览器适配器 37 断言烟测
     cli-test.sh                # 62 用例黑盒 CLI（bash 版，与 ps1 1:1 对等）
     cross-verify.mjs           # 独立 Node 交叉验证（create/store/audit 重算对比）
     differential-crypto.mjs    # Ed25519 JS API 与 Node.js crypto 随机差分对拍

@@ -6,6 +6,7 @@ import type {
   WorkerMethod,
   WorkerResponse,
 } from "./types";
+import { buildVerifyEvidenceRequest } from "./verify-request";
 
 class MoonRpc {
   private worker = new Worker(new URL("./workers/moon.worker.ts", import.meta.url), {
@@ -90,6 +91,8 @@ export async function buildEvidenceScenario(): Promise<EvidenceScenario> {
   if (!manifestResponse.ok) throw new Error("Unable to load the built-in manifest");
   const manifestText = await manifestResponse.text();
   const manifest = JSON.parse(manifestText) as EvidenceManifest;
+  const versionChainResponse = await fetch("./packs/valid-pack/versions/version_chain.json");
+  const versionChainText = versionChainResponse.ok ? await versionChainResponse.text() : null;
 
   const originalFiles: Record<string, string> = {};
   for (const entry of manifest.files) {
@@ -140,14 +143,14 @@ export async function buildEvidenceScenario(): Promise<EvidenceScenario> {
         manifest: tamperedManifestText,
         files: tamperedFiles,
       }),
-      rpc.call<VerifyResponse>("verify_evidence", {
-        manifest: manifestText,
-        files: originalFiles,
-      }),
-      rpc.call<VerifyResponse>("verify_evidence", {
-        manifest: manifestText,
-        files: tamperedFiles,
-      }),
+      rpc.call<VerifyResponse>(
+        "verify_evidence",
+        buildVerifyEvidenceRequest(manifestText, originalFiles, versionChainText),
+      ),
+      rpc.call<VerifyResponse>(
+        "verify_evidence",
+        buildVerifyEvidenceRequest(manifestText, tamperedFiles, versionChainText),
+      ),
     ]);
 
   if (!originalTreeResponse.ok || !tamperedTreeResponse.ok) {
@@ -199,6 +202,7 @@ export async function buildEvidenceScenario(): Promise<EvidenceScenario> {
   return {
     manifest,
     manifestText,
+    versionChainText,
     tamperedPath,
     originalTree: originalTreeResponse.tree,
     tamperedTree: tamperedTreeResponse.tree,

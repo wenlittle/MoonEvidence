@@ -2,6 +2,7 @@ import { toHex } from "../moon-rpc";
 
 export type LoadedPack = {
   manifestText: string | null;
+  versionChainText: string | null;
   files: Record<string, string>;
   directoryName: string;
 };
@@ -11,6 +12,7 @@ type DirectoryFile = File & { webkitRelativePath?: string };
 export async function readPackDirectory(fileList: FileList): Promise<LoadedPack> {
   const files: Record<string, string> = {};
   let manifestText: string | null = null;
+  let versionChainText: string | null = null;
   let directoryName = "selected-pack";
 
   for (const rawFile of Array.from(fileList) as DirectoryFile[]) {
@@ -19,12 +21,14 @@ export async function readPackDirectory(fileList: FileList): Promise<LoadedPack>
     const relativePath = parts.length > 1 ? parts.slice(1).join("/") : rawFile.name;
     if (relativePath === "manifest.json") {
       manifestText = await rawFile.text();
-    } else if (relativePath.startsWith("files/") || relativePath.startsWith("versions/")) {
+    } else if (relativePath === "versions/version_chain.json") {
+      versionChainText = await rawFile.text();
+    } else if (relativePath.startsWith("files/")) {
       files[relativePath] = toHex(new Uint8Array(await rawFile.arrayBuffer()));
     }
   }
 
-  return { manifestText, files, directoryName };
+  return { manifestText, versionChainText, files, directoryName };
 }
 
 export async function readCreateFiles(fileList: FileList): Promise<Record<string, string>> {

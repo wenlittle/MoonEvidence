@@ -132,6 +132,18 @@ const goldenManifestDigest =
   "sha256:16bbf1e91de3acfb8bd9091233926b454045c6d96c24327baec20272af583f1e";
 const valid = runPack("valid-pack", goldenManifestDigest);
 const tampered = runPack("tampered-pack");
+const brokenVersionChain = JSON.parse(
+  verify_evidence(
+    JSON.stringify({
+      manifest: readFileSync("examples/valid-pack/manifest.json", "utf8"),
+      files: {
+        "files/a.txt": hex(readFileSync("examples/valid-pack/files/a.txt")),
+        "files/b.bin": hex(readFileSync("examples/valid-pack/files/b.bin")),
+      },
+      version_chain: '[{"id":"v2","parent":"missing"}]',
+    }),
+  ),
+);
 const wrongAnchor = runPack("valid-pack", "sha256:" + "0".repeat(64));
 const bad = JSON.parse(verify_evidence("{ not json"));
 const malformedAnchor = JSON.parse(
@@ -146,6 +158,12 @@ const malformedAnchor = JSON.parse(
 check("valid-pack ok", valid.ok === true);
 check("tampered-pack fails", tampered.ok === false);
 check("tampered has E2003", tampered.report.findings.some((f) => f.code === "E2003"));
+check(
+  "forwarded version chain reports E4002",
+  brokenVersionChain.ok === false &&
+    brokenVersionChain.report.findings.some((finding) => finding.code === "E4002"),
+  JSON.stringify(brokenVersionChain),
+);
 check(
   "wrong external anchor has only E2004",
   wrongAnchor.ok === false &&

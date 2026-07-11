@@ -413,16 +413,20 @@
   // ===== Verify =====
   let verifyFiles = {};
   let verifyManifestText = null;
+  let verifyVersionChainText = null;
   $("verify-dir-input").addEventListener("change", async e => {
     verifyFiles = {};
     verifyManifestText = null;
+    verifyVersionChainText = null;
     const files = Array.from(e.target.files);
     for (const f of files) {
       const rel = f.webkitRelativePath.split("/").slice(1).join("/") || f.name;
       if (rel === "manifest.json") {
         // Store manifest as text (not hex) so verify_evidence can use it directly.
         verifyManifestText = await f.text();
-      } else if (rel.startsWith("files/") || rel.startsWith("versions/")) {
+      } else if (rel === "versions/version_chain.json") {
+        verifyVersionChainText = await f.text();
+      } else if (rel.startsWith("files/")) {
         verifyFiles[rel] = bufToHex(await f.arrayBuffer());
       }
     }
@@ -438,18 +442,20 @@
       alert("需要 manifest.json——请拖入证据包目录，或粘贴 manifest JSON");
       return;
     }
-    doVerify(manifest, verifyFiles);
+    doVerify(manifest, verifyFiles, verifyVersionChainText);
   });
 
   $("verify-paste-btn").addEventListener("click", () => {
     const manifest = $("verify-manifest-text").value;
     if (!manifest.trim()) return;
-    doVerify(manifest, {});
+    doVerify(manifest, {}, null);
   });
 
-  function doVerify(manifestText, filesHex) {
+  function doVerify(manifestText, filesHex, versionChainText) {
     if (!mod) return alert("模块未加载");
-    const req = JSON.stringify({ manifest: manifestText, files: filesHex });
+    const payload = { manifest: manifestText, files: filesHex };
+    if (versionChainText !== null) payload.version_chain = versionChainText;
+    const req = JSON.stringify(payload);
     let box;
     try {
       const resp = JSON.parse(mod.verify_evidence(req));

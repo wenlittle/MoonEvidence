@@ -161,7 +161,11 @@ export async function buildEvidenceScenario(): Promise<EvidenceScenario> {
   );
   if (!digestFinding) throw new Error("Tamper diagnostic invariant failed");
 
-  const keypair = await rpc.call<KeypairResponse>("ed25519_keypair", {});
+  const signatureSeed = new Uint8Array(32);
+  crypto.getRandomValues(signatureSeed);
+  const keypair = await rpc.call<KeypairResponse>("ed25519_keypair", {
+    seed: toHex(signatureSeed),
+  });
   if (!keypair.ok) throw new Error("Ed25519 key generation failed");
   const originalRootHex = stripDigestPrefix(originalTreeResponse.tree.root.actual);
   const tamperedRootHex = stripDigestPrefix(tamperedTreeResponse.tree.root.actual);

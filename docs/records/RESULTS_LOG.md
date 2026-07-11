@@ -2135,6 +2135,37 @@ deployed protocol and revalidated the Gateway boundary around that record.
 | `node tools/check-package-contents.mjs` | PASS: 233 packaged files inspected |
 | `git diff --check` | PASS |
 
+## 2026-07-11 Asia/Shanghai (documentation rewrite round 4b: security model)
+
+### Scope
+
+| Item | Result |
+| --- | --- |
+| Repository baseline | `codex/documentation-restructure` at `3f47910` before the security rewrite |
+| Security model | Rebuilt `SECURITY.md` around protected assets, roles, invariants, assurance scope, filesystem and browser boundaries, Fabric responsibilities, key ownership, deployment profiles, version support, and private reporting |
+| Assurance language | Aligned public claims with the development report: current evidence is tied to standards, independent references, fault injection, multiple backends, recorded timing, and real Fabric execution |
+| Production certification | Defined final-machine-code review, target-specific timing, independent crypto review, KMS/HSM, and Fabric governance as explicit high-value release gates |
+| Timing record | Reframed `CONST_TIME_AUDIT.md` as a v0.5.0 assurance profile with a named production-certification scope |
+| Showcase signing | The homepage scenario now generates a fresh 32-byte Web Crypto seed and passes it explicitly to the MoonBit Ed25519 API; the fixed seed remains limited to the warning-bearing API demo fallback |
+| Navigation | Added the security document to the project index and expanded the knowledge-base and migration entries |
+
+### Verification
+
+| Command / flow | Result |
+| --- | --- |
+| Portable MoonBit tests | PASS: wasm, wasm-gc, and js each 347/347 |
+| Windows MSVC native tests | PASS: 347/347 |
+| Wycheproof inventory | PASS: 150 vectors, 88 valid and 62 invalid across seven categories |
+| Independent reference checks | PASS: pack cross-verify 10/10; Ed25519 differential 64/64; digest/HMAC differential 64/64 |
+| Browser API smoke | PASS: 36/36, including explicit-seed signing and demo-seed warning |
+| Showcase | PASS: TypeScript project check and Vite production build after the random-seed change |
+| Mutation quality gate | PASS: 16/16 implementation faults caught; source restored byte-for-byte |
+| Windows junction probe | PASS: create terminated safely; verify traversal remained bounded |
+| `moon fmt --check`; `moon check --deny-warn --target all`; `moon info` interface diff | PASS |
+| Metrics and package guards | PASS: 44/44 assertions; 233 packaged files inspected |
+| Links and reporting | PASS: changed local links resolve; GitHub private advisory endpoint returned HTTP 200 |
+| `git diff --check`; source restoration scan | PASS |
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

@@ -4,19 +4,17 @@ Date: 2026-07-07 Asia/Shanghai
 
 This audit records the source-level control-flow review for the pure MoonBit
 Ed25519 implementation plus one reproducible native dudect-style timing
-experiment. The current assurance target is an engineering-grade evidence
-package for a course/competition Evidence Pack verifier: source review,
-independent crypto vectors, mutation/differential testing, and native timing
-statistics are combined into one reproducible review trail. Full backend
-disassembly review and specialist dudect certification are treated as the next
-production-hardening tier, not as a blocker for this release scope.
+experiment. The v0.5.0 assurance profile combines source review, independent
+crypto vectors, mutation and differential testing, and native timing into one
+reproducible review trail. Production certification adds backend disassembly,
+runtime-behavior review, and a specialist dudect campaign for each target
+toolchain.
 
 ## Verdict
 
-The previous broad claim "Ed25519 is constant-time" was too strong until the
-scalar-reduction branch issue was fixed. As of 2026-07-06, the source-level
-review no longer finds explicit branches on secret-derived scalar-reduction
-state in `reduce_scalar_512`.
+As of 2026-07-06, source review finds no explicit branch on secret-derived
+scalar-reduction state in `reduce_scalar_512`. The arithmetic-selection rewrite
+closes the recorded CT-001 source-level finding.
 
 - `Point::scalar_mul`, `fe_cmov`, `point_cmov`, `Fe::eq`, and
   `Fe::to_bytes` are written with fixed loop counts and no obvious
@@ -27,11 +25,10 @@ state in `reduce_scalar_512`.
 - `ed25519_sign` now uses reviewed scalar multiplication and branch-free
   source-level scalar reduction for the signing reductions.
 
-The project may claim source-reviewed constant-time Ed25519 signing logic and
-local native timing evidence with no obvious timing difference observed in the
-recorded run. The stronger production-grade claim is deliberately separated
-into a future certification tier that would include backend lowering review,
-runtime behavior review, and specialist dudect analysis.
+The current evidence supports source-reviewed constant-time Ed25519 signing
+logic and a recorded native run with no obvious timing difference. Production
+certification extends this evidence with backend lowering, runtime behavior,
+final machine code, and specialist dudect analysis.
 
 ## Secret Model
 
@@ -92,11 +89,11 @@ Impact:
 - Functional tests prove the scalar-reduction rewrite preserved RFC behavior.
 - Static source review no longer finds the specific CT-001 secret-derived
   branches.
-- Generated JS/Wasm/native code, runtime allocation, GC, and CPU behavior are
-  intentionally tracked as the next assurance tier beyond this source and
-  native-timing release gate.
+- Generated JS/Wasm/native code, runtime allocation, GC, and CPU behavior enter
+  the production certification profile beyond the source and native-timing
+  release gate.
 
-Production-hardening track:
+Production certification track:
 
 1. Review generated backend code for reintroduced branches or table lookups.
 2. Run a specialist dudect/backend-machine-code campaign if the implementation
@@ -113,7 +110,7 @@ only supplies a high-resolution timer and prints native environment data.
 
 Method controls:
 
-- Native release build via MSVC, not a C/C++ reimplementation of Ed25519.
+- Native release build via MSVC; the C stub supplies only timing and environment data.
 - A/B inputs are same-shape classes and are randomly order-interleaved.
 - Warmup samples run before measurement.
 - Each timed call contributes to a checksum so the compiler cannot discard it.
@@ -142,15 +139,13 @@ Environment:
 
 Interpretation: all three recorded targets are comfortably below the common
 `|t| >= 4.5` suspicion threshold in this local run. This establishes a
-reproducible engineering assurance signal for the recorded
-machine/toolchain/build, while leaving cross-toolchain certification to the
-production-hardening track above.
+reproducible engineering assurance signal for the recorded machine,
+toolchain, and build. Cross-toolchain certification follows the track above.
 
-## Non-Goals And Caveats
+## Production Certification Scope
 
-- `Sha512Ctx`, generated JavaScript, WebAssembly, native machine code, runtime
-  allocation, GC, integer lowering, and CPU microarchitecture are explicitly
-  separated into the production-hardening track.
-- The recorded dynamic timing check is a bounded, reproducible assurance
-  signal for the recorded native environment and is designed to be rerun when
-  the toolchain or target machine changes.
+- Production certification reviews `Sha512Ctx`, generated JavaScript,
+  WebAssembly, native machine code, runtime allocation, GC, integer lowering,
+  and CPU microarchitecture for the selected target.
+- Each toolchain or target-machine change triggers a new dynamic timing record
+  before certification.

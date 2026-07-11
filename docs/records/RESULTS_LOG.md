@@ -2053,6 +2053,36 @@ The first Showcase install attempt met a Windows file lock held by two older
 workspace preview processes. Those workspace-specific processes were stopped;
 the clean install, type check, and production build then completed normally.
 
+## 2026-07-11 Asia/Shanghai (documentation rewrite round 2)
+
+### Scope
+
+| Item | Result |
+| --- | --- |
+| User path | `docs/GUIDE.md` reorganized by task: setup, entry choice, pack, verify, tamper, automation, browser, Fabric, versions, troubleshooting |
+| Browser docs | `demo/README.md` owns the lightweight launch path; `demo/web/README.md` is a concise directory entry; Showcase links point to the task guide |
+| Fabric docs | User guide and integration source guide share relative links, canonical CLI paths, profile boundary, and recorded E2E evidence |
+| Cross-platform contract | PowerShell and WSL/bash examples use the same JS CLI artifact and stable process results |
+
+### Verification
+
+| Command / flow | Result |
+| --- | --- |
+| PowerShell guide flow | PASS: pack schema v1, 2-file verify, incremental 2/0 then 0/2, one-byte `E2003`, inspect digest, external-anchor match |
+| WSL/bash guide flow | PASS: temporary pack, JSON parsed with jq, one-byte tamper rejected with exit 1 and `E2003` |
+| Full CLI process suites | PASS: PowerShell 62/62 and bash 62/62 on JS |
+| Lightweight browser pages | PASS: index, tamper lab, and release `api.js` each returned HTTP 200 from the documented root server |
+| Integrated Showcase | PASS: documented dev command returned HTTP 200; TypeScript check and Vite production build passed |
+| Browser API smoke | PASS: 36/36 |
+| Fabric Gateway | PASS: install, check, build, 19/19 tests; `anchor-pack` rejected the tampered pack locally with schema v1, exit 1, stage `local_verify`, and `E2003` before network access |
+| Documentation links | PASS: changed local Markdown paths and fragments resolve |
+| Repository gates | PASS: metrics 47/47; package 233 files; branch guard; format; deny-warn check; generated interfaces unchanged |
+
+The existing 2026-07-11 Fabric deployment record remains the source for the
+block-6 transaction, two-organization query, duplicate submission, and
+ledger-backfed `E2003`/`E2004` results. This documentation round preserved the
+deployed protocol and revalidated the Gateway boundary around that record.
+
 ## Logging Rule
 
 Whenever a result is used in README, report, or application material, add or update an entry here with source, method, result, and confidence.

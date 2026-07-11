@@ -1,47 +1,152 @@
 # MoonEvidence 用户指南
 
-本指南用三个真实场景走通 MoonEvidence 的核心工作流。所有命令都可以在本仓库根目录直接复制运行（CLI 前置条件：`moon build --target js`；浏览器 demo 前置条件：`moon build --target js --release src/api`；有 C 编译器的机器也可用 native 产物）。
+MoonEvidence 将文件目录转换成可复核证据包，并在交付、归档或上链后重新检查内容。下面的任务都从仓库根目录开始，命令使用真实样例和稳定接口。
+
+## 开始之前
+
+日常使用只需要 MoonBit 和 Node.js。浏览器工作台、native CLI 和 Fabric 锚定按需增加环境。
+
+| 工具 | 用途 | 要求 |
+| --- | --- | --- |
+| MoonBit | 构建库和 CLI | 当前项目基线为 `moon 0.1.20260529` |
+| Node.js | 运行 JS CLI、Fabric Gateway 和网页工具 | CLI/Gateway 需要 20+，完整工作台需要 22+ |
+| Python | 启动轻量静态页面 | 任意带 `http.server` 的 Python 3，可选 |
+| C 编译器 | 构建 native CLI | Windows 可使用 MSVC，可选 |
+| Docker、Go、Fabric samples | 运行真实账本锚定 | 仅 Fabric 流程需要 |
+
+先确认工具并构建默认 JS CLI：
 
 ```powershell
-# 本指南统一使用 js 产物 + node；native 用户把命令换成可执行文件即可
+moon version
+node --version
 moon build --target js
-moon build --target js --release src/api
+
 $cli = "_build/js/debug/build/src/cmd/main/main.js"
+node $cli --version
+# moon-evidence 0.5.0
 ```
 
-## 证据包是什么
+bash 或 WSL 使用同一产物：
 
-一个证据包（evidence pack）就是一个目录：
+```bash
+moon build --target js
+cli="_build/js/debug/build/src/cmd/main/main.js"
+node "$cli" --version
+```
+
+Windows native 构建需要先加载 MSVC 环境。构建完成后的入口为 `_build/native/debug/build/src/cmd/main/main.exe`。完整环境说明见 [ENVIRONMENT.md](ENVIRONMENT.md)。
+
+## 选择入口
+
+| 任务 | 推荐入口 | 特点 |
+| --- | --- | --- |
+| 立即体验 | [在线工作台](https://wenlittle.github.io/MoonEvidence/#workbench/verify) | 内置完好包和篡改包，无需安装 |
+| 批量处理目录 | CLI | 适合脚本、CI 和归档流水线 |
+| 嵌入 MoonBit 项目 | MoonBit 库 | 直接传入 manifest 文本和文件字节 |
+| 内网浏览器复核 | `demo/web/` | 纯静态页面，文件留在浏览器 |
+| 交互式展示 | `showcase/` | 首页、工作台、篡改传播动画 |
+| 共享账本锚定 | Fabric Gateway | 本地验证后提交规范摘要 |
+
+CLI 是本指南的默认入口。浏览器和 Fabric 流程消费同一套 MoonBit 验证结果。
+
+## 创建证据包
+
+### 准备文件
+
+源目录可以包含任意层级的常规文件：
 
 ```text
-my-pack/
-├── manifest.json                 # 清单：登记每个文件的路径、大小、SHA-256 摘要
-├── files/                        # 被存证的文件（任意层级）
-│   └── ...
-└── versions/
-    └── version_chain.json        # 可选：版本演进的线性历史
+delivery/
+├── outputs/
+│   ├── report.pdf
+│   └── summary.json
+└── meta/
+    └── generation.json
 ```
 
-`manifest.json` 是唯一的事实来源。验证器回答一个问题：**目录里的字节和清单承诺的字节是否完全一致？** 任何偏离都会映射到一个冻结的错误码，完整定义见[证据包规范](spec/EVIDENCE_PACK_SPEC.md#error-codes-frozen)。
+`pack` 会复制目录内容，并创建新的证据包：
 
-MoonEvidence 是**验证方**，不规定外部系统使用什么语言。日常打包可直接使用 `pack`：它复制源目录、生成 manifest，并返回可供脚本或账本适配器消费的规范摘要。仓库内 `tools/gen-fixtures.mjs` 仍作为独立 Node 参考实现，用于交叉验证而不是生产语义来源。
+```text
+delivery-evidence-pack/
+├── manifest.json
+└── files/
+    ├── outputs/
+    └── meta/
+```
 
----
+### PowerShell
 
-## 场景一：数据集归档存证
+下面的命令使用仓库样例创建一份临时证据包：
 
-**背景**：课题组发布一份数据集，半年后审稿人质疑数据是否被改过。如果发布时打包成证据包，验证只需一条命令。
+```powershell
+$pack = Join-Path $env:TEMP "moon-evidence-guide-pack"
+Remove-Item -LiteralPath $pack -Recurse -Force -ErrorAction SilentlyContinue
 
-### 1. 验证一个完好的包
+node $cli pack examples/valid-pack/files `
+  -o $pack `
+  --subject-id review-001 `
+  --subject-type dataset `
+  --json
+```
+
+### bash 或 WSL
+
+```bash
+workspace="$(mktemp -d)"
+pack="$workspace/moon-evidence-guide-pack"
+
+node "$cli" pack examples/valid-pack/files \
+  -o "$pack" \
+  --subject-id review-001 \
+  --subject-type dataset \
+  --json
+```
+
+成功结果使用固定 schema：
+
+```json
+{
+  "algorithm": "sha256",
+  "files_total": 2,
+  "manifest_digest": "sha256:<64 lowercase hex>",
+  "manifest_path": ".../moon-evidence-guide-pack/manifest.json",
+  "merkle_root": "sha256:<64 lowercase hex>",
+  "ok": true,
+  "pack_path": ".../moon-evidence-guide-pack",
+  "schema": "moon-evidence-pack-result/v1",
+  "subject": { "id": "review-001", "type": "dataset" },
+  "version": { "id": "v1", "parent": null }
+}
+```
+
+常用选项：
+
+| 选项 | 作用 | 默认值 |
+| --- | --- | --- |
+| `--subject-id` | 证据对象标识 | 源目录名称 |
+| `--subject-type` | 对象类别 | `generic` |
+| `--algorithm` | 文件和清单摘要算法 | `sha256`，也支持 `sha512` |
+| `--version-id` | 当前版本标识 | `v1` |
+| `--version-parent` | 上一版本标识 | 空 |
+| `-o`、`--output` | 新证据包目录 | `<source>-evidence-pack` |
+| `--json` | 输出机器可读结果 | 关闭 |
+
+输出目录必须是新路径。创建过程发生错误时，CLI 会清理已经生成的不完整目录。`seal` 是 `pack` 的等价命令。
+
+## 验证证据包
+
+### 查看结论
 
 ```powershell
 node $cli verify examples/valid-pack
-# 退出码 0；输出 verification OK
 ```
 
-### 2. 看一份"被改过的数据集"长什么样
+```text
+verification OK
+checked 2 files, 2 passed; merkle root verified; 0 errors, 0 warnings
+```
 
-`examples/tampered-pack` 与 valid-pack 结构相同，但 `files/a.txt` 的内容被改动过：
+`explain` 使用相同验证流程，并把每条异常展开成可读诊断：
 
 ```powershell
 node $cli explain examples/tampered-pack
@@ -49,104 +154,241 @@ node $cli explain examples/tampered-pack
 
 ```text
 verification FAILED
-  [E2003] files/a.txt: digest mismatch, expected sha256:a948904f.. got sha256:7509e5bd..
+  [E2003] files/a.txt: digest mismatch, expected sha256:a948... got sha256:7509...
 checked 2 files, 1 passed; merkle root verified; 1 error, 0 warnings
 ```
 
-报告是**完备式**的（不是遇错即停）：所有文件的问题一次列全，修复一轮即可。
-
-### 3. 脚本化消费
+### 读取机器结果
 
 ```powershell
-node $cli verify --json examples/tampered-pack
-# {"findings":[{"code":"E2003",...}],"ok":false,"stats":{...}}
-# 退出码：0 通过 / 1 失败 / 2 用法或 IO 错误
+node $cli verify --json examples/valid-pack
 ```
 
-JSON 报告是规范化 JSON（RFC 8785 键序），同一验证结果的报告字节恒定——报告本身也可以被摘要、被存证。
-
----
-
-## 场景二：AI 产物审计
-
-**背景**：团队交付一批模型生成产物（图像、文本、权重），需要向客户证明"交付之后没人动过"，包括生成参数等元数据。
-
-### 1. 打包思路
-
-把产物与元数据都放进 `files/`，让 manifest 为每个文件作证：
-
-```text
-ai-delivery/
-├── manifest.json
-└── files/
-    ├── outputs/sample-001.png
-    ├── outputs/sample-002.png
-    └── meta/generation-params.json   # 模型、种子、提示词……同样被摘要锁定
+```json
+{"findings":[],"ok":true,"stats":{"files_passed":2,"files_total":2,"merkle_checked":true}}
 ```
 
-`subject` 字段标明被存证对象（`"type": "dataset"` 等任意词汇均可，详见规范）。
+| 退出码 | 含义 | 脚本动作 |
+| --- | --- | --- |
+| `0` | 命令成功，或所有证据包验证通过 | 继续后续流程 |
+| `1` | 验证完成，并拒绝至少一个证据包 | 读取 `findings` |
+| `2` | 参数、路径、权限或网络错误 | 修复运行环境 |
 
-### 2. 现场篡改演示（可在本仓库实际运行）
+### 批量验证
 
 ```powershell
-# 复制一份完好的包，改动一个字节，再验证
-Copy-Item -Recurse examples/valid-pack $env:TEMP/audit-demo -Force
-[IO.File]::AppendAllText("$env:TEMP/audit-demo/files/a.txt", "x")
-node $cli explain $env:TEMP/audit-demo
-# [E2003] files/a.txt: digest mismatch ...  —— 单字节篡改即被抓住
-Remove-Item -Recurse -Force $env:TEMP/audit-demo
+node $cli verify examples/valid-pack examples/tampered-pack
 ```
 
-### 3. 浏览器端复核（审计方无需安装任何东西）
+CLI 会逐包输出结论，并在末尾汇总通过数和失败数。任意证据包被拒绝时，整次命令返回退出码 `1`。
 
-审计方拿到包后，打开 `demo/web/` 页面（任何静态托管均可），选择包目录——验证在浏览器本地完成，文件不上传第三方。结论与 CLI 逐字节一致。
+### 重复验证
 
-### 4. 警告语义
-
-如果包里出现 manifest 没登记的文件，报告给出 `W1001` 警告但不判失败——"多出来的东西"与"承诺的东西被改"是两种风险等级，由审计策略自行决定是否接受。
-
----
-
-## 场景三：上链前校验与版本锚点
-
-**背景**：要把某份资料的确定状态锚定到共享账本。文件、路径和完整 manifest 留在本地，链上只保存 **manifest 的规范摘要**。MoonEvidence 已提供从本地打包、验证、Fabric 提交、双组织查询到摘要回灌复核的完整路径。
-
-### 1. 一条命令打包并得到锚点
+可信本地环境可以保存摘要缓存，减少重复读取：
 
 ```powershell
-node $cli pack .\my-files -o .\my-pack --subject-id dataset-001 --json
-node $cli inspect --json .\my-pack
-node $cli verify --json .\my-pack
+$cache = Join-Path $env:TEMP "moon-evidence-guide-cache"
+New-Item -ItemType Directory -Force $cache | Out-Null
+
+node $cli verify --incremental $cache examples/valid-pack
+# incremental: 2 rehashed, 0 skipped
+
+node $cli verify --incremental $cache examples/valid-pack
+# incremental: 0 rehashed, 2 skipped
 ```
 
-manifest 会先按 RFC 8785 规范化再摘要，因此空格和键序不改变锚点。`inspect` 只读取并解释 manifest；提交前仍必须运行 `verify` 检查真实文件字节。`anchor-pack` 会自动执行这两个步骤。
+增量缓存属于受信任的本地性能状态。外部交付、上链提交、缓存权限变化和正式验收使用完整 `verify`，重新读取全部文件。
 
-### 2. 提交到 Hyperledger Fabric
+## 定位篡改
 
-先按 [Fabric 集成指南（源码仓库）](https://github.com/wenlittle/MoonEvidence/blob/main/integrations/fabric/README.md) 部署 `moonevidence` Chaincode，并把真实连接配置放在 Git 忽略的 `.local/` 目录。然后从仓库根目录执行：
+### 修改一个字节
+
+PowerShell：
 
 ```powershell
+$lab = Join-Path $env:TEMP "moon-evidence-tamper-lab"
+Remove-Item -LiteralPath $lab -Recurse -Force -ErrorAction SilentlyContinue
+Copy-Item -LiteralPath examples/valid-pack -Destination $lab -Recurse
+
+$target = Join-Path $lab "files/a.txt"
+$bytes = [IO.File]::ReadAllBytes($target)
+$bytes[0] = $bytes[0] -bxor 1
+[IO.File]::WriteAllBytes($target, $bytes)
+
+node $cli explain $lab
+```
+
+bash 或 WSL：
+
+```bash
+lab="$(mktemp -d)/pack"
+cp -R examples/valid-pack "$lab"
+
+node -e 'const fs=require("fs");const p=process.argv[1];const b=fs.readFileSync(p);b[0]^=1;fs.writeFileSync(p,b)' \
+  "$lab/files/a.txt"
+
+node "$cli" explain "$lab"
+```
+
+文件长度保持不变，`E2003` 仍会指出内容摘要变化。验证器会继续检查剩余文件，并在一次报告中列出全部发现。
+
+### 检查额外文件
+
+证据包中出现清单未登记的文件时，验证器返回 `W1001`。警告不会直接把报告改成失败，调用方可以根据归档策略决定是否接收。
+
+### 对照历史锚点
+
+`inspect` 输出当前清单的规范摘要：
+
+```powershell
+$metadata = node $cli inspect --json examples/valid-pack | ConvertFrom-Json
+$metadata.manifest_digest
+# sha256:16bbf1e91de3acfb8bd9091233926b454045c6d96c24327baec20272af583f1e
+```
+
+将归档系统或账本保存的摘要传回验证器：
+
+```powershell
+node $cli verify --json `
+  --expected-manifest-digest $metadata.manifest_digest `
+  examples/valid-pack
+```
+
+当前清单和历史摘要不一致时，报告返回 `E2004`。这条检查可以识别文件和清单被一起重新生成后的历史变化。
+
+| 结果 | 表示的变化 |
+| --- | --- |
+| `E2003` | 当前文件字节和 manifest 登记值不同 |
+| `E2004` | 当前 manifest 和外部历史摘要不同 |
+| `E3003` | manifest 中的文件条目和 Merkle 根不同 |
+| `W1001` | 证据包包含未登记文件 |
+
+完整错误码定义见[证据包规范](spec/EVIDENCE_PACK_SPEC.md#error-codes-frozen)。
+
+## 接入脚本
+
+### PowerShell
+
+```powershell
+$json = node $cli verify --json examples/valid-pack
+$status = $LASTEXITCODE
+
+if ($status -eq 2) {
+  Write-Error $json
+  exit $status
+}
+
+$report = $json | ConvertFrom-Json
+
+if ($status -eq 0 -and $report.ok) {
+  Write-Host "证据包通过，共检查 $($report.stats.files_total) 个文件"
+} else {
+  $report.findings | Format-Table code, path, message
+  exit $status
+}
+```
+
+### bash 或 WSL
+
+下面的示例使用 `jq` 读取结果：
+
+```bash
+report="$(node "$cli" verify --json examples/valid-pack)"
+status=$?
+
+if [ "$status" -eq 2 ]; then
+  printf '%s\n' "$report" >&2
+  exit "$status"
+elif [ "$status" -eq 0 ] && [ "$(jq -r '.ok' <<<"$report")" = "true" ]; then
+  jq -r '"evidence passed: \(.stats.files_total) files"' <<<"$report"
+else
+  jq -r '.findings[] | "[\(.code)] \(.path): \(.message)"' <<<"$report"
+  exit "$status"
+fi
+```
+
+自动化程序使用 `schema`、`ok`、`error.code`、`findings[].code` 和进程退出码做分支。人类可读的 `message` 允许随诊断质量改进，不作为稳定字段。
+
+MoonBit 应用可以直接调用 `@create.create_manifest` 和 `@verify.verify_manifest`。可编译的最小示例见项目 [README](../README.md#moonbit-接入)，完整接口以 `pkg.generated.mbti` 为准。
+
+## 浏览器复核
+
+### 在线工作台
+
+[验证工作台](https://wenlittle.github.io/MoonEvidence/#workbench/verify) 可以加载内置样例和本地证据包。[篡改实验](https://wenlittle.github.io/MoonEvidence/#workbench/tamper) 会展示文件摘要、Merkle 根和验证结论的同步变化。
+
+计算发生在浏览器 Web Worker 中，本地文件不会上传到服务端。
+
+### 本地工作台
+
+完整工作台使用 Node.js 22 或更高版本：
+
+```powershell
+npm --prefix showcase ci
+npm --prefix showcase run dev
+```
+
+Vite 会打印本地地址。生产构建使用：
+
+```powershell
+npm --prefix showcase run build
+npm --prefix showcase run preview -- --host 127.0.0.1 --port 4173
+```
+
+### 轻量静态页面
+
+`demo/web/` 提供拖拽验证页和 Merkle 篡改实验页。先构建 release 浏览器产物，再从仓库根目录启动 HTTP 服务：
+
+```powershell
+moon build --target js --release src/api
+python -m http.server 8000
+```
+
+打开：
+
+- `http://localhost:8000/demo/web/index.html`
+- `http://localhost:8000/demo/web/tamper-lab.html`
+
+页面通过 ES module 加载 `_build/js/release/build/src/api/api.js`，因此需要 HTTP 服务。完整说明见 [`demo/README.md`](../demo/README.md)。
+
+## Fabric 锚定
+
+Fabric 流程在本地验证通过后提交规范摘要。完整清单和文件留在链下，交易回执保留交易 ID、区块号和验证状态。
+
+下面的命令假定 `evidencechannel`、`moonevidence` Chaincode 和本地 Gateway profile 已准备完成。部署和身份配置见 [Fabric 集成指南](../integrations/fabric/README.md)。
+
+### 构建适配器
+
+```powershell
+moon build --target js
 npm --prefix integrations/fabric/gateway ci
+npm run fabric:check
+npm run fabric:test
 npm run fabric:build
 
 $gateway = "integrations/fabric/gateway/dist/src/cli.js"
 $profile = "integrations/fabric/gateway/.local/org1.json"
-$receipt = node $gateway anchor-pack examples/valid-pack `
+```
+
+### 提交摘要
+
+`anchor-pack` 会执行 `inspect`、完整 `verify` 和链上提交：
+
+```powershell
+$anchor = node $gateway anchor-pack examples/valid-pack `
   --profile $profile `
   --moon-cli $cli `
   --json | ConvertFrom-Json
 
-$receipt.receipt.commit
-# transaction_id / block_number / status_code=0 / successful=true
+$digest = $anchor.receipt.manifest_digest
+$anchor.receipt.commit
 ```
 
-提交参数只有 `sha256:<64位小写hex>`（也兼容 SHA-512）。链上状态不包含文件、文件名、路径、逐文件摘要、Merkle 叶子、完整 manifest 或本地凭据。
+成功回执包含 `status_code: 0`、区块号和 `successful: true`。Fabric 账本记录中的验证状态为 `VALID`。
 
-### 3. 从账本查询并回灌验证
+### 查询复核
 
 ```powershell
-$digest = $receipt.receipt.manifest_digest
-
 node $gateway query `
   --profile $profile `
   --manifest-digest $digest `
@@ -159,43 +401,26 @@ node $gateway verify-anchor examples/valid-pack `
   --json
 ```
 
-`verify-anchor` 先查询链上不可变记录，再把查询键对应的 digest 交给 MoonEvidence 的 `--expected-manifest-digest`。一次调用同时覆盖 Fabric 记录存在性和本地证据完整性。
+`verify-anchor` 查询账本记录，并把原始摘要回传给 MoonEvidence。文件变化触发 `E2003`；围绕变化文件重新生成 manifest 后，对照原始锚点触发 `E2004`。
 
-库 API 也支持同一条回灌边界：
+WSL 使用相同参数，将 PowerShell 续行符改为 `\`，并在 profile 中填写 Linux 证书路径。Windows Node.js 也可以通过 `\\wsl.localhost\<distribution>\...` 读取 WSL 中的 test-network 身份文件。
 
-库 API `verify_manifest` 支持传入外部记录的摘要（例如从链上交易里读出的值）：
+2026-07-11 的双组织实验记录了 block 6 `VALID` 首笔交易、Org1/Org2 一致查询、重复提交和两类篡改回灌结果。完整产物位于 [Fabric E2E 记录](records/fabric-e2e/2026-07-11/)。
 
-```moonbit
-let report = @verify.verify_manifest(
-  manifest_text,
-  files,
-  expected_manifest_digest="sha256:16bbf1e91de3acfb8bd9091233926b454045c6d96c24327baec20272af583f1e",
-)
-// 不一致时报告 E2004：canonical digest mismatch
-```
+## 版本记录
 
-这样一次验证同时回答三层问题：文件 ↔ manifest 一致（E2003）、manifest ↔ 链上锚点一致（E2004）、条目 ↔ Merkle 根一致（E3003）。
-
-### 4. 两种篡改会被不同层抓住
+创建证据包时可以登记当前版本和父版本：
 
 ```powershell
-# 文件被改，manifest 没改：E2003
-node $gateway verify-anchor examples/tampered-pack `
-  --profile $profile --manifest-digest $digest --moon-cli $cli --json
-
-# 攻击者连 manifest 一起重建：本地文件自洽，但旧链上摘要触发 E2004
-Remove-Item -Recurse -Force "$env:TEMP\fabric-repacked" -ErrorAction SilentlyContinue
-node $cli pack examples/tampered-pack/files `
-  -o "$env:TEMP\fabric-repacked" --subject-id golden-pack --subject-type dataset
-node $gateway verify-anchor "$env:TEMP\fabric-repacked" `
-  --profile $profile --manifest-digest $digest --moon-cli $cli --json
+node $cli pack .\release-v2 `
+  -o .\release-v2-pack `
+  --subject-id dataset-001 `
+  --version-id v2 `
+  --version-parent v1 `
+  --json
 ```
 
-真实双组织实验的首笔 `VALID` 交易、区块号、双组织查询、重复提交以及这两个拒绝结果，已脱敏保存在 [Fabric E2E 记录](https://github.com/wenlittle/MoonEvidence/tree/main/docs/records/fabric-e2e/2026-07-11)。
-
-### 5. 版本链：多次发布的线性历史
-
-资料多次更新、多次上链时，`versions/version_chain.json` 记录线性演进：
+多版本历史放在 `versions/version_chain.json`：
 
 ```json
 [
@@ -205,20 +430,24 @@ node $gateway verify-anchor "$env:TEMP\fabric-repacked" `
 ]
 ```
 
-验证器检查链的**线性性**：唯一根（E4004）、父引用可达（E4002）、无环（E4003）、不分叉（E4004）。`examples/valid-pack` 自带单节点链可直接体验；CLI 在包目录存在 `versions/version_chain.json` 时自动验证并合并进报告。
+CLI 在验证证据包时自动读取该文件。验证规则包括唯一根节点、父引用可达、无环和无分叉。`examples/valid-pack` 提供可直接运行的单节点样例。
 
----
+每个证据包仍然独立保存当前版本内容。版本链负责描述发布顺序，外部锚点负责固定每次发布的清单摘要。
 
-## 排查速查
+## 故障排查
 
-| 现象 | 多半是 | 第一步 |
+| 现象 | 检查项 | 处理方式 |
 | --- | --- | --- |
-| `E1001` | manifest 不是合法 JSON | 检查 JSON 语法 |
-| `E1002` + `files[i].path` | 路径含 `..`、绝对路径、`\` 或盘符 | 路径必须是包内相对的 `/` 分隔形式 |
-| `E2003` 大面积出现 | 文件被改、或编辑器重写了换行符（CRLF） | 用 `.gitattributes` 把包子树标成 binary |
-| `E2004` | manifest 改过（哪怕只动了元数据） | 与链上/外部记录的版本核对 |
-| `E3003` | manifest 条目被改（树作证条目，不作证内容） | 与 E2003 一起读：双防线各抓各的 |
-| `W1001` | 包里有未登记文件 | 决定登记它或删除它 |
-| 退出码 2 | 路径不存在 / 文件读失败（E5001/E5002） | 检查路径与权限 |
+| 找不到 `moon` | MoonBit 未进入 `PATH` | 重启终端，或按 [ENVIRONMENT.md](ENVIRONMENT.md) 使用完整路径 |
+| 找不到 CLI JS | 尚未构建 debug JS 产物 | 运行 `moon build --target js` |
+| native 提示没有 C 编译器 | 当前终端未加载编译环境 | Windows 使用 x64 Native Tools Prompt 或 `vcvars64.bat` |
+| `pack` 拒绝输出目录 | 目标路径已经存在 | 选择新目录，或确认路径后清理旧输出 |
+| `E1001` | manifest 不是合法 JSON | 检查 JSON 语法和文件编码 |
+| `E1002` 指向路径 | 路径含 `..`、绝对路径、反斜杠或盘符 | 使用包内 `/` 分隔的相对路径 |
+| `E2003` | 文件缺失或字节变化 | 对照 `path`、期望摘要和实际摘要 |
+| `E2004` | 当前 manifest 和历史摘要不同 | 核对归档版本或账本交易 |
+| `W1001` | 包中存在未登记文件 | 登记文件，或从交付包移除 |
+| 浏览器模块加载失败 | release API 未构建，或页面通过 `file://` 打开 | 构建 `src/api` 并从仓库根目录启动 HTTP 服务 |
+| Fabric 连接失败 | profile、证书路径、TLS endpoint 或网络状态异常 | 先运行 Gateway 测试，再按集成指南检查身份配置 |
 
-更多：[架构说明](ARCHITECTURE.md) · [证据包规范](spec/EVIDENCE_PACK_SPEC.md) · [Fabric 集成](https://github.com/wenlittle/MoonEvidence/tree/main/integrations/fabric) · [浏览器 demo](../demo/web/index.html)
+更多技术定义：[架构文档](ARCHITECTURE.md) · [证据包规范](spec/EVIDENCE_PACK_SPEC.md) · [CLI 契约](spec/CLI_MACHINE_CONTRACT.md) · [Fabric 规范](spec/FABRIC_ANCHOR_SPEC.md)

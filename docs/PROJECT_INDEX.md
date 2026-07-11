@@ -25,7 +25,8 @@ anchors the verified manifest digest and feeds it back into verification.
 | `README.md` / `README.en.md` | Chinese primary project page and structurally matched English mirror |
 | `README.zh.md` | Compatibility entry for older Chinese README links |
 | `showcase/README.md` | Homepage/Workbench architecture, runtime data path, and launch commands |
-| `docs/GUIDE.md` | User guide with three real scenarios |
+| `demo/README.md` | Lightweight static browser pages, local launch path, and data boundary |
+| `docs/GUIDE.md` | Task-based guide for create, verify, automation, browser review, Fabric anchoring, and version records |
 | `docs/DEMO_SCRIPT.md` | 5-minute presentation demo script |
 | `docs/ARCHITECTURE.md` | Layered package structure and frozen public API |
 | `docs/DEVELOPMENT_REPORT.md` | Redirect to the authoritative report (single line) |
@@ -33,7 +34,7 @@ anchors the verified manifest digest and feeds it back into verification.
 | `docs/spec/EVIDENCE_PACK_SPEC.md` | Minimal evidence pack schema and verification semantics |
 | `docs/spec/CLI_MACHINE_CONTRACT.md` | Versioned CLI JSON and external-digest process contract |
 | `docs/spec/FABRIC_ANCHOR_SPEC.md` | Fabric state, transaction, privacy, idempotency, and error contract |
-| `integrations/fabric/README.md` | Chaincode deployment, local profiles, Gateway CLI, and Node API |
+| `integrations/fabric/README.md` | Chaincode deployment, local profiles, Gateway CLI, Node API, and recorded evidence |
 | `docs/ENVIRONMENT.md` | Toolchain prerequisites and current environment state |
 | `docs/CODE_GUIDELINES.md` | Code style, comments, tests, and public API rules |
 | `docs/ROADMAP.md` | Phased implementation plan and future directions |

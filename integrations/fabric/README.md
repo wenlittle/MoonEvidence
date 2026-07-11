@@ -5,6 +5,8 @@ Fabric ledger anchor. The MoonBit CLI remains the authority for evidence-pack
 semantics; the TypeScript adapter transports its canonical manifest digest,
 and the Go chaincode stores that digest once.
 
+[Chinese task guide](../../docs/GUIDE.md#fabric-锚定) · [Anchor contract](../../docs/spec/FABRIC_ANCHOR_SPEC.md) · [Recorded experiment](../../docs/records/fabric-e2e/2026-07-11/)
+
 ```text
 source directory
   -> moon-evidence pack / inspect / verify
@@ -16,9 +18,9 @@ source directory
   -> moon-evidence verify --expected-manifest-digest
 ```
 
-Neither the adapter nor the chaincode recalculates manifest, file, or Merkle
-semantics. Files, paths, per-file digests, Merkle leaves, credentials, and the
-full manifest stay off-chain.
+Evidence semantics stay inside the MoonBit CLI. The adapter and chaincode
+receive its canonical digest. Files, paths, per-file digests, Merkle leaves,
+credentials, and the full manifest stay off-chain.
 
 ## Components
 
@@ -50,8 +52,8 @@ From `fabric-samples/test-network`:
 ```
 
 If the network is already running, create and join `evidencechannel` with the
-same test-network scripts instead of taking the network down. Do not reuse a
-course or development channel merely to run this experiment.
+same test-network scripts. A dedicated channel keeps the evidence experiment
+isolated from course and application traffic.
 
 ## 2. Test And Deploy The Chaincode
 
@@ -92,7 +94,8 @@ peer lifecycle chaincode querycommitted \
 Copy `gateway/profiles/test-network-org1.example.json` to a file under
 `gateway/.local/` and replace the three certificate/key paths with the test
 network's actual files. `gateway/.local/` and `profiles/*.local.json` are Git
-ignored. Never commit a private key or a real identity profile.
+ignored. Keep private keys and real identity profiles in those local paths;
+commit only the example profile shape.
 
 On Windows, Node.js can read a WSL identity through a UNC path such as:
 

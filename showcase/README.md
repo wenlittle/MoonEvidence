@@ -4,10 +4,12 @@ The public product homepage and native Evidence Workbench for MoonEvidence.
 
 [Open the live experience](https://wenlittle.github.io/MoonEvidence/)
 
+[Chinese user guide](../docs/GUIDE.md#浏览器复核) · [Verification workbench](https://wenlittle.github.io/MoonEvidence/#workbench/verify) · [Tamper lab](https://wenlittle.github.io/MoonEvidence/#workbench/tamper)
+
 ## Surfaces
 
-The root route is an immersive introduction rather than an operations screen.
-It uses a centered product hero and a four-chapter scroll narrative:
+The root route provides an immersive introduction with a centered product hero
+and a four-chapter scroll narrative:
 
 1. material enters an evidence pack;
 2. a reviewable credential is formed;

@@ -14,23 +14,23 @@ Sources:
 MoonEvidence meets the guide's repository-side hard gates in the local checkout:
 valid MoonBit project, root license, README, examples, tests, `moon check`,
 `moon test`, `moon info && git diff --exit-code`, Mooncakes publication, and
-clear engineering purpose. The remaining external confirmation is the latest
-GitHub Actions `main` run turning green on the hosting page.
+clear engineering purpose. GitHub Actions `main` CI and Showcase Pages are
+both green for the Fabric integration baseline.
 
 ## Hard Gates
 
 | Gate | Status | Evidence |
 | --- | --- | --- |
-| Valid MoonBit project | Pass | `moon.mod` declares `starlittle/MoonEvidence` v0.4.1 with Apache-2.0 license and GitHub repository metadata |
+| Valid MoonBit project | Pass | `moon.mod` declares `starlittle/MoonEvidence` v0.5.0 with Apache-2.0 license and GitHub repository metadata |
 | Standard check/test | Pass | Local `moon check --deny-warn`; local `moon test --deny-warn --target wasm,wasm-gc,js` passed 347/347 per backend; native passes on Windows/MSVC and remains required in CI |
 | Public interface drift | Pass | `moon info && git diff --exit-code -- '**/pkg.generated.mbti'` passed locally |
 | Formatting | Pass | `moon fmt --check` passed locally |
-| Packaging | Pass | `moon package` produced `_build/publish/starlittle-MoonEvidence-0.4.1.zip` |
+| Packaging | Pass | `moon package` produced `_build/publish/starlittle-MoonEvidence-0.5.0.zip` |
 | Package hygiene | Pass | `tools/check-package-contents.mjs` keeps contest materials, local records, root Node metadata, and optional Go/TypeScript Fabric integration out of the Mooncakes package |
-| Mooncakes publication | Pass | `starlittle/MoonEvidence` v0.4.1 is published; version matches `moon.mod` |
+| Mooncakes publication | Pass | `starlittle/MoonEvidence` v0.5.0 is published; version matches `moon.mod` |
 | License | Pass | Root `LICENSE` is Apache-2.0 |
 | README and examples | Pass | Bilingual README, `docs/GUIDE.md`, examples, browser workbench, CLI machine contract, and Fabric integration guide describe runnable local and ledger-backed flows |
-| Repository CI | Pass locally, remote pending page check | MoonBit required job covers standard gates and 62-case dual-shell CLI/fuzz/property/differential/mutation; separate required Fabric job covers Go vet/race/coverage and Gateway TypeScript build/test |
+| Repository CI | Pass locally and remotely | MoonBit required job covers standard gates and 62-case dual-shell CLI/fuzz/property/differential/mutation; separate required Fabric job covers Go vet/race/coverage and Gateway TypeScript build/test |
 | Declared core function | Pass | Real Fabric v3.1.4 two-organization record proves anchor/query/duplicate/backfeed beyond unit mocks; sanitized tx/block/status and E2003/E2004 results are committed under `docs/records/fabric-e2e/` |
 | Repository surface | Pass | Public tree keeps source, reusable docs, examples, tests, and CI; local agent folders and legacy root course-report artifacts are ignored/removed |
 

@@ -188,13 +188,12 @@ CLI, in CI's three-backend matrix, and in the browser.
 
 ## Quick Start (CLI)
 
-Mooncakes registry version: `starlittle/MoonEvidence` v0.4.1.
+Mooncakes registry version: `starlittle/MoonEvidence` v0.5.0.
 
-The published v0.4.1 package is the stable MoonBit library baseline. Repository
-HEAD is the next minor release candidate and adds the `pack`/`inspect`
-machine contract, external-anchor verification, and the repository-level
-Fabric adapter described below. Build this checkout to exercise those paths;
-they are tracked under `Unreleased` in the changelog.
+Version 0.5.0 adds the `pack`/`inspect` machine contract and external-anchor
+verification to the MoonBit package. The repository also ships the optional
+Fabric adapter described below; that adapter remains outside the Mooncakes
+artifact so the reusable MoonBit library keeps its existing dependency boundary.
 
 ```powershell
 moon add starlittle/MoonEvidence

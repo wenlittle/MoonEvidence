@@ -335,3 +335,20 @@ Reason:
   mock or chaincode-only unit test.
 - It does not represent a production consortium or legal timestamp service,
   so those operational properties must not be inferred from the experiment.
+
+## 2026-07-11: Fabric integration ships as v0.5.0
+
+Decision: Release the additive MoonBit machine contract and external-anchor
+verification as v0.5.0. Keep the Go/TypeScript Fabric adapter in the repository
+but outside the Mooncakes artifact.
+
+Reason:
+
+- `pack`, `inspect`, and external digest verification add public behavior, so a
+  minor version communicates the expanded surface more accurately than another
+  0.4.x patch.
+- Existing MoonBit core signatures and evidence schemas remain compatible;
+  this is not a breaking major-version change.
+- Excluding `integrations/` preserves the dependency and portability contract
+  of the published MoonBit library while still delivering a reproducible real
+  ledger integration alongside it.

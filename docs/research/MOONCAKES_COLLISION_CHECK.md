@@ -117,4 +117,16 @@ Result: the installable Mooncakes package now matches the current repository
 package hygiene rules and reviewer-facing documentation. The version-sync gate
 is `moon.mod` 0.4.1 == Mooncakes 0.4.1.
 
-Rerun this before project application and before final submission because Mooncakes changes quickly. Last recheck: 2026-07-08 (1485 modules).
+## Recheck 2026-07-11 (Fabric integration release)
+
+Before publishing, the registry contained **1559 modules** and reported
+`starlittle/MoonEvidence` v0.4.1. The v0.5.0 release promotes the additive
+MoonBit machine contract and external-anchor verification; the Go/TypeScript
+Fabric integration remains repository-only and outside the Mooncakes artifact.
+
+Result: `moon.mod` 0.5.0, CLI version, changelog, Git tag, GitHub Release, and
+Mooncakes v0.5.0 are synchronized. The RFC 8785/JCS uniqueness conclusion is
+unchanged because the Fabric adapter adds a deployment boundary rather than a
+competing core implementation.
+
+Rerun this before project application and before final submission because Mooncakes changes quickly. Last recheck: 2026-07-11 (1559 modules before v0.5.0 publication).
